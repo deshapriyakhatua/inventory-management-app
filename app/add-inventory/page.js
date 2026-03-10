@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
+import Toast from "../../components/Toast/Toast";
 
 export default function AddInventory() {
     const [inventoryId, setInventoryId] = useState("");
-    const [brand, setBrand] = useState("");
+    const [verticalShort, setVerticalShort] = useState("");
     const [vertical, setVertical] = useState("");
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
@@ -17,14 +18,11 @@ export default function AddInventory() {
     const [loadingInventoryItems, setLoadingInventoryItems] = useState(true);
     const [deleteButtonLoading, setDeleteButtonLoading] = useState(false);
     const [deletingItemId, setDeletingItemId] = useState(null);
-    const [brands, setBrands] = useState([]);
-    const [loadingBrands, setLoadingBrands] = useState(true);
     const [verticals, setVerticals] = useState([]);
     const [loadingVerticals, setLoadingVerticals] = useState(true);
 
 
     useEffect(() => {
-        loadBrands();
         loadVerticals();
         loadData();
     }, []);
@@ -66,44 +64,6 @@ export default function AddInventory() {
             return [];
         } finally {
             setLoadingInventoryItems(false);
-        }
-    };
-
-    const loadBrands = async () => {
-        const data = await fetchBrands();
-        setBrands(data);
-    };
-
-    const fetchBrands = async () => {
-        setLoadingBrands(true);
-        const payload = {
-            pin: sessionStorage.getItem("app_pin"), // Authenticate
-            action: "getBrand",
-            pageSize: 100, // Get all brands for the dropdown
-            sort: "name_asc"
-        };
-        try {
-            const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "text/plain;charset=utf-8",
-                },
-                body: JSON.stringify(payload),
-            });
-
-            const result = await response.json();
-
-            if (result.status === 200) {
-                return result.data; // Array of 5 latest items
-            } else {
-                console.error("API Error:", result.message);
-                return [];
-            }
-        } catch (error) {
-            console.error("Network Error:", error);
-            return [];
-        } finally {
-            setLoadingBrands(false);
         }
     };
 
@@ -166,12 +126,15 @@ export default function AddInventory() {
             const result = await response.json();
 
             if (result.status === 200) {
+                setMessage({ text: "Inventory deleted successfully.", type: "success" });
                 loadData();
             } else {
                 console.error("API Error:", result.message);
+                setMessage({ text: "Failed to delete inventory.", type: "error" });
             }
         } catch (error) {
             console.error("Network Error:", error);
+            setMessage({ text: "Network error. Please try again.", type: "error" });
         } finally {
             setDeleteButtonLoading(false);
             setDeletingItemId(null);
@@ -183,8 +146,8 @@ export default function AddInventory() {
         try {
             setIsGenerating(true);
             setMessage({ text: "", type: "" });
-            if (!brand || !vertical) {
-                setMessage({ text: "Please enter both Brand and Vertical to generate an ID.", type: "error" });
+            if (!vertical) {
+                setMessage({ text: "Please enter Vertical to generate an ID.", type: "error" });
                 return;
             }
             const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
@@ -192,16 +155,17 @@ export default function AddInventory() {
                 body: JSON.stringify({
                     pin: sessionStorage.getItem("app_pin"),
                     action: "generateId",
-                    brand: brand,
-                    vertical: vertical
+                    vertical: verticalShort
                 }),
             });
 
             const result = await response.json();
             if (result.status === 200) {
                 setInventoryId(result.message); // This sets 'CZ-ER-004'
+                setMessage({ text: "Inventory ID generated successfully.", type: "success" });
             } else {
                 setMessage({ text: "Failed to generate ID: " + (result.message || "Unknown error"), type: "error" });
+                console.error("API Error:", result.message);
             }
         } catch (error) {
             console.error("Error generating ID:", error);
@@ -258,7 +222,6 @@ export default function AddInventory() {
                 pin: storedPin,
                 action: "addInventory",
                 id: inventoryId,
-                brand: brand,
                 vertical: vertical,
                 imageName: imageFile ? imageFile.name : "",
                 imageMimeType: imageFile ? imageFile.type : "",
@@ -280,22 +243,8 @@ export default function AddInventory() {
             if (result.status === 200) {
                 setMessage({ text: "Inventory item added successfully!", type: "success" });
 
-                // Add to recent items
-                const newItem = {
-                    id: inventoryId,
-                    brand: brand,
-                    vertical: vertical,
-                    imagePreview: imagePreview || "" // Store base64 preview
-                };
-                setRecentItems(prev => {
-                    const updatedList = [newItem, ...prev].slice(0, 5);
-                    localStorage.setItem("recent_inventory", JSON.stringify(updatedList));
-                    return updatedList;
-                });
-
                 // Reset form
                 setInventoryId("");
-                setBrand("");
                 setVertical("");
                 setImageFile(null);
                 setImagePreview(null);
@@ -320,39 +269,22 @@ export default function AddInventory() {
 
                 <form onSubmit={handleSubmit} className={styles.form}>
 
-                    {/* Brand Section */}
-                    <div className={styles.inputGroup}>
-                        <label htmlFor="brand" className={styles.label}>Brand</label>
-                        <select
-                            id="brand"
-                            value={brand}
-                            onChange={(e) => setBrand(e.target.value)}
-                            className={styles.input}
-                            disabled={isLoading || loadingBrands}
-                        >
-                            <option value="">Select a brand</option>
-                            {brands.map((b) => (
-                                <option key={b.brandName} value={b.brandShort}>
-                                    {`${b.brandShort} - ${b.brandName}`}
-                                </option>
-                            ))}
-                        </select>
-
-                    </div>
-
                     {/* Vertical Section */}
                     <div className={styles.inputGroup}>
                         <label htmlFor="vertical" className={styles.label}>Vertical</label>
                         <select
                             id="vertical"
-                            value={vertical}
-                            onChange={(e) => setVertical(e.target.value)}
+                            value={`${verticalShort} - ${vertical}`}
+                            onChange={(e) => {
+                                setVertical(e.target.value.split(' - ')[1]);
+                                setVerticalShort(e.target.value.split(' - ')[0]);
+                            }}
                             className={styles.input}
                             disabled={isLoading || loadingVerticals}
                         >
                             <option value="">Select a vertical</option>
                             {verticals.map((v) => (
-                                <option key={v.verticalName} value={v.verticalShort}>
+                                <option key={v.verticalName} value={`${v.verticalShort} - ${v.verticalName}`}>
                                     {`${v.verticalShort} - ${v.verticalName}`}
                                 </option>
                             ))}
@@ -417,7 +349,7 @@ export default function AddInventory() {
                     <button
                         type="submit"
                         className={styles.submitBtn}
-                        disabled={isLoading || (!inventoryId && !imageFile)}
+                        disabled={isLoading || (!inventoryId || !imageFile)}
                     >
                         {isLoading ? "Adding Item..." : "Add to Inventory"}
                     </button>
@@ -425,11 +357,10 @@ export default function AddInventory() {
                 </form>
 
                 {/* Feedback Message */}
-                {message.text && (
-                    <div className={`${styles.message} ${styles[message.type]}`}>
-                        {message.text}
-                    </div>
-                )}
+                <Toast
+                    message={message}
+                    onClose={() => setMessage({ text: "", type: "" })}
+                />
             </div>
 
             {/* Recent Inventory Section */}
@@ -437,7 +368,21 @@ export default function AddInventory() {
                 <div className={styles.recentSection}>
                     <h2 className={styles.recentTitle}>Recently Added (Last {recentItems.length})</h2>
                     {loadingInventoryItems
-                        ? <p>Loading...</p>
+                        ? <div className={styles.recentGrid}>
+                            {Array.from({ length: 5 }).map((_, index) => (
+                                <div key={index} className={styles.recentCard}>
+                                    <div className={styles.recentImageContainer}>
+                                        <div className={styles.recentImagePlaceholder}>
+                                            <p>Loading...</p>
+                                        </div>
+                                    </div>
+                                    <div className={styles.recentInfo}>
+                                        <p className={styles.recentId}>Loading...</p>
+                                        <p className={styles.recentDate}>Loading...</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                         : <div className={styles.recentGrid}>
                             {recentItems.map((item) => (
                                 <div key={item.id} className={styles.recentCard}>
@@ -492,6 +437,7 @@ export default function AddInventory() {
                     }
                 </div>
             )}
+
         </div>
     );
 }

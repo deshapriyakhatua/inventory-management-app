@@ -12,7 +12,7 @@
 
 .card {
     width: 100%;
-    max-width: 500px;
+    max-width: 800px;
     background-color: #1e293b;
     border: 1px solid #334155;
     border-radius: 16px;
@@ -77,8 +77,8 @@ select.input {
     background-position: right 16px center;
     background-size: 16px;
     padding-right: 40px;
-    /* Space for the arrow so text doesn't overlap */
 }
+
 
 .generateBtn {
     background-color: #334155;
@@ -94,59 +94,6 @@ select.input {
 
 .generateBtn:hover:not(:disabled) {
     background-color: #475569;
-}
-
-.fileInput {
-    background-color: #0f172a;
-    border: 1px dashed #475569;
-    border-radius: 8px;
-    padding: 12px;
-    color: #cbd5e1;
-    cursor: pointer;
-    transition: border-color 0.2s ease;
-}
-
-.fileInput::file-selector-button {
-    background-color: #38bdf8;
-    color: #0f172a;
-    border: none;
-    border-radius: 6px;
-    padding: 6px 12px;
-    margin-right: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: opacity 0.2s ease;
-}
-
-.fileInput::file-selector-button:hover {
-    opacity: 0.9;
-}
-
-.fileInput:hover {
-    border-color: #38bdf8;
-}
-
-.previewContainer {
-    margin-top: 8px;
-    background-color: #0f172a;
-    border-radius: 8px;
-    padding: 16px;
-    text-align: center;
-    border: 1px solid #334155;
-}
-
-.previewLabel {
-    color: #94a3b8;
-    font-size: 0.85rem;
-    margin-bottom: 12px;
-    text-align: left;
-}
-
-.previewImage {
-    max-width: 100%;
-    max-height: 250px;
-    border-radius: 4px;
-    object-fit: contain;
 }
 
 .submitBtn {
@@ -170,12 +117,124 @@ select.input {
 
 .submitBtn:disabled,
 .generateBtn:disabled,
-.input:disabled,
-.fileInput:disabled {
+.input:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
+}
+
+/* Grid styles */
+.inventoryGridContainer {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 16px;
+    background-color: #0f172a;
+    /* Custom scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: #475569 #0f172a;
+}
+
+.inventoryGridContainer::-webkit-scrollbar {
+    width: 8px;
+}
+
+.inventoryGridContainer::-webkit-scrollbar-track {
+    background: #0f172a;
+    border-radius: 4px;
+}
+
+.inventoryGridContainer::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 4px;
+}
+
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 16px;
+}
+
+.gridItem {
+    position: relative;
+    background-color: #1e293b;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.gridItem:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.gridItemSelected {
+    border-color: #38bdf8;
+    background-color: rgba(56, 189, 248, 0.1);
+}
+
+.imageContainer {
+    position: relative;
+    width: 100%;
+    height: 100px;
+    background-color: #0f172a;
+    border-bottom: 1px solid #334155;
+}
+
+.imagePlaceholder {
+    width: 100%;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    font-size: 0.8rem;
+}
+
+.itemInfo {
+    padding: 12px;
+}
+
+.itemId {
+    color: #f8fafc;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin: 0;
+    text-align: center;
+}
+
+.checkmark {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background-color: #38bdf8;
+    color: #0f172a;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.loadingText {
+    color: #94a3b8;
+    text-align: center;
+    padding: 20px;
+}
+
+.noItemsText {
+    color: #94a3b8;
+    text-align: center;
+    padding: 20px;
 }
 
 /* Recent Section */
@@ -220,7 +279,7 @@ select.input {
 
 .recentCard {
     position: relative;
-    min-width: 200px;
+    min-width: 250px;
     background-color: #1e293b;
     border: 1px solid #334155;
     border-radius: 12px;
@@ -278,9 +337,73 @@ select.input {
     border-bottom: 1px solid #334155;
 }
 
-.recentImage {
+.recentImagesScrollContainer {
+    display: flex;
+    overflow-x: auto;
+    gap: 8px;
+    padding: 12px;
+    background-color: #0f172a;
+    border-bottom: 1px solid #334155;
+    height: 140px;
+    align-items: center;
+    /* Custom scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: #475569 #0f172a;
+}
+
+.recentImagesScrollContainer::-webkit-scrollbar {
+    height: 6px;
+}
+
+.recentImagesScrollContainer::-webkit-scrollbar-track {
+    background: #0f172a;
+    border-radius: 4px;
+}
+
+.recentImagesScrollContainer::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 4px;
+}
+
+.recentImageThumbWrapper {
+    position: relative;
+    min-width: 100px;
+    height: 100px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #334155;
+    background-color: #1e293b;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.recentImageThumb {
     object-fit: cover;
-    padding: 8px;
+    height: 70px !important;
+    position: relative !important;
+}
+
+.recentImageThumbId {
+    background-color: #1e293b;
+    color: #cbd5e1;
+    font-size: 0.65rem;
+    text-align: center;
+    padding: 4px 2px;
+    font-weight: 500;
+    border-top: 1px solid #334155;
+    z-index: 2;
+}
+
+.recentImagePlaceholderSmall {
+    width: 100%;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #0f172a;
+    color: #475569;
+    font-size: 0.6rem;
 }
 
 .recentImagePlaceholder {
@@ -299,14 +422,46 @@ select.input {
     padding: 12px;
 }
 
+.idRowWrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
 .recentId {
     color: #f8fafc;
     font-weight: 600;
     font-size: 0.95rem;
+    margin: 0;
+}
+
+.copyBtn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.copyBtn:hover {
+    color: #38bdf8;
+    background-color: rgba(56, 189, 248, 0.1);
+}
+
+.recentVertical {
+    color: #f8fafca2;
+    font-weight: 400;
+    font-size: 0.75rem;
     margin: 0 0 4px 0;
 }
 
-.recentBrand {
+.recentDate {
     color: #94a3b8;
     font-size: 0.8rem;
     margin: 0;
