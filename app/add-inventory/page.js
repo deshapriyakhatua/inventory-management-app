@@ -15,16 +15,23 @@ export default function AddInventory() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [recentItems, setRecentItems] = useState([]);
     const [loadingInventoryItems, setLoadingInventoryItems] = useState(true);
+    const [deleteButtonLoading, setDeleteButtonLoading] = useState(false);
+    const [deletingItemId, setDeletingItemId] = useState(null);
+    const [brands, setBrands] = useState([]);
+    const [loadingBrands, setLoadingBrands] = useState(true);
+    const [verticals, setVerticals] = useState([]);
+    const [loadingVerticals, setLoadingVerticals] = useState(true);
 
 
     useEffect(() => {
+        loadBrands();
+        loadVerticals();
         loadData();
     }, []);
 
     const loadData = async () => {
         const data = await fetchLatestInventory();
         setRecentItems(data);
-        console.log(data);
     };
 
     const fetchLatestInventory = async () => {
@@ -62,10 +69,113 @@ export default function AddInventory() {
         }
     };
 
-    const handleDeleteRecent = (idToDelete) => {
-        const updated = recentItems.filter(item => item.id !== idToDelete);
-        setRecentItems(updated);
-        localStorage.setItem("recent_inventory", JSON.stringify(updated));
+    const loadBrands = async () => {
+        const data = await fetchBrands();
+        setBrands(data);
+    };
+
+    const fetchBrands = async () => {
+        setLoadingBrands(true);
+        const payload = {
+            pin: sessionStorage.getItem("app_pin"), // Authenticate
+            action: "getBrand",
+            pageSize: 100, // Get all brands for the dropdown
+            sort: "name_asc"
+        };
+        try {
+            const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8",
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const result = await response.json();
+
+            if (result.status === 200) {
+                return result.data; // Array of 5 latest items
+            } else {
+                console.error("API Error:", result.message);
+                return [];
+            }
+        } catch (error) {
+            console.error("Network Error:", error);
+            return [];
+        } finally {
+            setLoadingBrands(false);
+        }
+    };
+
+    const loadVerticals = async () => {
+        const data = await fetchVerticals();
+        setVerticals(data);
+    };
+
+    const fetchVerticals = async () => {
+        setLoadingVerticals(true);
+        const payload = {
+            pin: sessionStorage.getItem("app_pin"), // Authenticate
+            action: "getVertical",
+            pageSize: 100, // Get all verticals for the dropdown
+            sort: "name_asc"
+        };
+        try {
+            const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8",
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const result = await response.json();
+
+            if (result.status === 200) {
+                return result.data; // Array of 5 latest items
+            } else {
+                console.error("API Error:", result.message);
+                return [];
+            }
+        } catch (error) {
+            console.error("Network Error:", error);
+            return [];
+        } finally {
+            setLoadingVerticals(false);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        setDeletingItemId(id);
+        setDeleteButtonLoading(true);
+        const payload = {
+            pin: sessionStorage.getItem("app_pin"), // Authenticate
+            action: "deleteInventory",
+            id: id,           // Always the first page
+        };
+
+        try {
+            const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8",
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const result = await response.json();
+
+            if (result.status === 200) {
+                loadData();
+            } else {
+                console.error("API Error:", result.message);
+            }
+        } catch (error) {
+            console.error("Network Error:", error);
+        } finally {
+            setDeleteButtonLoading(false);
+            setDeletingItemId(null);
+        }
     };
 
     // Generate a random 6-character alphanumeric ID
@@ -147,14 +257,12 @@ export default function AddInventory() {
             const payload = {
                 pin: storedPin,
                 action: "addInventory",
-                item: {
-                    id: inventoryId,
-                    brand: brand,
-                    vertical: vertical,
-                    imageName: imageFile ? imageFile.name : "",
-                    imageMimeType: imageFile ? imageFile.type : "",
-                    imageData: base64Image
-                }
+                id: inventoryId,
+                brand: brand,
+                vertical: vertical,
+                imageName: imageFile ? imageFile.name : "",
+                imageMimeType: imageFile ? imageFile.type : "",
+                imageData: base64Image
             };
 
             const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
@@ -215,29 +323,40 @@ export default function AddInventory() {
                     {/* Brand Section */}
                     <div className={styles.inputGroup}>
                         <label htmlFor="brand" className={styles.label}>Brand</label>
-                        <input
-                            type="text"
+                        <select
                             id="brand"
                             value={brand}
-                            onChange={(e) => setBrand(e.target.value.toUpperCase())}
-                            placeholder="e.g., CZ"
+                            onChange={(e) => setBrand(e.target.value)}
                             className={styles.input}
-                            disabled={isLoading}
-                        />
+                            disabled={isLoading || loadingBrands}
+                        >
+                            <option value="">Select a brand</option>
+                            {brands.map((b) => (
+                                <option key={b.brandName} value={b.brandShort}>
+                                    {`${b.brandShort} - ${b.brandName}`}
+                                </option>
+                            ))}
+                        </select>
+
                     </div>
 
                     {/* Vertical Section */}
                     <div className={styles.inputGroup}>
                         <label htmlFor="vertical" className={styles.label}>Vertical</label>
-                        <input
-                            type="text"
+                        <select
                             id="vertical"
                             value={vertical}
-                            onChange={(e) => setVertical(e.target.value.toUpperCase())}
-                            placeholder="e.g., ER"
+                            onChange={(e) => setVertical(e.target.value)}
                             className={styles.input}
-                            disabled={isLoading}
-                        />
+                            disabled={isLoading || loadingVerticals}
+                        >
+                            <option value="">Select a vertical</option>
+                            {verticals.map((v) => (
+                                <option key={v.verticalName} value={v.verticalShort}>
+                                    {`${v.verticalShort} - ${v.verticalName}`}
+                                </option>
+                            ))}
+                        </select>
                     </div>
 
                     {/* Inventory ID Section */}
@@ -324,14 +443,21 @@ export default function AddInventory() {
                                 <div key={item.id} className={styles.recentCard}>
                                     <button
                                         type="button"
-                                        onClick={() => handleDeleteRecent(item.id)}
+                                        onClick={() => handleDelete(item.id)}
                                         className={styles.deleteBtn}
                                         title="Remove from recent"
+                                        disabled={deleteButtonLoading}
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <polyline points="3 6 5 6 21 6"></polyline>
-                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                        </svg>
+                                        {deleteButtonLoading && deletingItemId === item.id
+                                            ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                                                <path d="M21 3v5h-5"></path>
+                                            </svg>
+                                            : <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <polyline points="3 6 5 6 21 6"></polyline>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                            </svg>
+                                        }
                                     </button>
                                     {item.driveId ? (
                                         <div className={styles.recentImageContainer}>
