@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
 
@@ -13,6 +13,60 @@ export default function AddInventory() {
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState({ text: "", type: "" });
     const [isGenerating, setIsGenerating] = useState(false);
+    const [recentItems, setRecentItems] = useState([]);
+    const [loadingInventoryItems, setLoadingInventoryItems] = useState(true);
+
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const loadData = async () => {
+        const data = await fetchLatestInventory();
+        setRecentItems(data);
+        console.log(data);
+    };
+
+    const fetchLatestInventory = async () => {
+        setLoadingInventoryItems(true);
+        const payload = {
+            pin: sessionStorage.getItem("app_pin"), // Authenticate
+            action: "getInventory",
+            page: 1,           // Always the first page
+            pageSize: 5,       // Limit to 5 items
+            sort: "newest_first" // Default, but good to be explicit
+        };
+
+        try {
+            const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8",
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const result = await response.json();
+
+            if (result.status === 200) {
+                return result.data; // Array of 5 latest items
+            } else {
+                console.error("API Error:", result.message);
+                return [];
+            }
+        } catch (error) {
+            console.error("Network Error:", error);
+            return [];
+        } finally {
+            setLoadingInventoryItems(false);
+        }
+    };
+
+    const handleDeleteRecent = (idToDelete) => {
+        const updated = recentItems.filter(item => item.id !== idToDelete);
+        setRecentItems(updated);
+        localStorage.setItem("recent_inventory", JSON.stringify(updated));
+    };
 
     // Generate a random 6-character alphanumeric ID
     const generateId = async () => {
@@ -117,6 +171,20 @@ export default function AddInventory() {
 
             if (result.status === 200) {
                 setMessage({ text: "Inventory item added successfully!", type: "success" });
+
+                // Add to recent items
+                const newItem = {
+                    id: inventoryId,
+                    brand: brand,
+                    vertical: vertical,
+                    imagePreview: imagePreview || "" // Store base64 preview
+                };
+                setRecentItems(prev => {
+                    const updatedList = [newItem, ...prev].slice(0, 5);
+                    localStorage.setItem("recent_inventory", JSON.stringify(updatedList));
+                    return updatedList;
+                });
+
                 // Reset form
                 setInventoryId("");
                 setBrand("");
@@ -133,6 +201,7 @@ export default function AddInventory() {
             setMessage({ text: "Network error. Please try again.", type: "error" });
         } finally {
             setIsLoading(false);
+            loadData();
         }
     };
 
@@ -243,6 +312,60 @@ export default function AddInventory() {
                     </div>
                 )}
             </div>
+
+            {/* Recent Inventory Section */}
+            {recentItems.length > 0 && (
+                <div className={styles.recentSection}>
+                    <h2 className={styles.recentTitle}>Recently Added (Last {recentItems.length})</h2>
+                    {loadingInventoryItems
+                        ? <p>Loading...</p>
+                        : <div className={styles.recentGrid}>
+                            {recentItems.map((item) => (
+                                <div key={item.id} className={styles.recentCard}>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDeleteRecent(item.id)}
+                                        className={styles.deleteBtn}
+                                        title="Remove from recent"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                        </svg>
+                                    </button>
+                                    {item.driveId ? (
+                                        <div className={styles.recentImageContainer}>
+                                            <Image
+                                                src={`https://drive.google.com/thumbnail?id=${item.driveId}&sz=w200`}
+                                                alt={item.id}
+                                                referrerPolicy="no-referrer"
+                                                fill
+                                                className={styles.recentImage}
+                                                unoptimized
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className={styles.recentImagePlaceholder}>No Image</div>
+                                    )}
+                                    <div className={styles.recentInfo}>
+                                        <p className={styles.recentId}>{item.id}</p>
+                                        <p className={styles.recentBrand}>
+                                            {new Date(item.timestamp).toLocaleString('en-IN', {
+                                                day: 'numeric',
+                                                month: 'short',
+                                                year: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                                hour12: true
+                                            })}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    }
+                </div>
+            )}
         </div>
     );
 }

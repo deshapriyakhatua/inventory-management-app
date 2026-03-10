@@ -55,6 +55,8 @@ export default function AuthProvider({ children }) {
                 sessionStorage.setItem("app_pin", pin);
                 setIsAuthenticated(true);
             } else {
+                // clear input field
+                setPin("");
                 setError("Access Denied: Invalid PIN.");
             }
         } catch (err) {
