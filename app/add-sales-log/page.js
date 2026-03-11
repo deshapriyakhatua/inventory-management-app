@@ -88,9 +88,8 @@ export default function AddSalesLog() {
             setSelectedItems(prev => [...prev, {
                 skuId,
                 quantity: 1,
-                unitPrice: "",
-                platform: "Amazon",
-                reason: ""
+                orderId: "",
+                platform: "Amazon"
             }]);
         }
     };
@@ -123,12 +122,8 @@ export default function AddSalesLog() {
                 setMessage({ text: `Invalid quantity for SKU: ${item.skuId}`, type: "error" });
                 return;
             }
-            if (!item.unitPrice || Number(item.unitPrice) <= 0) {
-                setMessage({ text: `Invalid unit price for SKU: ${item.skuId}`, type: "error" });
-                return;
-            }
-            if (actionType === "returns" && !item.reason.trim()) {
-                setMessage({ text: `Reason is required for returned SKU: ${item.skuId}`, type: "error" });
+            if (!item.orderId || !item.orderId.trim()) {
+                setMessage({ text: `Order ID is required for SKU: ${item.skuId}`, type: "error" });
                 return;
             }
         }
@@ -143,7 +138,7 @@ export default function AddSalesLog() {
             payload.salesItems = selectedItems.map(item => ({
                 skuId: item.skuId,
                 quantity: Number(item.quantity),
-                unitPrice: Number(item.unitPrice),
+                orderId: item.orderId,
                 platform: item.platform
             }));
         } else {
@@ -151,9 +146,8 @@ export default function AddSalesLog() {
             payload.returnItems = selectedItems.map(item => ({
                 skuId: item.skuId,
                 quantity: Number(item.quantity),
-                unitPrice: Number(item.unitPrice),
-                platform: item.platform,
-                reason: item.reason
+                orderId: item.orderId,
+                platform: item.platform
             }));
         }
 
@@ -356,14 +350,13 @@ export default function AddSalesLog() {
                                     </div>
                                     
                                     <div className={styles.inputGroup}>
-                                        <label className={styles.inputLabel}>Unit Price</label>
+                                        <label className={styles.inputLabel}>Order ID</label>
                                         <input 
-                                            type="number" 
-                                            min="0"
-                                            value={item.unitPrice}
-                                            onChange={(e) => updateSelectedItem(item.skuId, 'unitPrice', e.target.value)}
+                                            type="text" 
+                                            value={item.orderId}
+                                            onChange={(e) => updateSelectedItem(item.skuId, 'orderId', e.target.value)}
                                             className={styles.itemInput}
-                                            placeholder="0.00"
+                                            placeholder="Enter Order ID"
                                         />
                                     </div>
                                     
@@ -383,19 +376,6 @@ export default function AddSalesLog() {
                                             <option value="Other">Other</option>
                                         </select>
                                     </div>
-
-                                    {actionType === "returns" && (
-                                        <div className={styles.inputGroup} style={{ flex: 2 }}>
-                                            <label className={styles.inputLabel}>Reason</label>
-                                            <input 
-                                                type="text" 
-                                                value={item.reason}
-                                                onChange={(e) => updateSelectedItem(item.skuId, 'reason', e.target.value)}
-                                                className={styles.itemInput}
-                                                placeholder="Enter reason for return..."
-                                            />
-                                        </div>
-                                    )}
                                     
                                     <button 
                                         type="button"
