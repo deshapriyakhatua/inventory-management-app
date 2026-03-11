@@ -54,7 +54,6 @@ export default function SalesDataPage() {
         if (selectedVertical !== "All") payload.vertical = selectedVertical;
         if (selectedPlatform !== "All") payload.platform = selectedPlatform;
         // Optionally pass type, but we want both Sales & Returns to plot them against each other
-console.log(payload)
         try {
             const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
                 method: "POST",
@@ -65,7 +64,6 @@ console.log(payload)
             if (response.status === 200 && Array.isArray(response.message)) {
                 // The quantity for returns might come back as negative (like -1), so ensure we use Math.abs everywhere we aggregate units.
                 setRawData(response.message);
-                console.log(response.message)
             } else {
                 setMessage({ text: response.message || "Failed to load data.", type: "error" });
                 setRawData([]);

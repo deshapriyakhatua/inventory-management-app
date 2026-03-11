@@ -10,10 +10,16 @@
   }
 }
 
-html,
+html {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
 body {
   max-width: 100vw;
   overflow-x: hidden;
+  display: flex; /* Required for sidebar layout */
+  min-height: 100vh;
 }
 
 body {

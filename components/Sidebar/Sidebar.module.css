@@ -1,0 +1,130 @@
+.sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    background-color: #0f172a;
+    border-right: 1px solid #1e293b;
+    color: #f8fafc;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.collapsed {
+    width: 72px;
+}
+
+.expanded {
+    width: 260px;
+}
+
+.sidebarHeader {
+    display: flex;
+    align-items: center;
+    padding: 1.25rem;
+    height: 72px; /* Same as icon width to make it square when collapsed */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    white-space: nowrap;
+}
+
+.toggleBtn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    min-width: 40px;
+}
+
+.toggleBtn:hover {
+    background-color: #1e293b;
+    color: #f8fafc;
+}
+
+.logoText {
+    margin-left: 1rem;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #f1f5f9;
+    opacity: 0;
+    animation: fadeIn 0.3s forwards;
+    animation-delay: 0.1s;
+}
+
+.navMenu {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 0;
+    gap: 0.5rem;
+}
+
+.navItem {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.25rem;
+    color: #94a3b8;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    position: relative;
+    border-left: 3px solid transparent;
+}
+
+.navItem:hover {
+    background-color: rgba(30, 41, 59, 0.8);
+    color: #e2e8f0;
+}
+
+.navItem.active {
+    background-color: #1e293b;
+    color: #3b82f6;
+    border-left-color: #3b82f6;
+    font-weight: 600;
+}
+
+.icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+}
+
+.navText {
+    margin-left: 1rem;
+    font-size: 0.95rem;
+    opacity: 1;
+    transition: opacity 0.2s;
+}
+
+.collapsed .navText {
+    opacity: 0;
+    display: none;
+}
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+    }
+}
+
+/* Scrollbar styling for sidebar */
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background-color: #334155;
+    border-radius: 20px;
+}
