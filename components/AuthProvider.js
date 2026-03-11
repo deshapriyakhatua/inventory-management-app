@@ -77,6 +77,7 @@ export default function AuthProvider({ children }) {
                 justifyContent: "center",
                 alignItems: "center",
                 height: "100vh",
+                width: "100vw",
                 padding: "20px",
                 fontFamily: "sans-serif",
                 backgroundColor: "#0f172a" // Deep navy/dark background

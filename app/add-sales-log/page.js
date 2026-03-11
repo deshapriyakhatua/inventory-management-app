@@ -4,10 +4,12 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
 import Toast from "../../components/Toast/Toast";
+import { fetchVerticalsData } from "../../utils/apiUtils";
 
 export default function AddSalesLog() {
     const [listings, setListings] = useState([]);
     const [verticals, setVerticals] = useState([]);
+    const [refreshing, setRefreshing] = useState(false);
     
     const [searchSku, setSearchSku] = useState("");
     const [selectedVertical, setSelectedVertical] = useState("");
@@ -37,30 +39,73 @@ export default function AddSalesLog() {
         
         try {
             // Fetch Verticals
-            const vertPayload = { pin, action: "getVertical", pageSize: 100, sort: "name_asc" };
-            const vertRes = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-                method: "POST", body: JSON.stringify(vertPayload)
-            }).then(res => res.json());
+            const cachedVerticals = await fetchVerticalsData(pin);
+            setVerticals(cachedVerticals || []);
             
-            if (vertRes.status === 200) {
-                setVerticals(vertRes.data || []);
+            // Try loading listings from cache
+            const cachedListings = localStorage.getItem("all_listings_data");
+            if (cachedListings) {
+                try {
+                    setListings(JSON.parse(cachedListings));
+                    setLoadingData(false);
+                    return;
+                } catch (e) {
+                    console.error("Failed to parse cached listings", e);
+                }
             }
             
-            // Fetch Listings (get a large chunk for client-side filtering)
-            const listPayload = { pin, action: "getListing", page: 1, pageSize: 200, sort: "newest_first" };
+            // If no cache, fetch from API
+            await fetchListingsData(false);
+        } catch (error) {
+            console.error("Error loading data:", error);
+            setMessage({ text: "Failed to load initial data.", type: "error" });
+            setLoadingData(false);
+        }
+    };
+
+    const fetchListingsData = async (forceRefresh = false) => {
+        const pin = sessionStorage.getItem("app_pin");
+        
+        if (forceRefresh) {
+            setRefreshing(true);
+        } else {
+            setLoadingData(true);
+        }
+
+        try {
+            const listPayload = { pin, action: "getListing", page: 1, pageSize: 50000, sort: "newest_first" };
             const listRes = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
                 method: "POST", body: JSON.stringify(listPayload)
             }).then(res => res.json());
             
             if (listRes.status === 200) {
-                setListings(listRes.message?.listings || []);
+                let fetchedData = [];
+                if (listRes.message && Array.isArray(listRes.message.listings)) {
+                    fetchedData = listRes.message.listings;
+                } else if (Array.isArray(listRes.data)) {
+                    fetchedData = listRes.data;
+                }
+                setListings(fetchedData);
+                localStorage.setItem("all_listings_data", JSON.stringify(fetchedData));
+
+                if (forceRefresh) {
+                    setMessage({ text: "Listings refreshed successfully.", type: "success" });
+                }
+            } else {
+                if (!listings.length) setListings([]);
             }
         } catch (error) {
-            console.error("Error loading data:", error);
-            setMessage({ text: "Failed to load initial data.", type: "error" });
+            console.error("Error fetching listings:", error);
+            setMessage({ text: "Failed to fetch listings.", type: "error" });
         } finally {
             setLoadingData(false);
+            setRefreshing(false);
         }
+    };
+
+    const handleRefresh = () => {
+        setCurrentPage(1);
+        fetchListingsData(true);
     };
 
     // Derived states for Listing Browser
@@ -189,18 +234,34 @@ export default function AddSalesLog() {
                             onChange={(e) => setSearchSku(e.target.value)}
                             className={styles.filterInput}
                         />
-                        <select 
-                            value={selectedVertical} 
-                            onChange={(e) => setSelectedVertical(e.target.value)}
-                            className={styles.filterSelect}
-                        >
-                            <option value="">All Verticals</option>
-                            {verticals.map(v => (
-                                <option key={v.verticalShort} value={v.verticalName}>
-                                    {v.verticalName}
-                                </option>
-                            ))}
-                        </select>
+                        <div style={{ display: 'flex', gap: '0.5rem', flex: 1 }}>
+                            <select 
+                                value={selectedVertical} 
+                                onChange={(e) => setSelectedVertical(e.target.value)}
+                                className={styles.filterSelect}
+                                style={{ flex: 1, minWidth: 0 }}
+                            >
+                                <option value="">All Verticals</option>
+                                {verticals.map(v => (
+                                    <option key={v.verticalShort} value={v.verticalName}>
+                                        {v.verticalName}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <button 
+                                className={`${styles.refreshBtn} ${refreshing ? styles.spinning : ''}`}
+                                onClick={handleRefresh} 
+                                disabled={refreshing}
+                                title="Refresh Data"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="23 4 23 10 17 10"></polyline>
+                                    <polyline points="1 20 1 14 7 14"></polyline>
+                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
 
                     <div className={styles.tableContainer}>

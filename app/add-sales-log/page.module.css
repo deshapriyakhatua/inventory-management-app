@@ -69,6 +69,35 @@
     background-color: #0f172a;
 }
 
+.refreshBtn {
+    background-color: transparent;
+    border: 1px solid #475569;
+    color: #94a3b8;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    outline: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.refreshBtn:hover:not(:disabled) {
+    background-color: #334155;
+    color: #f1f5f9;
+    border-color: #64748b;
+}
+
+.refreshBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.spinning svg {
+    animation: spin 1s linear infinite;
+}
+
 /* Table */
 .tableContainer {
     overflow-x: auto;

@@ -4,15 +4,20 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
 import Toast from "../../components/Toast/Toast";
+import { fetchVerticalsData } from "../../utils/apiUtils";
 
 export default function AllListingsPage() {
-    const [listings, setListings] = useState([]);
+    const [allListingsData, setAllListingsData] = useState([]); // All data from API/Local Storage
+    const [listings, setListings] = useState([]); // Currently displayed filtered/paginated data
     const [verticals, setVerticals] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [viewMode, setViewMode] = useState("grid"); // "grid" or "list"
     const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [message, setMessage] = useState({ text: "", type: "" });
+    const [deleteButtonLoading, setDeleteButtonLoading] = useState(false);
+    const [deletingListingId, setDeletingListingId] = useState(null);
     const pageSize = 20;
 
     // Filter/Sort States
@@ -28,14 +33,57 @@ export default function AllListingsPage() {
     }, []);
 
     useEffect(() => {
-        fetchListings(currentPage);
-    }, [currentPage, sortOrder, selectedVertical]);
+        loadInitialData();
+        fetchListings(false); // Try loading from local storage first
+    }, []);
 
-    // Handle Search explicitly on button click or enter
+    // Apply Filters, Sort, and Pagination locally whenever dependencies change
+    useEffect(() => {
+        processLocalData();
+    }, [allListingsData, currentPage, sortOrder, selectedVertical, searchQuery]);
+
+    const processLocalData = () => {
+        let filtered = [...allListingsData];
+
+        // 1. Filter by vertical
+        if (selectedVertical) {
+            filtered = filtered.filter(item => item.vertical === selectedVertical);
+        }
+
+        // 2. Filter by Search Query
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            filtered = filtered.filter(item => 
+                item.skuId.toLowerCase().includes(query)
+            );
+        }
+
+        // 3. Sort
+        filtered.sort((a, b) => {
+            const dateA = new Date(a.createdAt || 0).getTime();
+            const dateB = new Date(b.createdAt || 0).getTime();
+            
+            if (sortOrder === "newest_first") {
+                return dateB - dateA;
+            } else {
+                return dateA - dateB;
+            }
+        });
+
+        // 4. Update Total Items (for Pagination math)
+        setTotalItems(filtered.length);
+
+        // 5. Paginate
+        const startIndex = (currentPage - 1) * pageSize;
+        const paginatedItems = filtered.slice(startIndex, startIndex + pageSize);
+        
+        setListings(paginatedItems);
+    };
+
     const handleSearch = (e) => {
         if (e.key === 'Enter' || e.type === 'click') {
             setCurrentPage(1);
-            fetchListings(1);
+            // processLocalData is triggered by useEffect
         }
     };
 
@@ -43,7 +91,47 @@ export default function AllListingsPage() {
         setSearchQuery("");
         setSelectedVertical("");
         setSortOrder("newest_first");
+        setCurrentPage(1); // Resetting page
+    };
+
+    const handleRefresh = () => {
         setCurrentPage(1);
+        fetchListings(true); // Force fetch from server
+    };
+
+    const handleDelete = async (skuId) => {
+        setDeletingListingId(skuId);
+        setDeleteButtonLoading(true);
+        const payload = {
+            pin: sessionStorage.getItem("app_pin"),
+            action: "deleteListing",
+            skuId: skuId,
+        };
+
+        try {
+            const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify(payload),
+            });
+            const result = await response.json();
+            if (result.status === 200) {
+                setMessage({ text: result.message ? result.message : "Listing deleted successfully.", type: "success" });
+                // Update local data
+                const updatedData = allListingsData.filter(item => item.skuId !== skuId);
+                setAllListingsData(updatedData);
+                localStorage.setItem("all_listings_data", JSON.stringify(updatedData));
+            } else {
+                console.error("API Error:", result.message);
+                setMessage({ text: result.message || "Failed to delete listing.", type: "error" });
+            }
+        } catch (error) {
+            console.error("Network Error:", error);
+            setMessage({ text: "Network error. Please try again.", type: "error" });
+        } finally {
+            setDeleteButtonLoading(false);
+            setDeletingListingId(null);
+        }
     };
 
     const copyToClipboard = async (text, label) => {
@@ -59,34 +147,46 @@ export default function AllListingsPage() {
     const loadInitialData = async () => {
         const pin = sessionStorage.getItem("app_pin");
         try {
-            const vertPayload = { pin, action: "getVertical", pageSize: 100, sort: "name_asc" };
-            const vertRes = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-                method: "POST", body: JSON.stringify(vertPayload)
-            }).then(res => res.json());
-            
-            if (vertRes.status === 200) {
-                setVerticals(vertRes.data || []);
-            }
+            const cachedVerticals = await fetchVerticalsData(pin);
+            setVerticals(cachedVerticals || []);
         } catch (error) {
             console.error("Failed to load verticals:", error);
         }
     };
 
-    const fetchListings = async (page) => {
-        setLoading(true);
-        setMessage({ text: "", type: "" });
+    const fetchListings = async (forceRefresh = false) => {
         const pin = sessionStorage.getItem("app_pin");
+        
+        // Check local storage if not forcing refresh
+        if (!forceRefresh) {
+            const cachedData = localStorage.getItem("all_listings_data");
+            if (cachedData) {
+                try {
+                    const parsed = JSON.parse(cachedData);
+                    setAllListingsData(parsed);
+                    setLoading(false);
+                    return;
+                } catch (e) {
+                    console.error("Failed to parse cached listings");
+                }
+            }
+        }
+
+        if (forceRefresh) {
+            setRefreshing(true);
+        } else {
+            setLoading(true);
+        }
+
+        setMessage({ text: "", type: "" });
         
         const payload = {
             pin,
             action: "getListing",
-            page: page,
-            pageSize: pageSize,
-            sort: sortOrder,
+            page: 1,
+            pageSize: 50000, // Fetch everything unconditionally
+            sort: "newest_first", // Fetch in predictable order
         };
-
-        if (selectedVertical) payload.vertical = selectedVertical;
-        if (searchQuery) payload.search = searchQuery;
 
         try {
             const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
@@ -96,25 +196,30 @@ export default function AllListingsPage() {
             }).then(res => res.json());
 
             if (response.status === 200) {
+                let fetchedData = [];
                 if (response.message && Array.isArray(response.message.listings)) {
-                    setListings(response.message.listings);
-                    setTotalItems(response.message.pagination?.totalItems || 0);
+                    fetchedData = response.message.listings;
                 } else if (Array.isArray(response.data)) {
-                    setListings(response.data);
-                    setTotalItems(response.data.length === pageSize ? page * pageSize + 1 : page * pageSize);
-                } else {
-                    setListings([]);
+                    fetchedData = response.data;
+                }
+
+                setAllListingsData(fetchedData);
+                localStorage.setItem("all_listings_data", JSON.stringify(fetchedData));
+                
+                if (forceRefresh) {
+                    setMessage({ text: "Listings refreshed successfully.", type: "success" });
                 }
             } else {
                 setMessage({ text: response.message || "Failed to load listings.", type: "error" });
-                setListings([]);
+                if (!allListingsData.length) setAllListingsData([]);
             }
         } catch (error) {
             console.error("Fetch Error:", error);
             setMessage({ text: "Network error while loading data.", type: "error" });
-            setListings([]);
+            if (!allListingsData.length) setAllListingsData([]);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     };
 
@@ -183,6 +288,20 @@ export default function AllListingsPage() {
                             </svg>
                             Reset
                         </button>
+
+                        <button 
+                            className={`${styles.refreshBtn} ${refreshing ? styles.spinning : ''}`}
+                            onClick={handleRefresh} 
+                            disabled={refreshing}
+                            title="Refresh Data"
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <polyline points="1 20 1 14 7 14"></polyline>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                            Refresh
+                        </button>
                     </div>
 
                     <div className={styles.viewControls}>
@@ -240,6 +359,27 @@ export default function AllListingsPage() {
                                         onClick={() => setSelectedListing(item)}
                                         style={{ cursor: 'pointer' }}
                                     >
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDelete(item.skuId);
+                                            }}
+                                            className={styles.deleteBtn}
+                                            title="Delete Listing"
+                                            disabled={deleteButtonLoading}
+                                        >
+                                            {deleteButtonLoading && deletingListingId === item.skuId
+                                                ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                                                    <path d="M21 3v5h-5"></path>
+                                                </svg>
+                                                : <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                </svg>
+                                            }
+                                        </button>
                                         <div className={styles.imageContainer} data-count={displayImages.length}>
                                             {displayImages.length > 0 ? (
                                                 displayImages.map((inv, idx) => (
@@ -271,7 +411,22 @@ export default function AllListingsPage() {
                                             )}
                                         </div>
                                         <div className={styles.cardInfo}>
-                                            <p className={styles.itemId}>{item.skuId}</p>
+                                            <div className={styles.skuHeaderRow}>
+                                                <p className={styles.itemId}>{item.skuId}</p>
+                                                <button 
+                                                    className={styles.smallCopyBtn}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        copyToClipboard(item.skuId, "SKU ID");
+                                                    }}
+                                                    title="Copy SKU ID"
+                                                >
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                                    </svg>
+                                                </button>
+                                            </div>
                                             <p className={styles.itemDate}>
                                                 {item.vertical}
                                             </p>
@@ -294,6 +449,7 @@ export default function AllListingsPage() {
                                         <th>SKU ID</th>
                                         <th>Vertical</th>
                                         <th>Date Created</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -325,12 +481,52 @@ export default function AllListingsPage() {
                                                     <div className={styles.listThumbnailPlaceholder}>-</div>
                                                 )}
                                             </td>
-                                            <td className={styles.tdId}>{item.skuId}</td>
+                                            <td className={styles.tdId}>
+                                                <div className={styles.listSkuRow}>
+                                                    {item.skuId}
+                                                    <button 
+                                                        className={styles.listSmallCopyBtn}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            copyToClipboard(item.skuId, "SKU ID");
+                                                        }}
+                                                        title="Copy SKU ID"
+                                                    >
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </td>
                                             <td className={styles.tdVertical}>{item.vertical}</td>
                                             <td className={styles.tdDate}>
                                                 {new Date(item.createdAt).toLocaleString('en-US', {
                                                     month: 'short', day: 'numeric', year: 'numeric',
                                                 })}
+                                            </td>
+                                            <td className={styles.tdActions}>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDelete(item.skuId);
+                                                    }}
+                                                    className={styles.listDeleteBtn}
+                                                    title="Delete Listing"
+                                                    disabled={deleteButtonLoading}
+                                                >
+                                                    {deleteButtonLoading && deletingListingId === item.skuId
+                                                        ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                            <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                                                            <path d="M21 3v5h-5"></path>
+                                                        </svg>
+                                                        : <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                        </svg>
+                                                    }
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}

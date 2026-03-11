@@ -237,6 +237,33 @@ select.input {
     padding: 20px;
 }
 
+.refreshBtn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.refreshBtn:hover:not(:disabled) {
+    color: #38bdf8;
+    background-color: rgba(56, 189, 248, 0.1);
+}
+
+.refreshBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.spinning svg {
+    animation: spin 1s linear infinite;
+}
+
 /* Recent Section */
 .recentSection {
     width: 100%;

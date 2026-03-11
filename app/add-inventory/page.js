@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
 import Toast from "../../components/Toast/Toast";
+import { fetchVerticalsData } from "../../utils/apiUtils";
 
 export default function AddInventory() {
     const [inventoryId, setInventoryId] = useState("");
@@ -68,41 +69,11 @@ export default function AddInventory() {
     };
 
     const loadVerticals = async () => {
-        const data = await fetchVerticals();
-        setVerticals(data);
-    };
-
-    const fetchVerticals = async () => {
         setLoadingVerticals(true);
-        const payload = {
-            pin: sessionStorage.getItem("app_pin"), // Authenticate
-            action: "getVertical",
-            pageSize: 100, // Get all verticals for the dropdown
-            sort: "name_asc"
-        };
-        try {
-            const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "text/plain;charset=utf-8",
-                },
-                body: JSON.stringify(payload),
-            });
-
-            const result = await response.json();
-
-            if (result.status === 200) {
-                return result.data; // Array of 5 latest items
-            } else {
-                console.error("API Error:", result.message);
-                return [];
-            }
-        } catch (error) {
-            console.error("Network Error:", error);
-            return [];
-        } finally {
-            setLoadingVerticals(false);
-        }
+        const pin = sessionStorage.getItem("app_pin");
+        const data = await fetchVerticalsData(pin);
+        setVerticals(data);
+        setLoadingVerticals(false);
     };
 
     const handleDelete = async (id) => {

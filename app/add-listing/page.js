@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
 import Toast from "../../components/Toast/Toast";
+import { fetchVerticalsData } from "../../utils/apiUtils";
 
 export default function CreateNewListing() {
     const [verticalShort, setVerticalShort] = useState("");
@@ -16,6 +17,7 @@ export default function CreateNewListing() {
     // Inventory Grid specific state
     const [inventoryItems, setInventoryItems] = useState([]);
     const [loadingInventoryItems, setLoadingInventoryItems] = useState(false);
+    const [refreshingInventory, setRefreshingInventory] = useState(false);
     const [selectedInventoryIds, setSelectedInventoryIds] = useState([]);
 
     const [verticals, setVerticals] = useState([]);
@@ -39,6 +41,20 @@ export default function CreateNewListing() {
 
     const fetchLatestListings = async () => {
         setLoadingRecentListings(true);
+
+        const cachedListings = localStorage.getItem("all_listings_data");
+        if (cachedListings) {
+            try {
+                const parsed = JSON.parse(cachedListings);
+                // Sort by newest first
+                parsed.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+                setLoadingRecentListings(false);
+                return parsed.slice(0, 5);
+            } catch (e) {
+                console.error("Failed to parse cached listings", e);
+            }
+        }
+
         const payload = {
             pin: sessionStorage.getItem("app_pin"), // Authenticate
             action: "getListing",
@@ -55,7 +71,6 @@ export default function CreateNewListing() {
             });
             const result = await response.json();
             if (result.status === 200) {
-                console.log(result.message.listings);
                 return result.message.listings;
             } else {
                 console.error("API Error:", result.message);
@@ -125,24 +140,12 @@ export default function CreateNewListing() {
     }, [verticalShort]);
 
     const loadVerticals = async () => {
-        const payload = {
-            pin: sessionStorage.getItem("app_pin"),
-            action: "getVertical",
-            pageSize: 100,
-            sort: "name_asc"
-        };
+        setLoadingVerticals(true);
+        const pin = sessionStorage.getItem("app_pin");
+        
         try {
-            const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify(payload),
-            });
-            const result = await response.json();
-            if (result.status === 200) {
-                setVerticals(result.data);
-            } else {
-                console.error("API Error:", result.message);
-            }
+            const currentVerticals = await fetchVerticalsData(pin);
+            setVerticals(currentVerticals);
         } catch (error) {
             console.error("Network Error:", error);
         } finally {
@@ -150,9 +153,32 @@ export default function CreateNewListing() {
         }
     };
 
-    const loadInventory = async () => {
-        setLoadingInventoryItems(true);
+    const loadInventory = async (forceRefresh = false) => {
+        if (forceRefresh) {
+            setRefreshingInventory(true);
+        } else {
+            setLoadingInventoryItems(true);
+        }
         setSelectedInventoryIds([]);
+
+        if (!forceRefresh) {
+            const cachedInventory = localStorage.getItem("all_inventory_data");
+            if (cachedInventory) {
+            try {
+                const parsed = JSON.parse(cachedInventory);
+                const verticalInventory = parsed.filter(item => item.vertical === vertical);
+                
+                // Sort by newest first
+                verticalInventory.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+                
+                setInventoryItems(verticalInventory.slice(0, 100));
+                setLoadingInventoryItems(false);
+                return;
+            } catch (e) {
+                console.error("Failed to parse cached inventory", e);
+            }
+        }
+        }
 
         const payload = {
             pin: sessionStorage.getItem("app_pin"),
@@ -179,6 +205,7 @@ export default function CreateNewListing() {
             console.error("Network Error:", error);
         } finally {
             setLoadingInventoryItems(false);
+            setRefreshingInventory(false);
         }
     };
 
@@ -348,9 +375,24 @@ export default function CreateNewListing() {
                     {/* Scrollable Grid of Existing Inventory */}
                     {verticalShort && (
                         <div className={styles.inputGroup}>
-                            <label className={styles.label}>
-                                Select Inventory Items for Listing ({selectedInventoryIds.length} selected)
-                            </label>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <label className={styles.label}>
+                                    Select Inventory Items for Listing ({selectedInventoryIds.length} selected)
+                                </label>
+                                <button
+                                    type="button"
+                                    className={`${styles.refreshBtn} ${refreshingInventory ? styles.spinning : ''}`}
+                                    onClick={() => loadInventory(true)}
+                                    disabled={loadingInventoryItems || refreshingInventory}
+                                    title="Refresh Inventory"
+                                >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="23 4 23 10 17 10"></polyline>
+                                        <polyline points="1 20 1 14 7 14"></polyline>
+                                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                    </svg>
+                                </button>
+                            </div>
                             <div className={styles.inventoryGridContainer}>
                                 {loadingInventoryItems ? (
                                     <p className={styles.loadingText}>Loading inventory...</p>

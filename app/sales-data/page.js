@@ -21,39 +21,76 @@ export default function SalesDataPage() {
     const [loading, setLoading] = useState(true);
     const [rawData, setRawData] = useState([]);
     
+    const [refreshing, setRefreshing] = useState(false);
+    
     // Filters State
     const [dateRange, setDateRange] = useState("30"); // days
     const [selectedVertical, setSelectedVertical] = useState("All");
     const [selectedPlatform, setSelectedPlatform] = useState("All");
     const [message, setMessage] = useState({ text: "", type: "" });
 
-    // Use effect to fetch data anytime filters change
+    // Initial load
     useEffect(() => {
-        fetchSalesData();
-    }, [dateRange, selectedVertical, selectedPlatform]);
+        fetchSalesData(false);
+    }, []);
 
-    const fetchSalesData = async () => {
-        setLoading(true);
-        setMessage({ text: "", type: "" });
-        const pin = sessionStorage.getItem("app_pin");
-        
-        let startDateStr = "";
-        let endDateStr = new Date().toISOString().split('T')[0];
-        
+    // Filter aggregated data
+    const filteredRawData = React.useMemo(() => {
+        let filtered = [...rawData];
+
+        // 1. Filter by Date Range
         if (dateRange !== "all") {
-            startDateStr = getPastDateStr(parseInt(dateRange, 10));
+            const cutoffDate = new Date(getPastDateStr(parseInt(dateRange, 10)));
+            filtered = filtered.filter(item => {
+                const itemDate = new Date(item.date || item.createdAt);
+                return itemDate >= cutoffDate;
+            });
         }
 
+        // 2. Filter by Vertical
+        if (selectedVertical !== "All") {
+            filtered = filtered.filter(item => item.vertical === selectedVertical);
+        }
+
+        // 3. Filter by Platform
+        if (selectedPlatform !== "All") {
+            filtered = filtered.filter(item => item.platform === selectedPlatform);
+        }
+
+        return filtered;
+    }, [rawData, dateRange, selectedVertical, selectedPlatform]);
+
+    const fetchSalesData = async (forceRefresh = false) => {
+        const pin = sessionStorage.getItem("app_pin");
+        
+        if (!forceRefresh) {
+            const cachedData = localStorage.getItem("all_sales_data");
+            console.log("cachedData", cachedData);
+            if (cachedData) {
+                try {
+                    setRawData(JSON.parse(cachedData));
+                    setLoading(false);
+                    return;
+                } catch (e) {
+                    console.error("Failed to parse cached sales");
+                }
+            }
+        }
+
+        if (forceRefresh) {
+            setRefreshing(true);
+        } else {
+            setLoading(true);
+        }
+        setMessage({ text: "", type: "" });
+        
         const payload = {
             pin,
             action: "getFilteredSalesLog",
-            startDate: startDateStr,
-            endDate: endDateStr
+            startDate: "", // Fetch all data
+            endDate: new Date().toISOString().split('T')[0]
         };
 
-        if (selectedVertical !== "All") payload.vertical = selectedVertical;
-        if (selectedPlatform !== "All") payload.platform = selectedPlatform;
-        // Optionally pass type, but we want both Sales & Returns to plot them against each other
         try {
             const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
                 method: "POST",
@@ -64,17 +101,27 @@ export default function SalesDataPage() {
             if (response.status === 200 && Array.isArray(response.message)) {
                 // The quantity for returns might come back as negative (like -1), so ensure we use Math.abs everywhere we aggregate units.
                 setRawData(response.message);
+                localStorage.setItem("all_sales_data", JSON.stringify(response.message));
+                
+                if (forceRefresh) {
+                    setMessage({ text: "Sales data refreshed.", type: "success" });
+                }
             } else {
                 setMessage({ text: response.message || "Failed to load data.", type: "error" });
-                setRawData([]);
+                if (!rawData.length) setRawData([]);
             }
         } catch (error) {
             console.error("Fetch Error:", error);
             setMessage({ text: "Network error while loading data.", type: "error" });
-            setRawData([]);
+            if (!rawData.length) setRawData([]);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
+    };
+
+    const handleRefresh = () => {
+        fetchSalesData(true);
     };
 
     // --- DATA AGGREGATION ---
@@ -82,15 +129,15 @@ export default function SalesDataPage() {
     
     // 1. Aggregate Time Series Data
     const timeMap = {};
-    rawData.forEach(item => {
-        if (!item.date) return;
+    filteredRawData.forEach(item => {
+        if (!item.date && !item.createdAt) return;
         
         // Format date for display
-        const d = new Date(item.date);
+        const d = new Date(item.date || item.createdAt);
         const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         
         if (!timeMap[dateStr]) {
-            timeMap[dateStr] = { date: dateStr, sales: 0, returns: 0, sortKey: item.date };
+            timeMap[dateStr] = { date: dateStr, sales: 0, returns: 0, sortKey: d.toISOString() };
         }
         
         const qty = Math.abs(Number(item.quantity) || 0); // Convert negs to pos for counting units
@@ -104,7 +151,7 @@ export default function SalesDataPage() {
 
     // 2. Aggregate Vertical Data
     const verticalMap = {};
-    rawData.forEach(item => {
+    filteredRawData.forEach(item => {
         if (item.type === 'Sale') {
             const v = item.vertical || "Unknown";
             const qty = Math.abs(Number(item.quantity) || 0);
@@ -115,7 +162,7 @@ export default function SalesDataPage() {
 
     // 3. Aggregate Platform Data
     const platformMap = {};
-    rawData.forEach(item => {
+    filteredRawData.forEach(item => {
         const p = item.platform || "Unknown";
         if (!platformMap[p]) {
             platformMap[p] = { name: p, sales: 0, returns: 0 };
@@ -128,8 +175,8 @@ export default function SalesDataPage() {
     const platformData = Object.values(platformMap);
 
     // Derived KPIs
-    const totalSales = rawData.filter(i => i.type === 'Sale').reduce((acc, curr) => acc + Math.abs(Number(curr.quantity) || 0), 0);
-    const totalReturns = rawData.filter(i => i.type === 'Return').reduce((acc, curr) => acc + Math.abs(Number(curr.quantity) || 0), 0);
+    const totalSales = filteredRawData.filter(i => i.type === 'Sale').reduce((acc, curr) => acc + Math.abs(Number(curr.quantity) || 0), 0);
+    const totalReturns = filteredRawData.filter(i => i.type === 'Return').reduce((acc, curr) => acc + Math.abs(Number(curr.quantity) || 0), 0);
     const netSales = totalSales - totalReturns;
     const returnRate = totalSales ? ((totalReturns / totalSales) * 100).toFixed(1) : 0;
 
@@ -201,6 +248,19 @@ export default function SalesDataPage() {
                         <option value="Myntra">Myntra</option>
                         <option value="Own Site">Own Site</option>
                     </select>
+
+                    <button 
+                        className={`${styles.refreshBtn} ${refreshing ? styles.spinning : ''}`}
+                        onClick={handleRefresh} 
+                        disabled={refreshing}
+                        title="Refresh Data"
+                    >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                    </button>
                 </div>
             </div>
 

@@ -16,21 +16,62 @@ export default function SalesRecordsPage() {
     // Filters & Sorting
     const [sortOrder, setSortOrder] = useState("newest_first");
     const [message, setMessage] = useState({ text: "", type: "" });
+    const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
-        fetchSalesRecords();
-    }, [currentPage, sortOrder]);
+        fetchSalesRecords(false);
+    }, []);
 
-    const fetchSalesRecords = async () => {
-        setLoading(true);
+    // Local processing
+    useEffect(() => {
+        processLocalData();
+    }, [records, currentPage, sortOrder]);
+
+    const processLocalData = () => {
+        let filtered = [...records];
+        
+        filtered.sort((a, b) => {
+            const dateA = new Date(a.createdAt || a.date || 0).getTime();
+            const dateB = new Date(b.createdAt || b.date || 0).getTime();
+            
+            if (sortOrder === "newest_first") {
+                return dateB - dateA;
+            } else {
+                return dateA - dateB;
+            }
+        });
+
+        setTotalItems(filtered.length);
+    };
+
+    const fetchSalesRecords = async (forceRefresh = false) => {
         const pin = sessionStorage.getItem("app_pin");
+        
+        if (!forceRefresh) {
+            const cachedData = localStorage.getItem("all_sales_data");
+            if (cachedData) {
+                try {
+                    setRecords(JSON.parse(cachedData));
+                    setLoading(false);
+                    return;
+                } catch (e) {
+                    console.error("Failed to parse cached sales");
+                }
+            }
+        }
+
+        if (forceRefresh) {
+            setRefreshing(true);
+        } else {
+            setLoading(true);
+        }
         
         const payload = {
             pin,
             action: "getSalesLog",
-            page: currentPage,
-            pageSize: pageSize,
-            sort: sortOrder
+            page: 1,
+            pageSize: 50000,
+            sort: "newest_first"
         };
 
         try {
@@ -41,20 +82,34 @@ export default function SalesRecordsPage() {
             }).then(res => res.json());
 
             if (response.status === 200 && response.message) {
-                setRecords(response.message.sales || []);
-                setTotalItems(response.message.pagination?.totalItems || 0);
+                const fetchedData = response.message.sales || [];
+                setRecords(fetchedData);
+                localStorage.setItem("all_sales_data", JSON.stringify(fetchedData));
+                
+                if (forceRefresh) {
+                    setMessage({ text: "Records refreshed successfully.", type: "success" });
+                }
             } else {
                 setMessage({ text: response.message || "Failed to load records.", type: "error" });
+                if (!records.length) setRecords([]);
             }
         } catch (error) {
             console.error("Fetch Error:", error);
             setMessage({ text: "Network error fetching records.", type: "error" });
+            if (!records.length) setRecords([]);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     };
 
+    const handleRefresh = () => {
+        setCurrentPage(1);
+        fetchSalesRecords(true);
+    };
+
     const totalPages = Math.ceil(totalItems / pageSize) || 1;
+    const paginatedRecords = records.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
     // Helper to format Date if the API starts returning a date field, fallback to N/A
     const formatDate = (dateStr) => {
@@ -82,6 +137,19 @@ export default function SalesRecordsPage() {
                         <option value="newest_first">Newest First</option>
                         <option value="oldest_first">Oldest First</option>
                     </select>
+
+                    <button 
+                        className={`${styles.refreshBtn} ${refreshing ? styles.spinning : ''}`}
+                        onClick={handleRefresh} 
+                        disabled={refreshing}
+                        title="Refresh Data"
+                    >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                    </button>
                 </div>
             </div>
 
@@ -106,7 +174,7 @@ export default function SalesRecordsPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {records.map((record, index) => (
+                                {paginatedRecords.map((record, index) => (
                                     <tr key={`${record.orderId}-${record.skuId}-${index}`}>
                                         <td>{formatDate(record.createdAt || record.date)}</td>
                                         <td className={styles.highlightText}>{record.orderId || "N/A"}</td>

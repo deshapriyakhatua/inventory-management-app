@@ -4,15 +4,20 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
 import Toast from "../../components/Toast/Toast";
+import { fetchVerticalsData } from "../../utils/apiUtils";
 
 export default function AllInventoryPage() {
-    const [inventory, setInventory] = useState([]);
+    const [allInventoryData, setAllInventoryData] = useState([]); // All data from API/Local Storage
+    const [inventory, setInventory] = useState([]); // Currently displayed filtered/paginated data
     const [verticals, setVerticals] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [viewMode, setViewMode] = useState("grid"); // "grid" or "list"
     const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [message, setMessage] = useState({ text: "", type: "" });
+    const [deleteButtonLoading, setDeleteButtonLoading] = useState(false);
+    const [deletingItemId, setDeletingItemId] = useState(null);
     const pageSize = 20;
 
     // Filter/Sort States
@@ -25,14 +30,57 @@ export default function AllInventoryPage() {
     }, []);
 
     useEffect(() => {
-        fetchInventory(currentPage);
-    }, [currentPage, sortOrder, selectedVertical]);
+        loadInitialData();
+        fetchInventory(false); // Try loading from local storage first
+    }, []);
 
-    // Handle Search explicitly on button click or enter
+    // Apply Filters, Sort, and Pagination locally whenever dependencies change
+    useEffect(() => {
+        processLocalData();
+    }, [allInventoryData, currentPage, sortOrder, selectedVertical, searchQuery]);
+
+    const processLocalData = () => {
+        let filtered = [...allInventoryData];
+
+        // 1. Filter by vertical
+        if (selectedVertical) {
+            filtered = filtered.filter(item => item.vertical === selectedVertical);
+        }
+
+        // 2. Filter by Search Query
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            filtered = filtered.filter(item => 
+                item.id.toLowerCase().includes(query)
+            );
+        }
+
+        // 3. Sort
+        filtered.sort((a, b) => {
+            const dateA = new Date(a.timestamp || 0).getTime();
+            const dateB = new Date(b.timestamp || 0).getTime();
+            
+            if (sortOrder === "newest_first") {
+                return dateB - dateA;
+            } else {
+                return dateA - dateB;
+            }
+        });
+
+        // 4. Update Total Items (for Pagination math)
+        setTotalItems(filtered.length);
+
+        // 5. Paginate
+        const startIndex = (currentPage - 1) * pageSize;
+        const paginatedItems = filtered.slice(startIndex, startIndex + pageSize);
+        
+        setInventory(paginatedItems);
+    };
+
     const handleSearch = (e) => {
         if (e.key === 'Enter' || e.type === 'click') {
             setCurrentPage(1);
-            fetchInventory(1);
+            // processLocalData is triggered by useEffect
         }
     };
 
@@ -40,7 +88,51 @@ export default function AllInventoryPage() {
         setSearchQuery("");
         setSelectedVertical("");
         setSortOrder("newest_first");
+        setCurrentPage(1); // Resetting page
+    };
+
+    const handleRefresh = () => {
         setCurrentPage(1);
+        fetchInventory(true); // Force fetch from server
+    };
+
+    const handleDelete = async (id) => {
+        setDeletingItemId(id);
+        setDeleteButtonLoading(true);
+        const payload = {
+            pin: sessionStorage.getItem("app_pin"), // Authenticate
+            action: "deleteInventory",
+            id: id,
+        };
+
+        try {
+            const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8",
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const result = await response.json();
+
+            if (result.status === 200) {
+                setMessage({ text: "Inventory deleted successfully.", type: "success" });
+                // Update local data
+                const updatedData = allInventoryData.filter(item => item.id !== id);
+                setAllInventoryData(updatedData);
+                localStorage.setItem("all_inventory_data", JSON.stringify(updatedData));
+            } else {
+                console.error("API Error:", result.message);
+                setMessage({ text: result.message || "Failed to delete inventory.", type: "error" });
+            }
+        } catch (error) {
+            console.error("Network Error:", error);
+            setMessage({ text: "Network error. Please try again.", type: "error" });
+        } finally {
+            setDeleteButtonLoading(false);
+            setDeletingItemId(null);
+        }
     };
 
     const copyToClipboard = async (text, label) => {
@@ -56,34 +148,46 @@ export default function AllInventoryPage() {
     const loadInitialData = async () => {
         const pin = sessionStorage.getItem("app_pin");
         try {
-            const vertPayload = { pin, action: "getVertical", pageSize: 100, sort: "name_asc" };
-            const vertRes = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-                method: "POST", body: JSON.stringify(vertPayload)
-            }).then(res => res.json());
-            
-            if (vertRes.status === 200) {
-                setVerticals(vertRes.data || []);
-            }
+            const cachedVerticals = await fetchVerticalsData(pin);
+            setVerticals(cachedVerticals || []);
         } catch (error) {
             console.error("Failed to load verticals:", error);
         }
     };
 
-    const fetchInventory = async (page) => {
-        setLoading(true);
-        setMessage({ text: "", type: "" });
+    const fetchInventory = async (forceRefresh = false) => {
         const pin = sessionStorage.getItem("app_pin");
+        
+        // Check local storage if not forcing refresh
+        if (!forceRefresh) {
+            const cachedData = localStorage.getItem("all_inventory_data");
+            if (cachedData) {
+                try {
+                    const parsed = JSON.parse(cachedData);
+                    setAllInventoryData(parsed);
+                    setLoading(false);
+                    return;
+                } catch (e) {
+                    console.error("Failed to parse cached inventory");
+                }
+            }
+        }
+
+        if (forceRefresh) {
+            setRefreshing(true);
+        } else {
+            setLoading(true);
+        }
+
+        setMessage({ text: "", type: "" });
         
         const payload = {
             pin,
             action: "getInventory",
-            page: page,
-            pageSize: pageSize,
-            sort: sortOrder,
+            page: 1,
+            pageSize: 50000, // Fetch everything unconditionally
+            sort: "newest_first", // Fetch in predictable order
         };
-
-        if (selectedVertical) payload.vertical = selectedVertical;
-        if (searchQuery) payload.search = searchQuery;
 
         try {
             const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
@@ -93,30 +197,30 @@ export default function AllInventoryPage() {
             }).then(res => res.json());
 
             if (response.status === 200) {
-                // The getInventory response structure usually returns an array directly on data or within pagination blocks.
-                // Looking at add-inventory, it returns result.data as an array. Let's assume there's pagination info or just the array.
-                // Real pagination from getSalesLog was: data: { sales: [], pagination: { totalItems: X } }
-                // For getInventory, add-inventory treats result.data as the array itself. We'll handle both cases to be safe.
+                let fetchedData = [];
                 if (Array.isArray(response.data)) {
-                    setInventory(response.data);
-                    // If no totalItems provided, we guess based on whether we hit the pageSize limit
-                    setTotalItems(response.data.length === pageSize ? page * pageSize + 1 : page * pageSize); 
+                    fetchedData = response.data;
                 } else if (response.data && Array.isArray(response.data.items)) {
-                    setInventory(response.data.items);
-                    setTotalItems(response.data.pagination?.totalItems || 0);
-                } else {
-                    setInventory([]);
+                    fetchedData = response.data.items;
+                }
+
+                setAllInventoryData(fetchedData);
+                localStorage.setItem("all_inventory_data", JSON.stringify(fetchedData));
+                
+                if (forceRefresh) {
+                    setMessage({ text: "Inventory refreshed successfully.", type: "success" });
                 }
             } else {
                 setMessage({ text: response.message || "Failed to load inventory.", type: "error" });
-                setInventory([]);
+                if (!allInventoryData.length) setAllInventoryData([]);
             }
         } catch (error) {
             console.error("Fetch Error:", error);
             setMessage({ text: "Network error while loading data.", type: "error" });
-            setInventory([]);
+            if (!allInventoryData.length) setAllInventoryData([]);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     };
 
@@ -185,6 +289,20 @@ export default function AllInventoryPage() {
                             </svg>
                             Reset
                         </button>
+
+                        <button 
+                            className={`${styles.refreshBtn} ${refreshing ? styles.spinning : ''}`}
+                            onClick={handleRefresh} 
+                            disabled={refreshing}
+                            title="Refresh Data"
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <polyline points="1 20 1 14 7 14"></polyline>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                            Refresh
+                        </button>
                     </div>
 
                     <div className={styles.viewControls}>
@@ -233,6 +351,24 @@ export default function AllInventoryPage() {
                         <div className={styles.gridContainer}>
                             {inventory.map((item) => (
                                 <div key={item.id} className={styles.gridCard}>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDelete(item.id)}
+                                        className={styles.deleteBtn}
+                                        title="Delete Inventory"
+                                        disabled={deleteButtonLoading}
+                                    >
+                                        {deleteButtonLoading && deletingItemId === item.id
+                                            ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                                                <path d="M21 3v5h-5"></path>
+                                            </svg>
+                                            : <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <polyline points="3 6 5 6 21 6"></polyline>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                            </svg>
+                                        }
+                                    </button>
                                     <div className={styles.imageContainer}>
                                         {item.driveId ? (
                                             <Image
@@ -281,6 +417,7 @@ export default function AllInventoryPage() {
                                         <th>Image</th>
                                         <th>Inventory/SKU ID</th>
                                         <th>Date Added</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -308,6 +445,26 @@ export default function AllInventoryPage() {
                                                     month: 'short', day: 'numeric', year: 'numeric',
                                                     hour: '2-digit', minute: '2-digit'
                                                 })}
+                                            </td>
+                                            <td className={styles.tdActions}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDelete(item.id)}
+                                                    className={styles.listDeleteBtn}
+                                                    title="Delete Inventory"
+                                                    disabled={deleteButtonLoading}
+                                                >
+                                                    {deleteButtonLoading && deletingItemId === item.id
+                                                        ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                            <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                                                            <path d="M21 3v5h-5"></path>
+                                                        </svg>
+                                                        : <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                        </svg>
+                                                    }
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}

@@ -55,6 +55,35 @@
     background-color: #1e293b;
 }
 
+.refreshBtn {
+    background-color: transparent;
+    border: 1px solid #334155;
+    color: #94a3b8;
+    padding: 0.75rem;
+    border-radius: 8px;
+    outline: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.refreshBtn:hover:not(:disabled) {
+    background-color: #1e293b;
+    border-color: #475569;
+    color: #f1f5f9;
+}
+
+.refreshBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.spinning svg {
+    animation: spin 1s linear infinite;
+}
+
 /* KPI Cards */
 .kpiGrid {
     display: grid;
