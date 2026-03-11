@@ -130,7 +130,7 @@ export default function AddInventory() {
                 loadData();
             } else {
                 console.error("API Error:", result.message);
-                setMessage({ text: "Failed to delete inventory.", type: "error" });
+                setMessage({ text: result.message || "Failed to delete inventory.", type: "error" });
             }
         } catch (error) {
             console.error("Network Error:", error);

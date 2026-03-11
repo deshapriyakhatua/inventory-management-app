@@ -1,0 +1,464 @@
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #f8fafc;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.layout {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+/* Base Card */
+.card {
+    background: #1e293b;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    padding: 2rem;
+    border: 1px solid #334155;
+}
+
+.cardTitle {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #f8fafc;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #334155;
+    padding-bottom: 0.75rem;
+}
+
+/* Filters */
+.filtersRow {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.filterInput, .filterSelect {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.75rem 1rem;
+    border: 1px solid #475569;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: #f1f5f9;
+    transition: all 0.2s ease;
+    background-color: #0f172a;
+}
+
+.filterInput:focus, .filterSelect:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+    background-color: #0f172a;
+}
+
+/* Table */
+.tableContainer {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid #475569;
+    background: #1e293b;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.table th, .table td {
+    padding: 1rem;
+    border-bottom: 1px solid #334155;
+    color: #e2e8f0;
+}
+
+.table th {
+    background-color: #0f172a;
+    font-weight: 600;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+.table tr:last-child td {
+    border-bottom: none;
+}
+
+.table tr:hover {
+    background-color: #334155;
+}
+
+/* Checkbox */
+.checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #3498db;
+}
+
+.skuCell {
+    font-weight: 600;
+    color: #93c5fd;
+}
+
+/* Expandable Rows */
+.clickableRow {
+    transition: background-color 0.2s ease;
+}
+
+.clickableRow:hover {
+    background-color: #334155;
+    cursor: pointer;
+}
+
+.expandBtn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.expandBtn:hover {
+    background-color: #475569;
+    color: #f8fafc;
+}
+
+.expandedRow {
+    background-color: #0f172a;
+    border-bottom: 2px solid #334155;
+}
+
+.expandedCell {
+    padding: 0;
+}
+
+.expandedContent {
+    padding: 1.5rem;
+    animation: fadeInDown 0.3s ease-out;
+}
+
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.expandedTitle {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #f8fafc;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #334155;
+    padding-bottom: 0.5rem;
+}
+
+.inventoryThumbGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 1rem;
+}
+
+.inventoryThumbCard {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.thumbImageWrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    background: #0f172a;
+}
+
+.thumbImagePlaceholder {
+    width: 100%;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0f172a;
+    color: #64748b;
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+.thumbId {
+    padding: 0.5rem;
+    font-size: 0.8rem;
+    color: #cbd5e1;
+    text-align: center;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.noInventoryText {
+    color: #94a3b8;
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #334155;
+}
+
+.pageInfo {
+    font-size: 0.9rem;
+    color: #94a3b8;
+}
+
+.pageControls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.pageBtn {
+    padding: 0.5rem 1rem;
+    border: 1px solid #475569;
+    background: #1e293b;
+    color: #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pageBtn:hover:not(:disabled) {
+    background: #334155;
+    border-color: #64748b;
+}
+
+.pageBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Action Form Area */
+.actionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #334155;
+    padding-bottom: 0.75rem;
+}
+
+.actionTitle {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #f8fafc;
+}
+
+.toggleGroup {
+    display: flex;
+    background: #0f172a;
+    padding: 4px;
+    border-radius: 8px;
+}
+
+.toggleBtn {
+    padding: 0.5rem 1.5rem;
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.toggleBtn.activeSales {
+    background: #1e293b;
+    color: #4ade80;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.toggleBtn.activeReturns {
+    background: #1e293b;
+    color: #f87171;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.selectedList {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.selectedItemCard {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.itemSku {
+    font-weight: 600;
+    color: #f8fafc;
+    width: 150px;
+    flex-shrink: 0;
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+    min-width: 120px;
+}
+
+.inputLabel {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+}
+
+.itemInput, .itemSelect {
+    padding: 0.5rem;
+    border: 1px solid #475569;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: #f8fafc;
+    background: #1e293b;
+    transition: border-color 0.2s ease;
+}
+
+.itemInput:focus, .itemSelect:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.removeBtn {
+    background: #7f1d1d;
+    color: #fca5a5;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    align-self: flex-end;
+    margin-bottom: 2px;
+}
+
+.removeBtn:hover {
+    background: #991b1b;
+    color: #fecaca;
+}
+
+.submitBtn {
+    width: 100%;
+    padding: 1rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.submitBtn.sales {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+}
+
+.submitBtn.sales:hover {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+}
+
+.submitBtn.returns {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+}
+
+.submitBtn.returns:hover {
+    background: linear-gradient(135deg, #c0392b, #e74c3c);
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+}
+
+.submitBtn:disabled {
+    background: #475569;
+    color: #94a3b8;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.emptyState {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #94a3b8;
+    font-style: italic;
+    background: #0f172a;
+    border-radius: 8px;
+    border: 1px dashed #475569;
+}
+
+.loading {
+    text-align: center;
+    padding: 2rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .filterInput, .filterSelect {
+        min-width: 100%;
+    }
+    
+    .selectedItemCard {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .removeBtn {
+        align-self: flex-start;
+        margin-top: 0.5rem;
+    }
+}
