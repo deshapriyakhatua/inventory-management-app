@@ -26,6 +26,7 @@ export default function CreateNewListing() {
     // Recent Listings specific state
     const [recentListings, setRecentListings] = useState([]);
     const [loadingRecentListings, setLoadingRecentListings] = useState(true);
+    const [refreshingRecentListings, setRefreshingRecentListings] = useState(false);
     const [deleteButtonLoading, setDeleteButtonLoading] = useState(false);
     const [deletingListingId, setDeletingListingId] = useState(null);
 
@@ -34,32 +35,38 @@ export default function CreateNewListing() {
         loadData();
     }, []);
 
-    const loadData = async () => {
-        const data = await fetchLatestListings();
+    const loadData = async (forceRefresh = false) => {
+        const data = await fetchLatestListings(forceRefresh);
         setRecentListings(data);
     };
 
-    const fetchLatestListings = async () => {
-        setLoadingRecentListings(true);
+    const fetchLatestListings = async (forceRefresh = false) => {
+        if (forceRefresh) {
+            setRefreshingRecentListings(true);
+        } else {
+            setLoadingRecentListings(true);
+        }
 
-        const cachedListings = localStorage.getItem("all_listings_data");
-        if (cachedListings) {
-            try {
-                const parsed = JSON.parse(cachedListings);
-                // Sort by newest first
-                parsed.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-                setLoadingRecentListings(false);
-                return parsed.slice(0, 5);
-            } catch (e) {
-                console.error("Failed to parse cached listings", e);
+        if (!forceRefresh) {
+            const cachedListings = localStorage.getItem("all_listings_data");
+            if (cachedListings) {
+                try {
+                    const parsed = JSON.parse(cachedListings);
+                    // Sort by newest first
+                    parsed.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+                    setLoadingRecentListings(false);
+                    return parsed.slice(0, 5);
+                } catch (e) {
+                    console.error("Failed to parse cached listings", e);
+                }
             }
         }
 
         const payload = {
-            pin: sessionStorage.getItem("app_pin"), // Authenticate
+            pin: sessionStorage.getItem("app_pin"),
             action: "getListing",
             page: 1,
-            pageSize: 5,
+            pageSize: 50000,
             sort: "newest_first"
         };
 
@@ -71,7 +78,11 @@ export default function CreateNewListing() {
             });
             const result = await response.json();
             if (result.status === 200) {
-                return result.message.listings;
+                const listings = result.message?.listings || result.data || [];
+                // Update the local cache with fresh data
+                localStorage.setItem("all_listings_data", JSON.stringify(listings));
+                listings.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+                return listings.slice(0, 5);
             } else {
                 console.error("API Error:", result.message);
                 return [];
@@ -81,6 +92,7 @@ export default function CreateNewListing() {
             return [];
         } finally {
             setLoadingRecentListings(false);
+            setRefreshingRecentListings(false);
         }
     };
 
@@ -102,7 +114,7 @@ export default function CreateNewListing() {
             const result = await response.json();
             if (result.status === 200) {
                 setMessage({ text: result.message ? result.message : "Listing deleted successfully.", type: "success" });
-                loadData();
+                loadData(true); // Force fresh fetch after deletion
             } else {
                 console.error("API Error:", result.message);
                 setMessage({ text: "Failed to delete listing.", type: "error" });
@@ -325,7 +337,7 @@ export default function CreateNewListing() {
                 setSkuId("");
                 setSelectedInventoryIds([]);
                 // Optionally could reset vertical as well: setVertical(""); setVerticalShort("");
-                loadData();
+                loadData(true); // Force fresh fetch to show the newly created listing
             } else {
                 setMessage({ text: "Failed to create listing: " + (result.message || "Unknown error"), type: "error" });
             }
@@ -481,9 +493,24 @@ export default function CreateNewListing() {
             </div>
 
             {/* Recent Listings Section */}
-            {recentListings.length > 0 && (
+            {(recentListings.length > 0 || loadingRecentListings || refreshingRecentListings) && (
                 <div className={styles.recentSection}>
-                    <h2 className={styles.recentTitle}>Recently Added (Last {recentListings.length})</h2>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                        <h2 className={styles.recentTitle} style={{ marginBottom: 0 }}>Recently Added (Last {recentListings.length})</h2>
+                        <button
+                            type="button"
+                            className={`${styles.refreshBtn} ${refreshingRecentListings ? styles.spinning : ''}`}
+                            onClick={() => loadData(true)}
+                            disabled={loadingRecentListings || refreshingRecentListings}
+                            title="Refresh Recent Listings"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <polyline points="1 20 1 14 7 14"></polyline>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                        </button>
+                    </div>
                     {loadingRecentListings
                         ? <div className={styles.recentGrid}>
                             {Array.from({ length: 5 }).map((_, index) => (

@@ -275,7 +275,7 @@ export default function AddSalesLog() {
                                         <th style={{ width: '40px' }}>Select</th>
                                         <th>SKU ID</th>
                                         <th>Vertical</th>
-                                        <th>Date Created</th>
+                                        <th>Thumbnails</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -305,7 +305,28 @@ export default function AddSalesLog() {
                                                 </td>
                                                 <td className={styles.skuCell}>{item.skuId}</td>
                                                 <td>{item.vertical}</td>
-                                                <td>{new Date(item.createdAt).toLocaleDateString()}</td>
+                                                <td className={styles.tdImage}>
+                                                    {item.inventoryItems && item.inventoryItems.length > 0 ? (
+                                                        <div className={styles.listThumbStack}>
+                                                            {item.inventoryItems.map((inv, idx) => (
+                                                                inv.imageId ? (
+                                                                    <div key={idx} className={styles.listThumbnailContainer}>
+                                                                        <Image
+                                                                            src={`https://drive.google.com/thumbnail?id=${inv.imageId}&sz=w100`}
+                                                                            alt={inv.inventoryId}
+                                                                            referrerPolicy="no-referrer"
+                                                                            fill
+                                                                            className={styles.listThumbnail}
+                                                                            unoptimized
+                                                                        />
+                                                                    </div>
+                                                                ) : null
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div className={styles.listThumbnailPlaceholder}>-</div>
+                                                    )}
+                                                </td>
                                             </tr>
                                             {expandedListingId === item.skuId && (
                                                 <tr className={styles.expandedRow}>

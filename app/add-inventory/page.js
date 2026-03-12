@@ -17,6 +17,7 @@ export default function AddInventory() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [recentItems, setRecentItems] = useState([]);
     const [loadingInventoryItems, setLoadingInventoryItems] = useState(true);
+    const [refreshingRecentItems, setRefreshingRecentItems] = useState(false);
     const [deleteButtonLoading, setDeleteButtonLoading] = useState(false);
     const [deletingItemId, setDeletingItemId] = useState(null);
     const [verticals, setVerticals] = useState([]);
@@ -28,34 +29,56 @@ export default function AddInventory() {
         loadData();
     }, []);
 
-    const loadData = async () => {
-        const data = await fetchLatestInventory();
+    const loadData = async (forceRefresh = false) => {
+        const data = await fetchLatestInventory(forceRefresh);
         setRecentItems(data);
     };
 
-    const fetchLatestInventory = async () => {
-        setLoadingInventoryItems(true);
+    const fetchLatestInventory = async (forceRefresh = false) => {
+        if (forceRefresh) {
+            setRefreshingRecentItems(true);
+        } else {
+            setLoadingInventoryItems(true);
+        }
+
+        // Use cache if not forcing refresh
+        if (!forceRefresh) {
+            const cached = localStorage.getItem("all_inventory_data");
+            if (cached) {
+                try {
+                    const parsed = JSON.parse(cached);
+                    parsed.sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp));
+                    setLoadingInventoryItems(false);
+                    return parsed.slice(0, 5);
+                } catch (e) {
+                    console.error("Failed to parse cached inventory", e);
+                }
+            }
+        }
+
         const payload = {
-            pin: sessionStorage.getItem("app_pin"), // Authenticate
+            pin: sessionStorage.getItem("app_pin"),
             action: "getInventory",
-            page: 1,           // Always the first page
-            pageSize: 5,       // Limit to 5 items
-            sort: "newest_first" // Default, but good to be explicit
+            page: 1,
+            pageSize: 50000,
+            sort: "newest_first"
         };
 
         try {
             const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "text/plain;charset=utf-8",
-                },
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
                 body: JSON.stringify(payload),
             });
 
             const result = await response.json();
 
             if (result.status === 200) {
-                return result.data; // Array of 5 latest items
+                const items = result.data || [];
+                // Update local cache with fresh data
+                localStorage.setItem("all_inventory_data", JSON.stringify(items));
+                items.sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp));
+                return items.slice(0, 5);
             } else {
                 console.error("API Error:", result.message);
                 return [];
@@ -65,6 +88,17 @@ export default function AddInventory() {
             return [];
         } finally {
             setLoadingInventoryItems(false);
+            setRefreshingRecentItems(false);
+        }
+    };
+
+    const copyInventoryId = async (id) => {
+        try {
+            await navigator.clipboard.writeText(id);
+            setMessage({ text: "Inventory ID copied to clipboard!", type: "success" });
+        } catch (err) {
+            console.error("Failed to copy:", err);
+            setMessage({ text: "Failed to copy to clipboard.", type: "error" });
         }
     };
 
@@ -98,7 +132,7 @@ export default function AddInventory() {
 
             if (result.status === 200) {
                 setMessage({ text: "Inventory deleted successfully.", type: "success" });
-                loadData();
+                loadData(true); // Force fresh fetch after deletion
             } else {
                 console.error("API Error:", result.message);
                 setMessage({ text: result.message || "Failed to delete inventory.", type: "error" });
@@ -217,10 +251,12 @@ export default function AddInventory() {
                 // Reset form
                 setInventoryId("");
                 setVertical("");
+                setVerticalShort("");
                 setImageFile(null);
                 setImagePreview(null);
                 // Reset file input value natively
                 document.getElementById('imageUpload').value = "";
+                loadData(true); // Force fresh fetch after successful add
             } else {
                 setMessage({ text: "Failed to add inventory: " + (result.message || "Unknown error"), type: "error" });
             }
@@ -229,7 +265,6 @@ export default function AddInventory() {
             setMessage({ text: "Network error. Please try again.", type: "error" });
         } finally {
             setIsLoading(false);
-            loadData();
         }
     };
 
@@ -335,9 +370,24 @@ export default function AddInventory() {
             </div>
 
             {/* Recent Inventory Section */}
-            {recentItems.length > 0 && (
+            {(recentItems.length > 0 || loadingInventoryItems || refreshingRecentItems) && (
                 <div className={styles.recentSection}>
-                    <h2 className={styles.recentTitle}>Recently Added (Last {recentItems.length})</h2>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                        <h2 className={styles.recentTitle} style={{ marginBottom: 0 }}>Recently Added (Last {recentItems.length})</h2>
+                        <button
+                            type="button"
+                            className={`${styles.refreshBtn} ${refreshingRecentItems ? styles.spinning : ''}`}
+                            onClick={() => loadData(true)}
+                            disabled={loadingInventoryItems || refreshingRecentItems}
+                            title="Refresh Recent Inventory"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <polyline points="1 20 1 14 7 14"></polyline>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                        </button>
+                    </div>
                     {loadingInventoryItems
                         ? <div className={styles.recentGrid}>
                             {Array.from({ length: 5 }).map((_, index) => (
@@ -390,7 +440,20 @@ export default function AddInventory() {
                                         <div className={styles.recentImagePlaceholder}>No Image</div>
                                     )}
                                     <div className={styles.recentInfo}>
-                                        <p className={styles.recentId}>{item.id}</p>
+                                        <div className={styles.recentIdRow}>
+                                            <p className={styles.recentId}>{item.id}</p>
+                                            <button
+                                                type="button"
+                                                className={styles.copyBtn}
+                                                onClick={() => copyInventoryId(item.id)}
+                                                title="Copy Inventory ID"
+                                            >
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                                </svg>
+                                            </button>
+                                        </div>
                                         <p className={styles.recentBrand}>
                                             {new Date(item.timestamp).toLocaleString('en-IN', {
                                                 day: 'numeric',

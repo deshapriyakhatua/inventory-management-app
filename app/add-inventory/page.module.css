@@ -193,6 +193,33 @@ select.input {
     border-left: 4px solid #38bdf8;
 }
 
+.refreshBtn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.refreshBtn:hover:not(:disabled) {
+    color: #38bdf8;
+    background-color: rgba(56, 189, 248, 0.1);
+}
+
+.refreshBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.spinning svg {
+    animation: spin 1s linear infinite;
+}
+
 .recentGrid {
     display: flex;
     flex-wrap: nowrap;
@@ -303,7 +330,33 @@ select.input {
     color: #f8fafc;
     font-weight: 600;
     font-size: 0.95rem;
-    margin: 0 0 4px 0;
+    margin: 0;
+}
+
+.recentIdRow {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.copyBtn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.copyBtn:hover {
+    color: #38bdf8;
+    background-color: rgba(56, 189, 248, 0.1);
 }
 
 .recentBrand {

@@ -24,6 +24,7 @@ export default function AllListingsPage() {
     const [sortOrder, setSortOrder] = useState("newest_first");
     const [selectedVertical, setSelectedVertical] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
+    const [inventoryIdQuery, setInventoryIdQuery] = useState("");
 
     // Modal State
     const [selectedListing, setSelectedListing] = useState(null);
@@ -40,7 +41,7 @@ export default function AllListingsPage() {
     // Apply Filters, Sort, and Pagination locally whenever dependencies change
     useEffect(() => {
         processLocalData();
-    }, [allListingsData, currentPage, sortOrder, selectedVertical, searchQuery]);
+    }, [allListingsData, currentPage, sortOrder, selectedVertical, searchQuery, inventoryIdQuery]);
 
     const processLocalData = () => {
         let filtered = [...allListingsData];
@@ -50,15 +51,25 @@ export default function AllListingsPage() {
             filtered = filtered.filter(item => item.vertical === selectedVertical);
         }
 
-        // 2. Filter by Search Query
+        // 2. Filter by Search Query (SKU ID)
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
-            filtered = filtered.filter(item => 
+            filtered = filtered.filter(item =>
                 item.skuId.toLowerCase().includes(query)
             );
         }
 
-        // 3. Sort
+        // 3. Filter by Inventory ID
+        if (inventoryIdQuery) {
+            const invQuery = inventoryIdQuery.toLowerCase();
+            filtered = filtered.filter(item =>
+                item.inventoryItems?.some(inv =>
+                    inv.inventoryId?.toLowerCase().includes(invQuery)
+                )
+            );
+        }
+
+        // 4. Sort
         filtered.sort((a, b) => {
             const dateA = new Date(a.createdAt || 0).getTime();
             const dateB = new Date(b.createdAt || 0).getTime();
@@ -70,10 +81,10 @@ export default function AllListingsPage() {
             }
         });
 
-        // 4. Update Total Items (for Pagination math)
+        // 5. Update Total Items (for Pagination math)
         setTotalItems(filtered.length);
 
-        // 5. Paginate
+        // 6. Paginate
         const startIndex = (currentPage - 1) * pageSize;
         const paginatedItems = filtered.slice(startIndex, startIndex + pageSize);
         
@@ -89,6 +100,7 @@ export default function AllListingsPage() {
 
     const handleReset = () => {
         setSearchQuery("");
+        setInventoryIdQuery("");
         setSelectedVertical("");
         setSortOrder("newest_first");
         setCurrentPage(1); // Resetting page
@@ -238,11 +250,27 @@ export default function AllListingsPage() {
                                 type="text"
                                 placeholder="Search SKU ID..."
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                                 onKeyDown={handleSearch}
                                 className={styles.searchInput}
                             />
                             <button className={styles.searchBtn} onClick={handleSearch} title="Search">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div className={styles.searchBox}>
+                            <input 
+                                type="text"
+                                placeholder="Search Inventory ID..."
+                                value={inventoryIdQuery}
+                                onChange={(e) => { setInventoryIdQuery(e.target.value); setCurrentPage(1); }}
+                                className={styles.searchInput}
+                            />
+                            <button className={styles.searchBtn} onClick={() => setCurrentPage(1)} title="Search">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <circle cx="11" cy="11" r="8"></circle>
                                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
