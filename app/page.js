@@ -111,6 +111,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
     // Raw data
     const [inventoryData, setInventoryData] = useState([]);
@@ -124,73 +125,71 @@ export default function DashboardPage() {
         loadAllData();
     }, []);
 
-    const loadAllData = async () => {
-        setLoading(true);
+    const loadAllData = async (isRefresh = false) => {
+        if (isRefresh) setRefreshing(true);
+        else setLoading(true);
         const pin = sessionStorage.getItem("app_pin");
 
-        // Try caches first, fire all 3 in parallel
-        const cachedInv = (() => {
-            try { return JSON.parse(localStorage.getItem("all_inventory_data") || "null"); } catch { return null; }
-        })();
-        const cachedList = (() => {
-            try { return JSON.parse(localStorage.getItem("all_listings_data") || "null"); } catch { return null; }
-        })();
-        const cachedSales = (() => {
-            try { return JSON.parse(localStorage.getItem("all_sales_data") || "null"); } catch { return null; }
-        })();
+        // On initial load only: read from cache and return early if all 3 present
+        if (!isRefresh) {
+            const cachedInv = (() => {
+                try { return JSON.parse(localStorage.getItem("all_inventory_data") || "null"); } catch { return null; }
+            })();
+            const cachedList = (() => {
+                try { return JSON.parse(localStorage.getItem("all_listings_data") || "null"); } catch { return null; }
+            })();
+            const cachedSales = (() => {
+                try { return JSON.parse(localStorage.getItem("all_sales_data") || "null"); } catch { return null; }
+            })();
 
-        if (cachedInv) setInventoryData(cachedInv);
-        if (cachedList) setListingsData(Array.isArray(cachedList) ? cachedList : (cachedList.listings || []));
-        if (cachedSales) setSalesData(cachedSales);
+            if (cachedInv) setInventoryData(cachedInv);
+            if (cachedList) setListingsData(Array.isArray(cachedList) ? cachedList : (cachedList.listings || []));
+            if (cachedSales) setSalesData(cachedSales);
 
-        if (cachedInv && cachedList && cachedSales) {
-            setLoading(false);
-            return;
+            if (cachedInv && cachedList && cachedSales) {
+                setLoading(false);
+                return;
+            }
         }
 
+        // Full fetch — always runs on manual refresh, runs on initial load only if cache is missing
         try {
-            const fetches = [];
-            if (!cachedInv) fetches.push(
-                fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ pin, action: "getInventory", page: 1, pageSize: 50000, sort: "newest_first" }),
-                }).then(r => r.json()).then(res => {
-                    const items = res.status === 200 ? (res.data || []) : [];
-                    setInventoryData(items);
-                    localStorage.setItem("all_inventory_data", JSON.stringify(items));
-                })
-            );
-            if (!cachedList) fetches.push(
-                fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ pin, action: "getListing", page: 1, pageSize: 50000, sort: "newest_first" }),
-                }).then(r => r.json()).then(res => {
-                    let items = [];
-                    if (res.status === 200) {
-                        items = res.message?.listings || res.data || [];
-                    }
-                    setListingsData(items);
-                    localStorage.setItem("all_listings_data", JSON.stringify(items));
-                })
-            );
-            if (!cachedSales) fetches.push(
-                fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ pin, action: "getFilteredSalesLog", startDate: "", endDate: new Date().toISOString().split("T")[0] }),
-                }).then(r => r.json()).then(res => {
-                    const items = (res.status === 200 && Array.isArray(res.message)) ? res.message : [];
-                    setSalesData(items);
-                    localStorage.setItem("all_sales_data", JSON.stringify(items));
-                })
-            );
-            await Promise.all(fetches);
+            const fetchInv = fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify({ pin, action: "getInventory", page: 1, pageSize: 50000, sort: "newest_first" }),
+            }).then(r => r.json()).then(res => {
+                const items = res.status === 200 ? (res.data || []) : [];
+                setInventoryData(items);
+                localStorage.setItem("all_inventory_data", JSON.stringify(items));
+            });
+
+            const fetchList = fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify({ pin, action: "getListing", page: 1, pageSize: 50000, sort: "newest_first" }),
+            }).then(r => r.json()).then(res => {
+                const items = res.status === 200 ? (res.message?.listings || res.data || []) : [];
+                setListingsData(items);
+                localStorage.setItem("all_listings_data", JSON.stringify(items));
+            });
+
+            const fetchSales = fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify({ pin, action: "getFilteredSalesLog", startDate: "", endDate: new Date().toISOString().split("T")[0] }),
+            }).then(r => r.json()).then(res => {
+                const items = (res.status === 200 && Array.isArray(res.message)) ? res.message : [];
+                setSalesData(items);
+                localStorage.setItem("all_sales_data", JSON.stringify(items));
+            });
+
+            await Promise.all([fetchInv, fetchList, fetchSales]);
         } catch (e) {
             console.error("Dashboard fetch error:", e);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     };
 
@@ -306,7 +305,7 @@ export default function DashboardPage() {
                         <option value="90">Last 90 Days</option>
                         <option value="all">All Time</option>
                     </select>
-                    <button className={styles.refreshBtn} onClick={loadAllData} title="Refresh all data">
+                    <button className={`${styles.refreshBtn} ${refreshing ? styles.spinning : ''}`} onClick={() => loadAllData(true)} disabled={refreshing} title="Refresh all data">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="23 4 23 10 17 10" />
                             <polyline points="1 20 1 14 7 14" />

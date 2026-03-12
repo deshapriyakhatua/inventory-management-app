@@ -117,6 +117,15 @@
     color: #f1f5f9;
 }
 
+.refreshBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.spinning svg {
+    animation: spin 0.9s linear infinite;
+}
+
 /* ─── KPI Strip ──────────────────────────────────────────────── */
 .kpiStrip {
     display: grid;
