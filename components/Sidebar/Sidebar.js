@@ -69,17 +69,6 @@ const Sidebar = () => {
             )
         },
         {
-            title: "Sales Data",
-            path: "/sales-data",
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="20" x2="18" y2="10"></line>
-                    <line x1="12" y1="20" x2="12" y2="4"></line>
-                    <line x1="6" y1="20" x2="6" y2="14"></line>
-                </svg>
-            )
-        },
-        {
             title: "Sales Records",
             path: "/sales-records",
             icon: (
@@ -89,6 +78,17 @@ const Sidebar = () => {
                     <line x1="8" y1="13" x2="16" y2="13"></line>
                     <line x1="8" y1="17" x2="16" y2="17"></line>
                     <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+            )
+        },
+        {
+            title: "Sales Data",
+            path: "/sales-data",
+            icon: (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="14"></line>
                 </svg>
             )
         }

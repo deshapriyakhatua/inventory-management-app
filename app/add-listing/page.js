@@ -9,6 +9,7 @@ import { fetchVerticalsData } from "../../utils/apiUtils";
 export default function CreateNewListing() {
     const [verticalShort, setVerticalShort] = useState("");
     const [vertical, setVertical] = useState("");
+    const [marketplace, setMarketplace] = useState("");
     const [skuId, setSkuId] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState({ text: "", type: "" });
@@ -52,10 +53,12 @@ export default function CreateNewListing() {
             if (cachedListings) {
                 try {
                     const parsed = JSON.parse(cachedListings);
-                    // Sort by newest first
-                    parsed.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-                    setLoadingRecentListings(false);
-                    return parsed.slice(0, 5);
+                    if (Array.isArray(parsed)) {
+                        // Sort by newest first
+                        parsed.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+                        setLoadingRecentListings(false);
+                        return parsed.slice(0, 5);
+                    }
                 } catch (e) {
                     console.error("Failed to parse cached listings", e);
                 }
@@ -78,11 +81,23 @@ export default function CreateNewListing() {
             });
             const result = await response.json();
             if (result.status === 200) {
-                const listings = result.message?.listings || result.data || [];
+                let fetchedListings = [];
+                if (result.data && Array.isArray(result.data.listings)) {
+                    fetchedListings = result.data.listings;
+                } else if (result.message && Array.isArray(result.message.listings)) {
+                    fetchedListings = result.message.listings;
+                } else if (Array.isArray(result.data)) {
+                    fetchedListings = result.data;
+                } else if (Array.isArray(result.message)) {
+                    fetchedListings = result.message;
+                }
+
                 // Update the local cache with fresh data
-                localStorage.setItem("all_listings_data", JSON.stringify(listings));
-                listings.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-                return listings.slice(0, 5);
+                localStorage.setItem("all_listings_data", JSON.stringify(fetchedListings));
+                
+                // Sort by newest first
+                fetchedListings.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+                return fetchedListings.slice(0, 5);
             } else {
                 console.error("API Error:", result.message);
                 return [];
@@ -222,6 +237,7 @@ export default function CreateNewListing() {
     };
 
     const toggleSelection = (id) => {
+        setSkuId(""); // Clear SKU ID if selection changes
         setSelectedInventoryIds(prev =>
             prev.includes(id)
                 ? prev.filter(selectedId => selectedId !== id)
@@ -286,6 +302,10 @@ export default function CreateNewListing() {
             setMessage({ text: "Please select a Vertical.", type: "error" });
             return;
         }
+        if (!marketplace) {
+            setMessage({ text: "Please select a Marketplace.", type: "error" });
+            return;
+        }
         if (selectedInventoryIds.length === 0) {
             setMessage({ text: "Please select at least one inventory item.", type: "error" });
             return;
@@ -308,6 +328,7 @@ export default function CreateNewListing() {
                 pin: storedPin,
                 action: "addListing",
                 vertical: vertical,
+                marketplace: marketplace,
                 skuId: skuId,
                 inventoryItems: selectedInventoryIds, // Send the chosen item IDs
             };
@@ -381,6 +402,25 @@ export default function CreateNewListing() {
                                     {`${v.verticalShort} - ${v.verticalName}`}
                                 </option>
                             ))}
+                        </select>
+                    </div>
+
+                    {/* Marketplace Section */}
+                    <div className={styles.inputGroup}>
+                        <label htmlFor="marketplace" className={styles.label}>Select Marketplace</label>
+                        <select
+                            id="marketplace"
+                            value={marketplace}
+                            onChange={(e) => setMarketplace(e.target.value)}
+                            className={styles.input}
+                            disabled={isLoading}
+                        >
+                            <option value="">Select marketplace</option>
+                            <option value="Amazon">Amazon</option>
+                            <option value="Flipkart">Flipkart</option>
+                            <option value="Meesho">Meesho</option>
+                            <option value="Website">Website</option>
+                            <option value="Other">Other</option>
                         </select>
                     </div>
 
@@ -479,7 +519,7 @@ export default function CreateNewListing() {
                     <button
                         type="submit"
                         className={styles.submitBtn}
-                        disabled={isLoading || !verticalShort || selectedInventoryIds.length === 0 || !skuId}
+                        disabled={isLoading || !verticalShort || selectedInventoryIds.length === 0 || !skuId || !marketplace}
                     >
                         {isLoading ? "Creating Listing..." : "Create Listing"}
                     </button>
@@ -586,7 +626,11 @@ export default function CreateNewListing() {
                                                 </svg>
                                             </button>
                                         </div>
-                                        <p className={styles.recentVertical}>{item.vertical}</p>
+                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '4px' }}>
+                                            <p className={styles.recentVertical}>{item.vertical}</p>
+                                            <span style={{ color: '#64748b', fontSize: '0.8rem' }}>•</span>
+                                            <p className={styles.recentVertical} style={{ color: '#94a3b8' }}>{item.marketplace || 'Direct'}</p>
+                                        </div>
                                         <p className={styles.recentDate}>
                                             {item.createdAt ? new Date(item.createdAt).toLocaleString('en-IN', {
                                                 day: 'numeric',

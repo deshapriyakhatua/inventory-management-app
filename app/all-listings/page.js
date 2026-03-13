@@ -23,6 +23,7 @@ export default function AllListingsPage() {
     // Filter/Sort States
     const [sortOrder, setSortOrder] = useState("newest_first");
     const [selectedVertical, setSelectedVertical] = useState("");
+    const [selectedMarketplace, setSelectedMarketplace] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
     const [inventoryIdQuery, setInventoryIdQuery] = useState("");
 
@@ -41,7 +42,7 @@ export default function AllListingsPage() {
     // Apply Filters, Sort, and Pagination locally whenever dependencies change
     useEffect(() => {
         processLocalData();
-    }, [allListingsData, currentPage, sortOrder, selectedVertical, searchQuery, inventoryIdQuery]);
+    }, [allListingsData, currentPage, sortOrder, selectedVertical, selectedMarketplace, searchQuery, inventoryIdQuery]);
 
     const processLocalData = () => {
         let filtered = [...allListingsData];
@@ -49,6 +50,11 @@ export default function AllListingsPage() {
         // 1. Filter by vertical
         if (selectedVertical) {
             filtered = filtered.filter(item => item.vertical === selectedVertical);
+        }
+
+        // 1.5 Filter by marketplace
+        if (selectedMarketplace) {
+            filtered = filtered.filter(item => (item.marketplace || "Direct") === selectedMarketplace);
         }
 
         // 2. Filter by Search Query (SKU ID)
@@ -102,6 +108,7 @@ export default function AllListingsPage() {
         setSearchQuery("");
         setInventoryIdQuery("");
         setSelectedVertical("");
+        setSelectedMarketplace("");
         setSortOrder("newest_first");
         setCurrentPage(1); // Resetting page
     };
@@ -209,10 +216,14 @@ export default function AllListingsPage() {
 
             if (response.status === 200) {
                 let fetchedData = [];
-                if (response.message && Array.isArray(response.message.listings)) {
+                if (response.data && Array.isArray(response.data.listings)) {
+                    fetchedData = response.data.listings;
+                } else if (response.message && Array.isArray(response.message.listings)) {
                     fetchedData = response.message.listings;
                 } else if (Array.isArray(response.data)) {
                     fetchedData = response.data;
+                } else if (Array.isArray(response.message)) {
+                    fetchedData = response.message;
                 }
 
                 setAllListingsData(fetchedData);
@@ -290,6 +301,22 @@ export default function AllListingsPage() {
                             {verticals.map(v => (
                                 <option key={v.verticalShort} value={v.verticalName}>{v.verticalName}</option>
                             ))}
+                        </select>
+
+                        <select 
+                            className={styles.filterSelect}
+                            value={selectedMarketplace}
+                            onChange={(e) => {
+                                setSelectedMarketplace(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                        >
+                            <option value="">All Marketplaces</option>
+                            <option value="Amazon">Amazon</option>
+                            <option value="Flipkart">Flipkart</option>
+                            <option value="Meesho">Meesho</option>
+                            <option value="Website">Website</option>
+                            <option value="Other">Other</option>
                         </select>
 
                         <select 
@@ -455,9 +482,11 @@ export default function AllListingsPage() {
                                                     </svg>
                                                 </button>
                                             </div>
-                                            <p className={styles.itemDate}>
-                                                {item.vertical}
-                                            </p>
+                                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '4px' }}>
+                                                <p className={styles.itemDate}>{item.vertical}</p>
+                                                <span style={{ color: '#64748b', fontSize: '0.8rem' }}>•</span>
+                                                <p className={styles.itemDate} style={{ color: '#94a3b8' }}>{item.marketplace || 'Direct'}</p>
+                                            </div>
                                             <p className={styles.itemDate}>
                                                 {new Date(item.createdAt).toLocaleDateString('en-US', {
                                                     month: 'short', day: 'numeric', year: 'numeric'
@@ -476,6 +505,7 @@ export default function AllListingsPage() {
                                         <th>Thumbnails</th>
                                         <th>SKU ID</th>
                                         <th>Vertical</th>
+                                        <th>Marketplace</th>
                                         <th>Date Created</th>
                                         <th>Actions</th>
                                     </tr>
@@ -528,6 +558,7 @@ export default function AllListingsPage() {
                                                 </div>
                                             </td>
                                             <td className={styles.tdVertical}>{item.vertical}</td>
+                                            <td className={styles.tdVertical} style={{ color: '#94a3b8' }}>{item.marketplace || 'Direct'}</td>
                                             <td className={styles.tdDate}>
                                                 {new Date(item.createdAt).toLocaleString('en-US', {
                                                     month: 'short', day: 'numeric', year: 'numeric',
@@ -620,6 +651,10 @@ export default function AllListingsPage() {
                                     <div className={styles.metaItem}>
                                         <span className={styles.metaLabel}>Vertical</span>
                                         <span className={styles.metaValue}>{selectedListing.vertical}</span>
+                                    </div>
+                                    <div className={styles.metaItem}>
+                                        <span className={styles.metaLabel}>Marketplace</span>
+                                        <span className={styles.metaValue}>{selectedListing.marketplace || 'Direct'}</span>
                                     </div>
                                     <div className={styles.metaItem}>
                                         <span className={styles.metaLabel}>Date Created</span>

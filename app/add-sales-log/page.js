@@ -1,63 +1,69 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
 import Toast from "../../components/Toast/Toast";
 import { fetchVerticalsData } from "../../utils/apiUtils";
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+let _orderCounter = 0;
+const newOrderId = () => `order_${++_orderCounter}_${Date.now()}`;
+
+const emptyOrder = () => ({
+    id: newOrderId(),
+    skuId: "",
+    quantity: 1,
+    orderId: "",
+    lineId: "",
+    orderDate: "",
+    dispatchDate: "",
+    orderToday: false,
+    dispatchToday: false,
+    // picker state (per order)
+    pickerOpen: false,
+    pickerSearch: "",
+    pickerVertical: "",
+    pickerMarketplace: "",
+    pickerPage: 1,
+});
+
+const localDateStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+const PAGE_SIZE = 8;
+
+// ─── Component ──────────────────────────────────────────────────────────────
 export default function AddSalesLog() {
     const [listings, setListings] = useState([]);
     const [verticals, setVerticals] = useState([]);
-    const [refreshing, setRefreshing] = useState(false);
-    
-    const [searchSku, setSearchSku] = useState("");
-    const [selectedVertical, setSelectedVertical] = useState("");
-    
     const [loadingData, setLoadingData] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [message, setMessage] = useState({ text: "", type: "" });
-    
-    // Pagination
-    const [currentPage, setCurrentPage] = useState(1);
-    const pageSize = 10;
-    
-    // Action Form
-    const [actionType, setActionType] = useState("sales"); // "sales" or "returns"
-    const [selectedItems, setSelectedItems] = useState([]);
-    
-    // Expandable Rows
-    const [expandedListingId, setExpandedListingId] = useState(null);
-    
-    useEffect(() => {
-        loadInitialData();
-    }, []);
+
+    // orders: array of order objects, starts with one empty order
+    const [orders, setOrders] = useState([emptyOrder()]);
+
+    // ── Data Loading ──────────────────────────────────────────────────────
+    useEffect(() => { loadInitialData(); }, []);
 
     const loadInitialData = async () => {
         setLoadingData(true);
         const pin = sessionStorage.getItem("app_pin");
-        
         try {
-            // Fetch Verticals
             const cachedVerticals = await fetchVerticalsData(pin);
             setVerticals(cachedVerticals || []);
-            
-            // Try loading listings from cache
+
             const cachedListings = localStorage.getItem("all_listings_data");
             if (cachedListings) {
-                try {
-                    setListings(JSON.parse(cachedListings));
-                    setLoadingData(false);
-                    return;
-                } catch (e) {
-                    console.error("Failed to parse cached listings", e);
-                }
+                try { setListings(JSON.parse(cachedListings)); setLoadingData(false); return; }
+                catch (e) { console.error("Failed to parse cached listings", e); }
             }
-            
-            // If no cache, fetch from API
             await fetchListingsData(false);
         } catch (error) {
-            console.error("Error loading data:", error);
             setMessage({ text: "Failed to load initial data.", type: "error" });
             setLoadingData(false);
         }
@@ -65,37 +71,29 @@ export default function AddSalesLog() {
 
     const fetchListingsData = async (forceRefresh = false) => {
         const pin = sessionStorage.getItem("app_pin");
-        
-        if (forceRefresh) {
-            setRefreshing(true);
-        } else {
-            setLoadingData(true);
-        }
-
+        if (forceRefresh) setRefreshing(true); else setLoadingData(true);
         try {
-            const listPayload = { pin, action: "getListing", page: 1, pageSize: 50000, sort: "newest_first" };
-            const listRes = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-                method: "POST", body: JSON.stringify(listPayload)
-            }).then(res => res.json());
-            
-            if (listRes.status === 200) {
-                let fetchedData = [];
-                if (listRes.message && Array.isArray(listRes.message.listings)) {
-                    fetchedData = listRes.message.listings;
-                } else if (Array.isArray(listRes.data)) {
-                    fetchedData = listRes.data;
-                }
-                setListings(fetchedData);
-                localStorage.setItem("all_listings_data", JSON.stringify(fetchedData));
+            const res = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify({ pin, action: "getListing", page: 1, pageSize: 50000, sort: "newest_first" })
+            }).then(r => r.json());
 
-                if (forceRefresh) {
-                    setMessage({ text: "Listings refreshed successfully.", type: "success" });
+            if (res.status === 200) {
+                let data = [];
+                if (res.data && Array.isArray(res.data.listings)) {
+                    data = res.data.listings;
+                } else if (res.message && Array.isArray(res.message.listings)) {
+                    data = res.message.listings;
+                } else if (Array.isArray(res.data)) {
+                    data = res.data;
+                } else if (Array.isArray(res.message)) {
+                    data = res.message;
                 }
-            } else {
-                if (!listings.length) setListings([]);
+                setListings(data);
+                localStorage.setItem("all_listings_data", JSON.stringify(data));
+                if (forceRefresh) setMessage({ text: "Listings refreshed.", type: "success" });
             }
-        } catch (error) {
-            console.error("Error fetching listings:", error);
+        } catch {
             setMessage({ text: "Failed to fetch listings.", type: "error" });
         } finally {
             setLoadingData(false);
@@ -103,396 +101,368 @@ export default function AddSalesLog() {
         }
     };
 
-    const handleRefresh = () => {
-        setCurrentPage(1);
-        fetchListingsData(true);
-    };
+    // ── Order Mutations ───────────────────────────────────────────────────
+    const addOrder = () => setOrders(prev => [...prev, emptyOrder()]);
 
-    // Derived states for Listing Browser
-    const filteredListings = listings.filter(item => {
-        const matchSku = item.skuId?.toLowerCase().includes(searchSku.toLowerCase());
-        const matchVert = selectedVertical ? item.vertical === selectedVertical : true;
-        return matchSku && matchVert;
-    });
+    const removeOrder = (id) => setOrders(prev => prev.filter(o => o.id !== id));
 
-    const totalPages = Math.ceil(filteredListings.length / pageSize) || 1;
-    const paginatedListings = filteredListings.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+    const updateOrder = useCallback((id, field, value) => {
+        setOrders(prev => prev.map(o => {
+            if (o.id !== id) return o;
+            const updated = { ...o, [field]: value };
+            if (field === "orderDate" && updated.orderToday) updated.orderToday = false;
+            if (field === "dispatchDate" && updated.dispatchToday) updated.dispatchToday = false;
+            return updated;
+        }));
+    }, []);
 
-    // Reset to page 1 if filters change
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [searchSku, selectedVertical]);
-    
-    // Selection Handlers
-    const isSelected = (skuId) => selectedItems.some(item => item.skuId === skuId);
-    
-    const toggleSelection = (skuId) => {
-        if (isSelected(skuId)) {
-            setSelectedItems(prev => prev.filter(item => item.skuId !== skuId));
-        } else {
-            setSelectedItems(prev => [...prev, {
-                skuId,
-                quantity: 1,
-                orderId: "",
-                platform: "Amazon"
-            }]);
+    const handleTodayChange = useCallback((id, dateField, checkboxField, checked) => {
+        const today = localDateStr();
+        setOrders(prev => prev.map(o => o.id !== id ? o : {
+            ...o,
+            [checkboxField]: checked,
+            [dateField]: checked ? today : ""
+        }));
+    }, []);
+
+    const openPicker = (id) => setOrders(prev => prev.map(o =>
+        o.id !== id ? { ...o, pickerOpen: false } : { ...o, pickerOpen: !o.pickerOpen, pickerPage: 1 }
+    ));
+
+    const selectSku = (id, skuId) => setOrders(prev => prev.map(o =>
+        o.id !== id ? o : { ...o, skuId, pickerOpen: false, pickerSearch: "", pickerPage: 1 }
+    ));
+
+    const updatePickerFilter = (id, field, value) => setOrders(prev => prev.map(o =>
+        o.id !== id ? o : {
+            ...o,
+            [field]: value,
+            // Only reset to page 1 when a filter (not the page itself) changes
+            pickerPage: field === "pickerPage" ? value : 1
         }
-    };
-    
-    const updateSelectedItem = (skuId, field, value) => {
-        setSelectedItems(prev => prev.map(item => 
-            item.skuId === skuId ? { ...item, [field]: value } : item
-        ));
+    ));
+
+    // ── Derived picker listings for a specific order ───────────────────────
+    const getFilteredListings = (order) => {
+        return listings.filter(item => {
+            const matchSku = item.skuId?.toLowerCase().includes((order.pickerSearch || "").toLowerCase());
+            const matchVert = order.pickerVertical ? item.vertical === order.pickerVertical : true;
+            const matchMarket = order.pickerMarketplace ? (item.marketplace || "Direct") === order.pickerMarketplace : true;
+            return matchSku && matchVert && matchMarket;
+        });
     };
 
-    const toggleExpand = (skuId) => {
-        if (expandedListingId === skuId) {
-            setExpandedListingId(null);
-        } else {
-            setExpandedListingId(skuId);
-        }
-    };
-
-    // Submit Handler
+    // ── Submit ────────────────────────────────────────────────────────────
     const handleSubmit = async () => {
-        // Validation
-        if (selectedItems.length === 0) {
-            setMessage({ text: "Please select at least one item.", type: "error" });
-            return;
+        if (orders.length === 0) {
+            setMessage({ text: "Add at least one order.", type: "error" }); return;
         }
-
-        // Validate fields
-        for (const item of selectedItems) {
-            if (!item.quantity || Number(item.quantity) <= 0) {
-                setMessage({ text: `Invalid quantity for SKU: ${item.skuId}`, type: "error" });
-                return;
-            }
-            if (!item.orderId || !item.orderId.trim()) {
-                setMessage({ text: `Order ID is required for SKU: ${item.skuId}`, type: "error" });
-                return;
-            }
+        for (const o of orders) {
+            if (!o.skuId) { setMessage({ text: `Please select a SKU for order #${orders.indexOf(o) + 1}.`, type: "error" }); return; }
+            if (!o.quantity || Number(o.quantity) <= 0) { setMessage({ text: `Invalid quantity for SKU: ${o.skuId}`, type: "error" }); return; }
+            if (!o.orderId?.trim()) { setMessage({ text: `Order ID required for SKU: ${o.skuId}`, type: "error" }); return; }
+            if (!o.orderDate?.trim()) { setMessage({ text: `Order Date required for SKU: ${o.skuId}`, type: "error" }); return; }
         }
 
         setIsSubmitting(true);
         const pin = sessionStorage.getItem("app_pin");
-        
-        let payload = { pin };
-        
-        if (actionType === "sales") {
-            payload.action = "bulkRecordSales";
-            payload.salesItems = selectedItems.map(item => ({
-                skuId: item.skuId,
-                quantity: Number(item.quantity),
-                orderId: item.orderId,
-                platform: item.platform
-            }));
-        } else {
-            payload.action = "bulkRecordReturns";
-            payload.returnItems = selectedItems.map(item => ({
-                skuId: item.skuId,
-                quantity: Number(item.quantity),
-                orderId: item.orderId,
-                platform: item.platform
-            }));
-        }
+
+        const payload = {
+            pin,
+            action: "bulkRecordSales",
+            salesItems: orders.map(o => ({
+                skuId: o.skuId,
+                quantity: Number(o.quantity),
+                orderId: o.orderId,
+                lineId: o.lineId,
+                orderDate: o.orderDate,
+                dispatchDate: o.dispatchDate,
+                status: o.dispatchDate ? "DISPATCHED" : "ORDERED"
+            }))
+        };
 
         try {
             const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
                 method: "POST",
                 headers: { "Content-Type": "text/plain;charset=utf-8" },
                 body: JSON.stringify(payload)
-            }).then(res => res.json());
+            }).then(r => r.json());
 
             if (response.status === 200) {
-                setMessage({ text: `Successfully recorded ${actionType} for ${selectedItems.length} items.`, type: "success" });
-                setSelectedItems([]);
+                setMessage({ text: response.message || `Successfully recorded ${orders.length} sales entries.`, type: "success" });
+                setOrders([emptyOrder()]);
+            } else if (response.status === 422 && response.data && typeof response.data === "object") {
+                const err = response.data;
+                let msg = err.message || "Update cancelled.";
+                if (err.duplicates?.length) msg += ` Duplicates: ${err.duplicates.join(" | ")}`;
+                if (err.invalidStatuses?.length) msg += ` Invalid statuses: ${err.invalidStatuses.join(" | ")}`;
+                setMessage({ text: msg, type: "error" });
             } else {
+                console.log("Error Response:", response);
                 setMessage({ text: response.message || "Failed to submit data.", type: "error" });
             }
-        } catch (error) {
-            console.error("Submit Error:", error);
+        } catch {
             setMessage({ text: "Network error occurred.", type: "error" });
         } finally {
             setIsSubmitting(false);
         }
     };
 
+    // ─────────────────────────────────────────────────────────────────────
     return (
         <div className={styles.container}>
-            <h1 className={styles.title}>Add Sales & Returns Log</h1>
-            
+            <h1 className={styles.title}>Add Sales Log</h1>
+
             <div className={styles.layout}>
-                {/* Upper Section: Listing Browser */}
-                <div className={styles.card}>
-                    <h2 className={styles.cardTitle}>Listing Browser</h2>
-                    
-                    <div className={styles.filtersRow}>
-                        <input 
-                            type="text" 
-                            placeholder="Search by SKU ID..." 
-                            value={searchSku}
-                            onChange={(e) => setSearchSku(e.target.value)}
-                            className={styles.filterInput}
-                        />
-                        <div style={{ display: 'flex', gap: '0.5rem', flex: 1 }}>
-                            <select 
-                                value={selectedVertical} 
-                                onChange={(e) => setSelectedVertical(e.target.value)}
-                                className={styles.filterSelect}
-                                style={{ flex: 1, minWidth: 0 }}
-                            >
-                                <option value="">All Verticals</option>
-                                {verticals.map(v => (
-                                    <option key={v.verticalShort} value={v.verticalName}>
-                                        {v.verticalName}
-                                    </option>
-                                ))}
-                            </select>
 
-                            <button 
-                                className={`${styles.refreshBtn} ${refreshing ? styles.spinning : ''}`}
-                                onClick={handleRefresh} 
-                                disabled={refreshing}
-                                title="Refresh Data"
-                            >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="23 4 23 10 17 10"></polyline>
-                                    <polyline points="1 20 1 14 7 14"></polyline>
-                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
+                {/* ── Order Sections ── */}
+                {orders.map((order, idx) => {
+                    const filtered = getFilteredListings(order);
+                    const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
+                    const paginated = filtered.slice((order.pickerPage - 1) * PAGE_SIZE, order.pickerPage * PAGE_SIZE);
 
-                    <div className={styles.tableContainer}>
-                        {loadingData ? (
-                            <div className={styles.loading}>Loading listings...</div>
-                        ) : filteredListings.length > 0 ? (
-                            <table className={styles.table}>
-                                <thead>
-                                    <tr>
-                                        <th style={{ width: '40px' }}></th>
-                                        <th style={{ width: '40px' }}>Select</th>
-                                        <th>SKU ID</th>
-                                        <th>Vertical</th>
-                                        <th>Thumbnails</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {paginatedListings.map(item => (
-                                        <React.Fragment key={item.skuId}>
-                                            <tr 
-                                                className={styles.clickableRow}
-                                                onClick={() => toggleSelection(item.skuId)}
-                                            >
-                                                <td onClick={(e) => { e.stopPropagation(); toggleExpand(item.skuId); }}>
-                                                    <button className={styles.expandBtn} type="button">
-                                                        {expandedListingId === item.skuId ? (
-                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                                                        ) : (
-                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                                                        )}
-                                                    </button>
-                                                </td>
-                                                <td>
-                                                    <input 
-                                                        type="checkbox" 
-                                                        className={styles.checkbox}
-                                                        checked={isSelected(item.skuId)}
-                                                        onChange={() => toggleSelection(item.skuId)}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                    />
-                                                </td>
-                                                <td className={styles.skuCell}>{item.skuId}</td>
-                                                <td>{item.vertical}</td>
-                                                <td className={styles.tdImage}>
-                                                    {item.inventoryItems && item.inventoryItems.length > 0 ? (
-                                                        <div className={styles.listThumbStack}>
-                                                            {item.inventoryItems.map((inv, idx) => (
-                                                                inv.imageId ? (
-                                                                    <div key={idx} className={styles.listThumbnailContainer}>
-                                                                        <Image
-                                                                            src={`https://drive.google.com/thumbnail?id=${inv.imageId}&sz=w100`}
-                                                                            alt={inv.inventoryId}
-                                                                            referrerPolicy="no-referrer"
-                                                                            fill
-                                                                            className={styles.listThumbnail}
-                                                                            unoptimized
-                                                                        />
-                                                                    </div>
-                                                                ) : null
-                                                            ))}
-                                                        </div>
-                                                    ) : (
-                                                        <div className={styles.listThumbnailPlaceholder}>-</div>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                            {expandedListingId === item.skuId && (
-                                                <tr className={styles.expandedRow}>
-                                                    <td colSpan="5" className={styles.expandedCell}>
-                                                        <div className={styles.expandedContent}>
-                                                            <h4 className={styles.expandedTitle}>Associated Inventory ({item.inventoryItems?.length || 0})</h4>
-                                                            {item.inventoryItems && item.inventoryItems.length > 0 ? (
-                                                                <div className={styles.inventoryThumbGrid}>
-                                                                    {item.inventoryItems.map(inv => (
-                                                                        <div key={inv.inventoryId} className={styles.inventoryThumbCard}>
-                                                                            {inv.imageId ? (
-                                                                                <div className={styles.thumbImageWrapper}>
-                                                                                    <Image
-                                                                                        src={`https://drive.google.com/thumbnail?id=${inv.imageId}&sz=w150`}
-                                                                                        alt={inv.inventoryId}
-                                                                                        fill
-                                                                                        style={{ objectFit: 'cover' }}
-                                                                                        unoptimized
-                                                                                        referrerPolicy="no-referrer"
-                                                                                    />
-                                                                                </div>
-                                                                            ) : (
-                                                                                <div className={styles.thumbImagePlaceholder}>No Image</div>
-                                                                            )}
-                                                                            <span className={styles.thumbId}>{inv.inventoryId}</span>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            ) : (
-                                                                <p className={styles.noInventoryText}>No inventory items associated with this listing.</p>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </React.Fragment>
-                                    ))}
-                                </tbody>
-                            </table>
-                        ) : (
-                            <div className={styles.emptyState}>No listings found.</div>
-                        )}
-                    </div>
+                    return (
+                        <div key={order.id} className={styles.orderCard}>
 
-                    <div className={styles.pagination}>
-                        <span className={styles.pageInfo}>
-                            Showing {Math.min((currentPage - 1) * pageSize + 1, filteredListings.length)} to {Math.min(currentPage * pageSize, filteredListings.length)} of {filteredListings.length} entries
-                        </span>
-                        <div className={styles.pageControls}>
-                            <button 
-                                className={styles.pageBtn} 
-                                disabled={currentPage === 1}
-                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                            >
-                                Previous
-                            </button>
-                            <button 
-                                className={styles.pageBtn} 
-                                disabled={currentPage === totalPages}
-                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                            >
-                                Next
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                            {/* Card header */}
+                            <div className={styles.orderHeader}>
+                                <h2 className={styles.orderTitle}>Order {idx + 1}</h2>
+                                {orders.length > 1 && (
+                                    <button className={styles.removeOrderBtn} onClick={() => removeOrder(order.id)} title="Remove order">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                            <path d="M19 6l-1 14H6L5 6"></path>
+                                            <path d="M10 11v6M14 11v6"></path>
+                                            <path d="M9 6V4h6v2"></path>
+                                        </svg>
+                                        Remove
+                                    </button>
+                                )}
+                            </div>
 
-                {/* Lower Section: Action Form */}
-                <div className={styles.card}>
-                    <div className={styles.actionHeader}>
-                        <h2 className={styles.actionTitle}>Action Form ({selectedItems.length} selected)</h2>
-                        <div className={styles.toggleGroup}>
-                            <button 
-                                className={`${styles.toggleBtn} ${actionType === 'sales' ? styles.activeSales : ''}`}
-                                onClick={() => setActionType("sales")}
-                            >
-                                Record Sales
-                            </button>
-                            <button 
-                                className={`${styles.toggleBtn} ${actionType === 'returns' ? styles.activeReturns : ''}`}
-                                onClick={() => setActionType("returns")}
-                            >
-                                Record Returns
-                            </button>
-                        </div>
-                    </div>
+                            {/* Row 1: SKU | Qty | Order ID | Line ID */}
+                            <div className={styles.formRow}>
 
-                    {selectedItems.length > 0 ? (
-                        <div className={styles.selectedList}>
-                            {selectedItems.map(item => (
-                                <div key={item.skuId} className={styles.selectedItemCard}>
-                                    <div className={styles.itemSku}>{item.skuId}</div>
-                                    
-                                    <div className={styles.inputGroup}>
-                                        <label className={styles.inputLabel}>Quantity</label>
-                                        <input 
-                                            type="number" 
-                                            min="1"
-                                            value={item.quantity}
-                                            onChange={(e) => updateSelectedItem(item.skuId, 'quantity', e.target.value)}
-                                            className={styles.itemInput}
-                                        />
-                                    </div>
-                                    
-                                    <div className={styles.inputGroup}>
-                                        <label className={styles.inputLabel}>Order ID</label>
-                                        <input 
-                                            type="text" 
-                                            value={item.orderId}
-                                            onChange={(e) => updateSelectedItem(item.skuId, 'orderId', e.target.value)}
-                                            className={styles.itemInput}
-                                            placeholder="Enter Order ID"
-                                        />
-                                    </div>
-                                    
-                                    <div className={styles.inputGroup}>
-                                        <label className={styles.inputLabel}>Platform</label>
-                                        <select 
-                                            value={item.platform}
-                                            onChange={(e) => updateSelectedItem(item.skuId, 'platform', e.target.value)}
-                                            className={styles.itemSelect}
-                                        >
-                                            <option value="Amazon">Amazon</option>
-                                            <option value="Flipkart">Flipkart</option>
-                                            <option value="Myntra">Myntra</option>
-                                            <option value="Meesho">Meesho</option>
-                                            <option value="JioMart">JioMart</option>
-                                            <option value="Own Site">Own Site</option>
-                                            <option value="Other">Other</option>
-                                        </select>
-                                    </div>
-                                    
-                                    <button 
+                                {/* SKU picker trigger */}
+                                <div className={styles.inputGroup} style={{ minWidth: "200px" }}>
+                                    <label className={styles.inputLabel}>SKU ID*</label>
+                                    <button
                                         type="button"
-                                        className={styles.removeBtn}
-                                        onClick={() => toggleSelection(item.skuId)}
-                                        title="Remove item"
+                                        className={`${styles.skuPickerBtn} ${order.skuId ? styles.skuSelected : ""}`}
+                                        onClick={() => openPicker(order.id)}
                                     >
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                                        {order.skuId || "Select SKU…"}
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points={order.pickerOpen ? "18 15 12 9 6 15" : "6 9 12 15 18 9"}></polyline>
                                         </svg>
                                     </button>
                                 </div>
-                            ))}
-                            
-                            <button 
-                                className={`${styles.submitBtn} ${styles[actionType]}`}
-                                onClick={handleSubmit}
-                                disabled={isSubmitting}
-                            >
-                                {isSubmitting ? "Submitting..." : actionType === "sales" ? "Submit Sales Report" : "Submit Returns Report"}
-                            </button>
+
+                                {/* Qty */}
+                                <div className={styles.inputGroup} style={{ maxWidth: "90px" }}>
+                                    <label className={styles.inputLabel}>Qty</label>
+                                    <input type="number" min="1" value={order.quantity}
+                                        onChange={e => updateOrder(order.id, "quantity", e.target.value)}
+                                        className={styles.itemInput} placeholder="1" />
+                                </div>
+
+                                {/* Order ID */}
+                                <div className={styles.inputGroup}>
+                                    <div className={styles.labelRow}>
+                                        <label className={styles.inputLabel}>Order ID*</label>
+                                        <div className={styles.iconBtnGroup}>
+                                            <button type="button" className={styles.iconBtn} title="Copy Order ID"
+                                                onClick={() => navigator.clipboard.writeText(order.orderId)}>
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                            </button>
+                                            <button type="button" className={styles.iconBtn} title="Paste into Order ID"
+                                                onClick={async () => { const t = await navigator.clipboard.readText(); updateOrder(order.id, "orderId", t); }}>
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <input type="text" value={order.orderId}
+                                        onChange={e => updateOrder(order.id, "orderId", e.target.value)}
+                                        className={styles.itemInput} placeholder="e.g. 123-456" />
+                                </div>
+
+                                {/* Line ID */}
+                                <div className={styles.inputGroup}>
+                                    <div className={styles.labelRow}>
+                                        <label className={styles.inputLabel}>Line ID</label>
+                                        <div className={styles.iconBtnGroup}>
+                                            <button type="button" className={styles.iconBtn} title="Copy Line ID"
+                                                onClick={() => navigator.clipboard.writeText(order.lineId)}>
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                            </button>
+                                            <button type="button" className={styles.iconBtn} title="Paste into Line ID"
+                                                onClick={async () => { const t = await navigator.clipboard.readText(); updateOrder(order.id, "lineId", t); }}>
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <input type="text" value={order.lineId}
+                                        onChange={e => updateOrder(order.id, "lineId", e.target.value)}
+                                        className={styles.itemInput} placeholder="Optional" />
+                                </div>
+                            </div>
+
+                            {/* Row 2: Order Date | Dispatch Date */}
+                            <div className={styles.formRow}>
+                                <div className={styles.inputGroup}>
+                                    <div className={styles.labelRow}>
+                                        <label className={styles.inputLabel}>Order Date*</label>
+                                        <label className={styles.checkboxLabel}>
+                                            <input type="checkbox" checked={order.orderToday}
+                                                onChange={e => handleTodayChange(order.id, "orderDate", "orderToday", e.target.checked)}
+                                                className={styles.smallCheckbox} /> Today
+                                        </label>
+                                    </div>
+                                    <input type="date" value={order.orderDate}
+                                        onChange={e => updateOrder(order.id, "orderDate", e.target.value)}
+                                        className={styles.itemInput} />
+                                </div>
+
+                                <div className={styles.inputGroup}>
+                                    <div className={styles.labelRow}>
+                                        <label className={styles.inputLabel}>Dispatch Date</label>
+                                        <label className={styles.checkboxLabel}>
+                                            <input type="checkbox" checked={order.dispatchToday}
+                                                onChange={e => handleTodayChange(order.id, "dispatchDate", "dispatchToday", e.target.checked)}
+                                                className={styles.smallCheckbox} /> Today
+                                        </label>
+                                    </div>
+                                    <input type="date" value={order.dispatchDate}
+                                        onChange={e => updateOrder(order.id, "dispatchDate", e.target.value)}
+                                        className={styles.itemInput} />
+                                </div>
+                            </div>
+
+                            {/* Inline SKU picker */}
+                            {order.pickerOpen && (
+                                <div className={styles.pickerPanel}>
+                                    <div className={styles.pickerFilters}>
+                                        <input type="text" placeholder="Search SKU…"
+                                            value={order.pickerSearch}
+                                            onChange={e => updatePickerFilter(order.id, "pickerSearch", e.target.value)}
+                                            className={styles.filterInput} />
+                                            
+                                        <select
+                                            value={order.pickerMarketplace}
+                                            onChange={e => updatePickerFilter(order.id, "pickerMarketplace", e.target.value)}
+                                            className={styles.filterInput}
+                                        >
+                                            <option value="">All Marketplaces</option>
+                                            <option value="Amazon">Amazon</option>
+                                            <option value="Flipkart">Flipkart</option>
+                                            <option value="Meesho">Meesho</option>
+                                            <option value="Website">Website</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+
+                                        <button
+                                            className={`${styles.refreshBtn} ${refreshing ? styles.spinning : ""}`}
+                                            onClick={() => { setOrders(p => p.map(o => ({ ...o, pickerOpen: false }))); fetchListingsData(true); }}
+                                            disabled={refreshing} title="Refresh">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <polyline points="23 4 23 10 17 10"></polyline>
+                                                <polyline points="1 20 1 14 7 14"></polyline>
+                                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+
+                                    {loadingData ? (
+                                        <div className={styles.loading}>Loading listings…</div>
+                                    ) : filtered.length > 0 ? (
+                                        <>
+                                            <div className={styles.tableContainer}>
+                                                <table className={styles.table}>
+                                                    <thead>
+                                                        <tr>
+                                                            <th>SKU ID</th>
+                                                            <th>Images &amp; Inventory IDs</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {paginated.map(item => (
+                                                            <tr key={item.skuId}
+                                                                className={`${styles.clickableRow} ${order.skuId === item.skuId ? styles.selectedRow : ""}`}
+                                                                onClick={() => selectSku(order.id, item.skuId)}>
+                                                                <td className={styles.skuCell}>
+                                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                                        <span>{item.skuId}</span>
+                                                                        <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                                                                            {item.vertical} • {item.marketplace || 'Direct'}
+                                                                        </span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className={styles.tdImage}>
+                                                                    {item.inventoryItems?.length > 0 ? (
+                                                                        <div className={styles.listThumbStack}>
+                                                                            {item.inventoryItems.map((inv, i) => (
+                                                                                <div key={i} className={styles.invThumbItem}>
+                                                                                    {inv.imageId ? (
+                                                                                        <div className={styles.listThumbnailContainer}>
+                                                                                            <Image src={`https://drive.google.com/thumbnail?id=${inv.imageId}&sz=w100`}
+                                                                                                alt={inv.inventoryId} fill className={styles.listThumbnail}
+                                                                                                unoptimized referrerPolicy="no-referrer" />
+                                                                                        </div>
+                                                                                    ) : (
+                                                                                        <div className={styles.listThumbnailContainer} style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                                                            <span className={styles.listThumbnailPlaceholder}>?</span>
+                                                                                        </div>
+                                                                                    )}
+                                                                                    <span className={styles.invIdLabel}>{inv.inventoryId}</span>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    ) : <span className={styles.listThumbnailPlaceholder}>-</span>}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            {/* Picker pagination */}
+                                            <div className={styles.pagination}>
+                                                <span className={styles.pageInfo}>
+                                                    {Math.min((order.pickerPage - 1) * PAGE_SIZE + 1, filtered.length)}–{Math.min(order.pickerPage * PAGE_SIZE, filtered.length)} of {filtered.length}
+                                                </span>
+                                                <div className={styles.pageControls}>
+                                                    <button className={styles.pageBtn} disabled={order.pickerPage === 1}
+                                                        onClick={() => updatePickerFilter(order.id, "pickerPage", order.pickerPage - 1)}>Prev</button>
+                                                    <button className={styles.pageBtn} disabled={order.pickerPage === totalPages}
+                                                        onClick={() => updatePickerFilter(order.id, "pickerPage", order.pickerPage + 1)}>Next</button>
+                                                </div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className={styles.emptyState}>No listings found.</div>
+                                    )}
+                                </div>
+                            )}
                         </div>
-                    ) : (
-                        <div className={styles.emptyState}>
-                            Select listings from the browser above to start adding {actionType}.
-                        </div>
-                    )}
+                    );
+                })}
+
+                {/* ── Add Order + Submit ── */}
+                <div className={styles.actionsBar}>
+                    <button className={styles.addOrderBtn} onClick={addOrder} type="button">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Add Another Order
+                    </button>
+
+                    <button className={styles.submitBtn} onClick={handleSubmit} disabled={isSubmitting} type="button">
+                        {isSubmitting ? "Submitting…" : `Submit ${orders.length} Sale${orders.length > 1 ? "s" : ""}`}
+                    </button>
                 </div>
             </div>
-            
-            <Toast 
-                message={message} 
-                onClose={() => setMessage({ text: "", type: "" })} 
-            />
+
+            <Toast message={message} onClose={() => setMessage({ text: "", type: "" })} />
         </div>
     );
 }
