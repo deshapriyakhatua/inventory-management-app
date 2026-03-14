@@ -14,8 +14,37 @@
     font-size: 2rem;
     font-weight: 700;
     color: #f8fafc;
+    margin: 0;
+}
+
+.pageHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 2rem;
-    text-align: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.bulkUploadLink {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #0f172a;
+    border: 1px solid #3498db;
+    color: #3498db;
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.bulkUploadLink:hover {
+    background: #3498db;
+    color: white;
+    box-shadow: 0 0 15px rgba(52,152,219,0.3);
 }
 
 .layout {
