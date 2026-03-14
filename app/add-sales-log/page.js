@@ -346,7 +346,7 @@ export default function AddSalesLog() {
                                             value={order.pickerSearch}
                                             onChange={e => updatePickerFilter(order.id, "pickerSearch", e.target.value)}
                                             className={styles.filterInput} />
-                                            
+
                                         <select
                                             value={order.pickerMarketplace}
                                             onChange={e => updatePickerFilter(order.id, "pickerMarketplace", e.target.value)}
@@ -355,7 +355,10 @@ export default function AddSalesLog() {
                                             <option value="">All Marketplaces</option>
                                             <option value="Amazon">Amazon</option>
                                             <option value="Flipkart">Flipkart</option>
+                                            <option value="Shopsy">Shopsy</option>
+                                            <option value="Myntra">Myntra</option>
                                             <option value="Meesho">Meesho</option>
+                                            <option value="Ajio">Ajio</option>
                                             <option value="Website">Website</option>
                                             <option value="Other">Other</option>
                                         </select>
