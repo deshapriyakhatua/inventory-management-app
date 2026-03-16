@@ -16,13 +16,38 @@ export default function UploadSalesLog() {
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef(null);
 
-    const flipkartMapper = (row) => ({
-        orderedOn: row['Ordered On'],
-        orderId: row['Order Id'],
-        orderItemId: row['ORDER ITEM ID']?.replace(/^'/, ''), // Clean the ' prefix
-        sku: row['SKU'],
-        quantity: Number(row['Quantity']) || 0,
-    });
+    const flipkartMapper = (row) => {
+        // Detection logic based on unique column headers
+        const isOrderFile = row['Ordered On'] !== undefined;
+        const isCancelledFile = row['Order Cancellation Date'] !== undefined;
+
+        if (isOrderFile) {
+            // Mapping for Order-CSV
+            return {
+                orderedOn: row['Ordered On'],
+                orderId: row['Order Id'],
+                orderItemId: row['ORDER ITEM ID']?.replace(/^'/, ''),
+                sku: row['SKU'],
+                quantity: Number(row['Quantity']) || 0,
+                invoiceNo: row['Invoice No.']
+            };
+        } else if (isCancelledFile) {
+            // Smart Status Logic: Logistics Return vs Cancelled
+            const isLogisticsReturn = row['Logistics Return']?.trim().toLowerCase() === 'yes';
+
+            return {
+                orderedOn: row['Order Approval Date'],
+                orderId: row['Order ID'],
+                orderItemId: row['Order Item ID']?.replace(/^'/, ''),
+                sku: row['SKU'],
+                quantity: Number(row['Quantity']) || 0,
+                status: isLogisticsReturn ? 'LOGISTICS_RETURN' : 'CANCELLED',
+                cancelDate: row['Order Cancellation Date']
+            };
+        }
+
+        return null;
+    };
 
     const handleFileSelect = async (e) => {
         const selectedFile = e.target.files[0];
@@ -106,7 +131,9 @@ export default function UploadSalesLog() {
             lineId: item.orderItemId, // Using Order Item ID as Line ID for Flipkart
             orderDate: item.orderedOn, // We might need to format this date string depending on API expectations
             dispatchDate: "", // Not available in simple Flipkart sales report
-            status: "ORDERED"
+            status: item.status,
+            cancelDate: item.cancelDate || "",
+            invoiceNo: item.invoiceNo || ""
         })).filter(item => item.skuId && item.quantity > 0);
 
         if (salesItems.length === 0) {
@@ -134,7 +161,7 @@ export default function UploadSalesLog() {
             } else if (response.status === 422 && response.data && typeof response.data === "object") {
                 const err = response.data;
                 let msg = err.message || "Update cancelled.";
-                
+
                 if (err.duplicates?.length) {
                     msg += ` Found ${err.duplicates.length} duplicates.`;
                     // Parse duplicate identifiers for highlighting
@@ -144,7 +171,7 @@ export default function UploadSalesLog() {
                     }).filter(Boolean);
                     setDuplicateIdentifiers(dupIds);
                 }
-                
+
                 if (err.invalidStatuses?.length) msg += ` Invalid statuses: ${err.invalidStatuses.join(" | ")}`;
                 setMessage({ text: msg, type: "error" });
             } else {
@@ -165,9 +192,9 @@ export default function UploadSalesLog() {
             <div className={styles.card}>
                 <div className={styles.inputGroup}>
                     <label className={styles.inputLabel}>Select Marketplace</label>
-                    <select 
-                        className={styles.select} 
-                        value={marketplace} 
+                    <select
+                        className={styles.select}
+                        value={marketplace}
                         onChange={(e) => setMarketplace(e.target.value)}
                     >
                         <option value="Flipkart">Flipkart</option>
@@ -175,21 +202,21 @@ export default function UploadSalesLog() {
                     </select>
                 </div>
 
-                <div 
+                <div
                     className={`${styles.uploadArea} ${isDragging ? styles.dragging : ""}`}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                     onClick={() => fileInputRef.current.click()}
                 >
-                    <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        style={{ display: "none" }} 
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        style={{ display: "none" }}
                         accept=".csv"
                         onChange={handleFileSelect}
                     />
-                    
+
                     <div className={styles.uploadIcon}>
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -197,7 +224,7 @@ export default function UploadSalesLog() {
                             <line x1="12" y1="3" x2="12" y2="15" />
                         </svg>
                     </div>
-                    
+
                     <div className={styles.uploadText}>
                         {isParsing ? "Parsing file..." : "Click to upload or drag & drop CSV file"}
                     </div>
@@ -225,9 +252,9 @@ export default function UploadSalesLog() {
                 )}
 
                 <div className={styles.actions}>
-                    <button 
-                        className={styles.submitBtn} 
-                        onClick={handleSubmit} 
+                    <button
+                        className={styles.submitBtn}
+                        onClick={handleSubmit}
                         disabled={!file || parsedData.length === 0 || isSubmitting || isParsing}
                     >
                         {isSubmitting ? (
@@ -276,8 +303,8 @@ export default function UploadSalesLog() {
                                             <td>{item.sku}</td>
                                             <td>{item.quantity}</td>
                                             <td>
-                                                <button 
-                                                    className={styles.removeRowBtn} 
+                                                <button
+                                                    className={styles.removeRowBtn}
                                                     onClick={() => removeRow(idx)}
                                                     title="Remove this record"
                                                 >

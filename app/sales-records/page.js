@@ -21,8 +21,8 @@ const ALL_COLUMNS = [
 ];
 
 const DEFAULT_VISIBLE = ["timestamp", "orderId", "lineId", "skuId", "quantity", "orderDate", "dispatchDate", "status"];
-const PAGE_SIZE = 20;
 const CACHE_MINUTES = 10;
+const EDITABLE_FIELDS = ["status", "dispatchDate", "cancelDate", "returnDate", "deliveryDate", "returnDeliveryDate"];
 
 export default function SalesRecordsPage() {
     const [loading, setLoading]       = useState(true);
@@ -49,6 +49,12 @@ export default function SalesRecordsPage() {
     
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize]       = useState(20);
+
+    // Bulk Edit State
+    const [isEditing, setIsEditing]   = useState(false);
+    const [editedRows, setEditedRows] = useState({});
+    const [updating, setUpdating]     = useState(false);
     
     const colMenuRef = useRef(null);
     const statusMenuRef = useRef(null);
@@ -191,14 +197,77 @@ export default function SalesRecordsPage() {
     }, [allRecords, searchQuery, statusFilter, sortBy, sortOrder]);
 
     const totalItems = processedRecords.length;
-    const totalPages = Math.ceil(totalItems / PAGE_SIZE) || 1;
-    const paginatedRecords = processedRecords.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+    const paginatedRecords = processedRecords.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
     // Reset pagination when filters change
-    useEffect(() => { setCurrentPage(1); }, [searchQuery, statusFilter, sortBy, sortOrder]);
+    useEffect(() => { setCurrentPage(1); }, [searchQuery, statusFilter, sortBy, sortOrder, pageSize]);
 
     // ── Handlers ────────────────────────────────────────────────────────
-    const handleRefresh = () => fetchSalesRecords(true);
+    const handleRefresh = () => {
+        if (Object.keys(editedRows).length > 0) {
+            if (!confirm("You have unsaved changes. Refresh anyway?")) return;
+        }
+        setEditedRows({});
+        fetchSalesRecords(true);
+    };
+
+    const handleCellChange = (orderId, lineId, field, value) => {
+        const rowKey = `${orderId}|${lineId}`;
+        setEditedRows(prev => ({
+            ...prev,
+            [rowKey]: {
+                ...(prev[rowKey] || {}),
+                orderId,
+                lineId,
+                [field]: value
+            }
+        }));
+    };
+
+    const handleBulkUpdate = async () => {
+        const pin = sessionStorage.getItem("app_pin");
+        const updates = Object.values(editedRows);
+        
+        if (updates.length === 0) {
+            setIsEditing(false);
+            return;
+        }
+        
+        setUpdating(true);
+        try {
+            const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify({
+                    pin,
+                    action: "bulkRecordSales",
+                    salesItems: updates
+                }),
+            }).then(r => r.json());
+
+            if (response.status === 200) {
+                setMessage({ text: `Successfully updated ${updates.length} records.`, type: "success" });
+                setEditedRows({});
+                setIsEditing(false);
+                fetchSalesRecords(true);
+            } else {
+                setMessage({ text: response.message || "Bulk update failed.", type: "error" });
+            }
+        } catch (error) {
+            setMessage({ text: "Network error during bulk update.", type: "error" });
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    const handleCancelEdit = () => {
+        if (Object.keys(editedRows).length > 0) {
+            if (!confirm("Discard all changes?")) return;
+        }
+        setEditedRows({});
+        setIsEditing(false);
+    };
 
     const toggleColumn = (key) => {
         setVisibleColumns(prev => ({ ...prev, [key]: !prev[key] }));
@@ -212,15 +281,41 @@ export default function SalesRecordsPage() {
 
     // ── Render Helpers ──────────────────────────────────────────────────
     const formatDate = (dateStr) => {
-        if (!dateStr) return <span className={styles.na}>—</span>;
+        if (!dateStr) return "";
+        // Check for epoch/zero values usually returned by GAS on empty/invalid dates
+        if (dateStr === 0 || dateStr === "0" || dateStr === "1899-12-30T00:00:00.000Z") return "";
+        
         // Check if DD/MM/YYYY
         if (typeof dateStr === 'string' && dateStr.includes('/')) return dateStr; 
         
         try {
-            return new Date(dateStr).toLocaleDateString("en-IN", {
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime()) || d.getTime() < 86400000) return ""; // Guard against epoch
+            return d.toLocaleDateString("en-IN", {
                 year: "numeric", month: "short", day: "numeric",
             });
         } catch { return dateStr; }
+    };
+
+    const toInputDate = (dateStr) => {
+        if (!dateStr || dateStr === 0 || dateStr === "0") return "";
+        
+        // Already ISO?
+        if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+
+        if (typeof dateStr === 'string' && dateStr.includes('/')) {
+            const parts = dateStr.split('/');
+            if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        }
+        try {
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime()) || d.getTime() < 86400000) return "";
+            return d.toISOString().split('T')[0];
+        } catch { return ""; }
+    };
+
+    const fromInputDate = (isoStr) => {
+        return isoStr; // Return YYYY-MM-DD for standard API compatibility
     };
 
     const statusClass = (status) => {
@@ -229,17 +324,52 @@ export default function SalesRecordsPage() {
             case "DELIVERED":   return styles.badgeGreen;
             case "CANCELLED":   return styles.badgeRed;
             case "RETURNED":    return styles.badgeOrange;
-            case "RETURN_REQUESTED": return styles.badgeOrange;
+            case "LOGISTICS_RETURN": return styles.badgeOrange;
             default:            return styles.badgeGray;   // ORDERED
         }
     };
 
     const renderCellContent = (key, rec) => {
-        if (key.toLowerCase().includes('date') || key === 'timestamp') return <span className={styles.dateText}>{formatDate(rec[key])}</span>;
-        if (key === 'status') return <span className={`${styles.badge} ${statusClass(rec[key])}`}>{rec[key] || "ORDERED"}</span>;
-        if (key === 'orderId') return <span className={styles.highlightText}>{rec[key] || "N/A"}</span>;
-        if (key === 'skuId') return <span className={styles.skuText}>{rec[key]}</span>;
-        return rec[key] || <span className={styles.na}>—</span>;
+        const rowKey = `${rec.orderId}|${rec.lineId}`;
+        const isEdited = editedRows[rowKey] && editedRows[rowKey][key] !== undefined;
+        const displayValue = isEdited ? editedRows[rowKey][key] : rec[key];
+
+        if (key === 'status') {
+            if (isEditing) {
+                return (
+                    <select 
+                        className={`${styles.cellSelect} ${isEdited ? styles.editedCell : ""}`}
+                        value={displayValue || ""}
+                        onChange={(e) => handleCellChange(rec.orderId, rec.lineId, key, e.target.value)}
+                    >
+                        <option value="">N/A</option>
+                        {availableStatuses.map(st => <option key={st} value={st}>{st}</option>)}
+                    </select>
+                );
+            }
+            return <span className={`${styles.badge} ${statusClass(displayValue)}`}>{displayValue || "ORDERED"}</span>;
+        }
+
+        if (key.toLowerCase().includes('date') && key !== 'timestamp') {
+            // Check if this date field is editable
+            if (isEditing && EDITABLE_FIELDS.includes(key)) {
+                return (
+                    <input 
+                        type="date"
+                        className={`${styles.cellDateInput} ${isEdited ? styles.editedCell : ""}`}
+                        value={toInputDate(displayValue)}
+                        onChange={(e) => handleCellChange(rec.orderId, rec.lineId, key, fromInputDate(e.target.value))}
+                    />
+                );
+            }
+            return <span className={styles.dateText}>{formatDate(displayValue) || <span className={styles.na}>—</span>}</span>;
+        }
+
+        if (key === 'timestamp') return <span className={styles.dateText}>{formatDate(displayValue)}</span>;
+        if (key === 'orderId') return <span className={styles.highlightText}>{displayValue || "N/A"}</span>;
+        if (key === 'skuId') return <span className={styles.skuText}>{displayValue}</span>;
+        
+        return displayValue || <span className={styles.na}>—</span>;
     };
 
     // ────────────────────────────────────────────────────────────────────
@@ -325,8 +455,39 @@ export default function SalesRecordsPage() {
                         <option value="asc">Asc</option>
                     </select>
 
+                    {/* Edit Toggles */}
+                    {!isEditing ? (
+                        <button className={styles.editRecordsBtn} onClick={() => setIsEditing(true)}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4L18.5 2.5z"></path></svg>
+                            Edit Records
+                        </button>
+                    ) : (
+                        <div className={styles.editControls}>
+                            <button 
+                                className={`${styles.updateBtn} ${updating ? styles.updating : ""}`}
+                                onClick={handleBulkUpdate}
+                                disabled={updating}
+                            >
+                                {updating ? (
+                                    <>
+                                        <div className={styles.miniSpinner}></div>
+                                        Saving...
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                        Save Changes {Object.keys(editedRows).length > 0 && `(${Object.keys(editedRows).length})`}
+                                    </>
+                                )}
+                            </button>
+                            <button className={styles.cancelBtn} onClick={handleCancelEdit} disabled={updating}>
+                                Cancel
+                            </button>
+                        </div>
+                    )}
+
                     {/* Refresh */}
-                    <button className={`${styles.refreshBtn} ${refreshing ? styles.spinning : ""}`} onClick={handleRefresh} disabled={refreshing} title="Fetch Latest Data">
+                    <button className={`${styles.refreshBtn} ${refreshing ? styles.spinning : ""}`} onClick={handleRefresh} disabled={refreshing || updating} title="Fetch Latest Data">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
                     </button>
                 </div>
@@ -376,9 +537,25 @@ export default function SalesRecordsPage() {
 
                 {!loading && totalItems > 0 && (
                     <div className={styles.pagination}>
-                        <span className={styles.pageInfo}>
-                            Showing {Math.min((currentPage - 1) * PAGE_SIZE + 1, totalItems)}–{Math.min(currentPage * PAGE_SIZE, totalItems)} of {totalItems} entries
-                        </span>
+                        <div className={styles.paginationLeft}>
+                            <span className={styles.pageInfo}>
+                                Showing {Math.min((currentPage - 1) * pageSize + 1, totalItems)}–{Math.min(currentPage * pageSize, totalItems)} of {totalItems} entries
+                            </span>
+
+                            <div className={styles.pageSizeWrapper}>
+                                <label htmlFor="pageSizeSelect" className={styles.pageSizeLabel}>Rows per page:</label>
+                                <select 
+                                    id="pageSizeSelect"
+                                    className={styles.pageSizeSelect} 
+                                    value={pageSize} 
+                                    onChange={e => setPageSize(Number(e.target.value))}
+                                >
+                                    {[50, 500, 5000, 50000, 500000, 5000000].map(size => (
+                                        <option key={size} value={size}>{size}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
                         <div className={styles.pageControls}>
                             <button className={styles.pageBtn} disabled={currentPage === 1}
                                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}>
