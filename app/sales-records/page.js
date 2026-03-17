@@ -11,18 +11,12 @@ const ALL_COLUMNS = [
     { key: "lineId",       label: "Line ID" },
     { key: "skuId",        label: "SKU ID" },
     { key: "quantity",     label: "Qty" },
-    { key: "orderDate",    label: "Order Date" },
-    { key: "dispatchDate", label: "Dispatch Date" },
-    { key: "cancelDate",   label: "Cancel Date" },
-    { key: "returnDate",   label: "Return Date" },
-    { key: "deliveryDate", label: "Delivery Date" },
-    { key: "returnDeliveryDate", label: "Return Delivery" },
     { key: "status",       label: "Status" },
 ];
 
-const DEFAULT_VISIBLE = ["timestamp", "orderId", "lineId", "skuId", "quantity", "orderDate", "dispatchDate", "status"];
+const DEFAULT_VISIBLE = ["timestamp", "orderId", "lineId", "skuId", "quantity", "status"];
 const CACHE_MINUTES = 10;
-const EDITABLE_FIELDS = ["status", "dispatchDate", "cancelDate", "returnDate", "deliveryDate", "returnDeliveryDate"];
+const EDITABLE_FIELDS = ["status"];
 
 export default function SalesRecordsPage() {
     const [loading, setLoading]       = useState(true);
@@ -47,9 +41,11 @@ export default function SalesRecordsPage() {
     const [isColMenuOpen, setIsColMenuOpen] = useState(false);
     const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
     
-    // Pagination
+    // Pagination / Server-side state
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize]       = useState(20);
+    const [totalItems, setTotalItems]   = useState(0);
+    const [totalPages, setTotalPages]   = useState(1);
 
     // Bulk Edit State
     const [isEditing, setIsEditing]   = useState(false);
@@ -166,23 +162,9 @@ export default function SalesRecordsPage() {
             if (valA === null || valA === undefined || valA === "") valA = 0;
             if (valB === null || valB === undefined || valB === "") valB = 0;
             
-            // Handle custom DD/MM/YYYY date formats from the backend (like returnDeliveryDate)
-            const parseDateStr = (dateStr) => {
-                if (typeof dateStr === 'string') {
-                    // Try DD/MM/YYYY
-                    const parts = dateStr.split('/');
-                    if (parts.length === 3) {
-                        return new Date(parts[2], parts[1] - 1, parts[0]).getTime();
-                    }
-                }
-                const d = new Date(dateStr);
-                return isNaN(d) ? 0 : d.getTime();
-            };
-
-            // Heuristic to check if column is a date column (based on our ALL_COLUMNS key names)
-            if (sortBy.toLowerCase().includes('date') || sortBy === 'timestamp') {
-                if (valA !== 0) valA = parseDateStr(valA);
-                if (valB !== 0) valB = parseDateStr(valB);
+            if (sortBy === 'timestamp') {
+                valA = new Date(valA).getTime() || 0;
+                valB = new Date(valB).getTime() || 0;
             } 
             else if (typeof valA === 'string' && typeof valB === 'string') {
                 valA = valA.toLowerCase();
@@ -196,8 +178,8 @@ export default function SalesRecordsPage() {
         return result;
     }, [allRecords, searchQuery, statusFilter, sortBy, sortOrder]);
 
-    const totalItems = processedRecords.length;
-    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+    const totalItemsCount = processedRecords.length;
+    const totalPagesCount = Math.ceil(totalItemsCount / pageSize) || 1;
     const paginatedRecords = processedRecords.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
     // Reset pagination when filters change
@@ -282,40 +264,13 @@ export default function SalesRecordsPage() {
     // ── Render Helpers ──────────────────────────────────────────────────
     const formatDate = (dateStr) => {
         if (!dateStr) return "";
-        // Check for epoch/zero values usually returned by GAS on empty/invalid dates
-        if (dateStr === 0 || dateStr === "0" || dateStr === "1899-12-30T00:00:00.000Z") return "";
-        
-        // Check if DD/MM/YYYY
-        if (typeof dateStr === 'string' && dateStr.includes('/')) return dateStr; 
-        
         try {
             const d = new Date(dateStr);
-            if (isNaN(d.getTime()) || d.getTime() < 86400000) return ""; // Guard against epoch
             return d.toLocaleDateString("en-IN", {
                 year: "numeric", month: "short", day: "numeric",
+                hour: "2-digit", minute: "2-digit"
             });
         } catch { return dateStr; }
-    };
-
-    const toInputDate = (dateStr) => {
-        if (!dateStr || dateStr === 0 || dateStr === "0") return "";
-        
-        // Already ISO?
-        if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
-
-        if (typeof dateStr === 'string' && dateStr.includes('/')) {
-            const parts = dateStr.split('/');
-            if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-        }
-        try {
-            const d = new Date(dateStr);
-            if (isNaN(d.getTime()) || d.getTime() < 86400000) return "";
-            return d.toISOString().split('T')[0];
-        } catch { return ""; }
-    };
-
-    const fromInputDate = (isoStr) => {
-        return isoStr; // Return YYYY-MM-DD for standard API compatibility
     };
 
     const statusClass = (status) => {
@@ -324,7 +279,7 @@ export default function SalesRecordsPage() {
             case "DELIVERED":   return styles.badgeGreen;
             case "CANCELLED":   return styles.badgeRed;
             case "RETURNED":    return styles.badgeOrange;
-            case "LOGISTICS_RETURN": return styles.badgeOrange;
+            case "CANCELLED_BEFORE_PICKUP": return styles.badgeOrange;
             default:            return styles.badgeGray;   // ORDERED
         }
     };
@@ -342,27 +297,16 @@ export default function SalesRecordsPage() {
                         value={displayValue || ""}
                         onChange={(e) => handleCellChange(rec.orderId, rec.lineId, key, e.target.value)}
                     >
-                        <option value="">N/A</option>
-                        {availableStatuses.map(st => <option key={st} value={st}>{st}</option>)}
+                        <option value="ORDERED">ORDERED</option>
+                        <option value="CANCELLED">CANCELLED</option>
+                        <option value="DISPATCHED">DISPATCHED</option>
+                        <option value="CANCELLED_BEFORE_PICKUP">CANCELLED_BEFORE_PICKUP</option>
+                        <option value="RETURNED">RETURNED</option>
+                        <option value="DELIVERED">DELIVERED</option>
                     </select>
                 );
             }
             return <span className={`${styles.badge} ${statusClass(displayValue)}`}>{displayValue || "ORDERED"}</span>;
-        }
-
-        if (key.toLowerCase().includes('date') && key !== 'timestamp') {
-            // Check if this date field is editable
-            if (isEditing && EDITABLE_FIELDS.includes(key)) {
-                return (
-                    <input 
-                        type="date"
-                        className={`${styles.cellDateInput} ${isEdited ? styles.editedCell : ""}`}
-                        value={toInputDate(displayValue)}
-                        onChange={(e) => handleCellChange(rec.orderId, rec.lineId, key, fromInputDate(e.target.value))}
-                    />
-                );
-            }
-            return <span className={styles.dateText}>{formatDate(displayValue) || <span className={styles.na}>—</span>}</span>;
         }
 
         if (key === 'timestamp') return <span className={styles.dateText}>{formatDate(displayValue)}</span>;
@@ -535,11 +479,11 @@ export default function SalesRecordsPage() {
                     )}
                 </div>
 
-                {!loading && totalItems > 0 && (
+                        {!loading && totalItemsCount > 0 && (
                     <div className={styles.pagination}>
                         <div className={styles.paginationLeft}>
                             <span className={styles.pageInfo}>
-                                Showing {Math.min((currentPage - 1) * pageSize + 1, totalItems)}–{Math.min(currentPage * pageSize, totalItems)} of {totalItems} entries
+                                Showing {Math.min((currentPage - 1) * pageSize + 1, totalItemsCount)}–{Math.min(currentPage * pageSize, totalItemsCount)} of {totalItemsCount} entries
                             </span>
 
                             <div className={styles.pageSizeWrapper}>
@@ -561,9 +505,9 @@ export default function SalesRecordsPage() {
                                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}>
                                 Previous
                             </button>
-                            <span className={styles.pageDisplay}>Page {currentPage} of {totalPages}</span>
-                            <button className={styles.pageBtn} disabled={currentPage >= totalPages}
-                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}>
+                            <span className={styles.pageDisplay}>Page {currentPage} of {totalPagesCount}</span>
+                            <button className={styles.pageBtn} disabled={currentPage >= totalPagesCount}
+                                onClick={() => setCurrentPage(prev => Math.min(totalPagesCount, prev + 1))}>
                                 Next
                             </button>
                         </div>

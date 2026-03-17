@@ -17,10 +17,7 @@ const emptyOrder = () => ({
     quantity: 1,
     orderId: "",
     lineId: "",
-    orderDate: "",
-    dispatchDate: "",
-    orderToday: false,
-    dispatchToday: false,
+    status: "ORDERED",
     // picker state (per order)
     pickerOpen: false,
     pickerSearch: "",
@@ -29,10 +26,6 @@ const emptyOrder = () => ({
     pickerPage: 1,
 });
 
-const localDateStr = () => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
 
 const PAGE_SIZE = 8;
 
@@ -110,21 +103,10 @@ export default function AddSalesLog() {
     const updateOrder = useCallback((id, field, value) => {
         setOrders(prev => prev.map(o => {
             if (o.id !== id) return o;
-            const updated = { ...o, [field]: value };
-            if (field === "orderDate" && updated.orderToday) updated.orderToday = false;
-            if (field === "dispatchDate" && updated.dispatchToday) updated.dispatchToday = false;
-            return updated;
+            return { ...o, [field]: value };
         }));
     }, []);
 
-    const handleTodayChange = useCallback((id, dateField, checkboxField, checked) => {
-        const today = localDateStr();
-        setOrders(prev => prev.map(o => o.id !== id ? o : {
-            ...o,
-            [checkboxField]: checked,
-            [dateField]: checked ? today : ""
-        }));
-    }, []);
 
     const openPicker = (id) => setOrders(prev => prev.map(o =>
         o.id !== id ? { ...o, pickerOpen: false } : { ...o, pickerOpen: !o.pickerOpen, pickerPage: 1 }
@@ -162,7 +144,7 @@ export default function AddSalesLog() {
             if (!o.skuId) { setMessage({ text: `Please select a SKU for order #${orders.indexOf(o) + 1}.`, type: "error" }); return; }
             if (!o.quantity || Number(o.quantity) <= 0) { setMessage({ text: `Invalid quantity for SKU: ${o.skuId}`, type: "error" }); return; }
             if (!o.orderId?.trim()) { setMessage({ text: `Order ID required for SKU: ${o.skuId}`, type: "error" }); return; }
-            if (!o.orderDate?.trim()) { setMessage({ text: `Order Date required for SKU: ${o.skuId}`, type: "error" }); return; }
+            if (!o.status) { setMessage({ text: `Status required for SKU: ${o.skuId}`, type: "error" }); return; }
         }
 
         setIsSubmitting(true);
@@ -172,13 +154,11 @@ export default function AddSalesLog() {
             pin,
             action: "bulkRecordSales",
             salesItems: orders.map(o => ({
-                skuId: o.skuId,
-                quantity: Number(o.quantity),
                 orderId: o.orderId,
                 lineId: o.lineId,
-                orderDate: o.orderDate,
-                dispatchDate: o.dispatchDate,
-                status: o.dispatchDate ? "DISPATCHED" : "ORDERED"
+                skuId: o.skuId,
+                quantity: Number(o.quantity),
+                status: o.status
             }))
         };
 
@@ -318,34 +298,22 @@ export default function AddSalesLog() {
                                 </div>
                             </div>
 
-                            {/* Row 2: Order Date | Dispatch Date */}
+                            {/* Row 2: Status */}
                             <div className={styles.formRow}>
                                 <div className={styles.inputGroup}>
-                                    <div className={styles.labelRow}>
-                                        <label className={styles.inputLabel}>Order Date*</label>
-                                        <label className={styles.checkboxLabel}>
-                                            <input type="checkbox" checked={order.orderToday}
-                                                onChange={e => handleTodayChange(order.id, "orderDate", "orderToday", e.target.checked)}
-                                                className={styles.smallCheckbox} /> Today
-                                        </label>
-                                    </div>
-                                    <input type="date" value={order.orderDate}
-                                        onChange={e => updateOrder(order.id, "orderDate", e.target.value)}
-                                        className={styles.itemInput} />
-                                </div>
-
-                                <div className={styles.inputGroup}>
-                                    <div className={styles.labelRow}>
-                                        <label className={styles.inputLabel}>Dispatch Date</label>
-                                        <label className={styles.checkboxLabel}>
-                                            <input type="checkbox" checked={order.dispatchToday}
-                                                onChange={e => handleTodayChange(order.id, "dispatchDate", "dispatchToday", e.target.checked)}
-                                                className={styles.smallCheckbox} /> Today
-                                        </label>
-                                    </div>
-                                    <input type="date" value={order.dispatchDate}
-                                        onChange={e => updateOrder(order.id, "dispatchDate", e.target.value)}
-                                        className={styles.itemInput} />
+                                    <label className={styles.inputLabel}>Status</label>
+                                    <select
+                                        className={styles.itemSelect}
+                                        value={order.status || "ORDERED"}
+                                        onChange={e => updateOrder(order.id, "status", e.target.value)}
+                                    >
+                                        <option value="ORDERED">ORDERED</option>
+                                        <option value="CANCELLED">CANCELLED</option>
+                                        <option value="DISPATCHED">DISPATCHED</option>
+                                        <option value="CANCELLED_BEFORE_PICKUP">CANCELLED_BEFORE_PICKUP</option>
+                                        <option value="RETURNED">RETURNED</option>
+                                        <option value="DELIVERED">DELIVERED</option>
+                                    </select>
                                 </div>
                             </div>
 

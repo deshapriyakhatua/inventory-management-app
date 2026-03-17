@@ -9,7 +9,6 @@ export default function UploadSalesLog() {
     const [marketplace, setMarketplace] = useState("Flipkart");
     const [file, setFile] = useState(null);
     const [parsedData, setParsedData] = useState([]);
-    const [duplicateIdentifiers, setDuplicateIdentifiers] = useState([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isParsing, setIsParsing] = useState(false);
     const [message, setMessage] = useState({ text: "", type: "" });
@@ -29,7 +28,8 @@ export default function UploadSalesLog() {
                 orderItemId: row['ORDER ITEM ID']?.replace(/^'/, ''),
                 sku: row['SKU'],
                 quantity: Number(row['Quantity']) || 0,
-                invoiceNo: row['Invoice No.']
+                status: undefined,
+                originalStatus: undefined
             };
         } else if (isCancelledFile) {
             // Smart Status Logic: Logistics Return vs Cancelled
@@ -41,8 +41,8 @@ export default function UploadSalesLog() {
                 orderItemId: row['Order Item ID']?.replace(/^'/, ''),
                 sku: row['SKU'],
                 quantity: Number(row['Quantity']) || 0,
-                status: isLogisticsReturn ? 'LOGISTICS_RETURN' : 'CANCELLED',
-                cancelDate: row['Order Cancellation Date']
+                status: isLogisticsReturn ? undefined : 'CANCELLED',
+                originalStatus: isLogisticsReturn ? undefined : 'CANCELLED'
             };
         }
 
@@ -63,7 +63,6 @@ export default function UploadSalesLog() {
         }
 
         setFile(selectedFile);
-        setDuplicateIdentifiers([]);
         setIsParsing(true);
         try {
             let data = [];
@@ -106,12 +105,28 @@ export default function UploadSalesLog() {
     const removeFile = () => {
         setFile(null);
         setParsedData([]);
-        setDuplicateIdentifiers([]);
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
     const removeRow = (index) => {
         setParsedData(prev => prev.filter((_, i) => i !== index));
+    };
+ 
+    const toggleRowStatus = (index) => {
+        setParsedData(prev => prev.map((item, i) => {
+            if (i !== index) return item;
+            return {
+                ...item,
+                status: item.status === 'DISPATCHED' ? (item.originalStatus) : 'DISPATCHED'
+            };
+        }));
+    };
+ 
+    const toggleAllRows = (checked) => {
+        setParsedData(prev => prev.map(item => ({
+            ...item,
+            status: checked ? 'DISPATCHED' : (item.originalStatus)
+        })));
     };
 
     const handleSubmit = async () => {
@@ -125,16 +140,12 @@ export default function UploadSalesLog() {
 
         // Map parsed data to the API format
         const salesItems = parsedData.map(item => ({
+            orderId: item.orderId,
+            lineId: item.orderItemId,
             skuId: item.sku,
             quantity: item.quantity,
-            orderId: item.orderId,
-            lineId: item.orderItemId, // Using Order Item ID as Line ID for Flipkart
-            orderDate: item.orderedOn, // We might need to format this date string depending on API expectations
-            dispatchDate: "", // Not available in simple Flipkart sales report
-            status: item.status,
-            cancelDate: item.cancelDate || "",
-            invoiceNo: item.invoiceNo || ""
-        })).filter(item => item.skuId && item.quantity > 0);
+            status: item.status
+        })).filter(item => item.orderId && item.skuId && item.quantity > 0);
 
         if (salesItems.length === 0) {
             setMessage({ text: "No valid sales items found in the file.", type: "error" });
@@ -161,16 +172,6 @@ export default function UploadSalesLog() {
             } else if (response.status === 422 && response.data && typeof response.data === "object") {
                 const err = response.data;
                 let msg = err.message || "Update cancelled.";
-
-                if (err.duplicates?.length) {
-                    msg += ` Found ${err.duplicates.length} duplicates.`;
-                    // Parse duplicate identifiers for highlighting
-                    const dupIds = err.duplicates.map(str => {
-                        const match = str.match(/Order: ([^,]+), Line: (.*)$/);
-                        return match ? `${match[1]}|${match[2]}` : null;
-                    }).filter(Boolean);
-                    setDuplicateIdentifiers(dupIds);
-                }
 
                 if (err.invalidStatuses?.length) msg += ` Invalid statuses: ${err.invalidStatuses.join(" | ")}`;
                 setMessage({ text: msg, type: "error" });
@@ -279,29 +280,54 @@ export default function UploadSalesLog() {
             {parsedData.length > 0 && (
                 <div className={styles.preview}>
                     <div className={styles.previewHeader}>
-                        <h2 className={styles.previewTitle}>Data Preview (First 50 rows)</h2>
+                        <h2 className={styles.previewTitle}>Data Preview</h2>
                         <span style={{ fontSize: "0.85rem", color: "#64748b" }}>{parsedData.length} records found</span>
                     </div>
                     <div className={styles.previewTableContainer}>
                         <table className={styles.table}>
                             <thead>
                                 <tr>
+                                    <th className={styles.stickyColumn}>
+                                        <input
+                                            type="checkbox"
+                                            className={styles.checkbox}
+                                            checked={parsedData.length > 0 && parsedData.every(item => item.status === 'DISPATCHED')}
+                                            onChange={(e) => toggleAllRows(e.target.checked)}
+                                            title={parsedData.every(item => item.status === 'DISPATCHED') ? "Revert all to original status" : "Mark all as Dispatched"}
+                                        />
+                                    </th>
                                     <th>Order Date</th>
                                     <th>Order ID</th>
+                                    <th>Line ID</th>
                                     <th>SKU</th>
                                     <th>Quantity</th>
+                                    <th>Status</th>
                                     <th style={{ width: "40px" }}></th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {parsedData.slice(0, 50).map((item, idx) => {
-                                    const isDuplicate = duplicateIdentifiers.includes(`${item.orderId}|${item.orderItemId}`);
+                                {parsedData.map((item, idx) => {
                                     return (
-                                        <tr key={idx} className={isDuplicate ? styles.duplicateRow : ""}>
+                                        <tr key={idx}>
+                                            <td className={styles.stickyColumn}>
+                                                <input
+                                                    type="checkbox"
+                                                    className={styles.checkbox}
+                                                    checked={item.status === 'DISPATCHED'}
+                                                    onChange={() => toggleRowStatus(idx)}
+                                                    title={item.status === 'DISPATCHED' ? "Revert to original status" : "Mark as Dispatched"}
+                                                />
+                                            </td>
                                             <td>{item.orderedOn}</td>
                                             <td>{item.orderId}</td>
+                                            <td>{item.orderItemId}</td>
                                             <td>{item.sku}</td>
                                             <td>{item.quantity}</td>
+                                            <td>
+                                                <span className={`${styles.statusBadge} ${styles[item.status?.toLowerCase() || 'ordered']}`}>
+                                                    {item.status || 'NA'}
+                                                </span>
+                                            </td>
                                             <td>
                                                 <button
                                                     className={styles.removeRowBtn}
