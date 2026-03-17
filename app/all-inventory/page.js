@@ -24,6 +24,7 @@ export default function AllInventoryPage() {
     const [sortOrder, setSortOrder] = useState("newest_first");
     const [selectedVertical, setSelectedVertical] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
+    const [selectedItem, setSelectedItem] = useState(null); // For expander modal
 
     useEffect(() => {
         loadInitialData();
@@ -405,7 +406,17 @@ export default function AllInventoryPage() {
                                                 month: 'short', day: 'numeric', year: 'numeric'
                                             })}
                                         </p>
+                                        <div className={styles.stockBadge}>
+                                            <span className={styles.stockLabel}>Stock:</span>
+                                            <span className={`${styles.stockValue} ${item.inventoryMetrics?.currentStock <= 10 ? styles.lowStock : ''}`}>
+                                                {item.inventoryMetrics?.currentStock ?? 0}
+                                            </span>
+                                        </div>
                                     </div>
+                                    <div 
+                                        className={styles.clickableOverlay} 
+                                        onClick={() => setSelectedItem(item)}
+                                    />
                                 </div>
                             ))}
                         </div>
@@ -418,6 +429,8 @@ export default function AllInventoryPage() {
                                         <th>Inventory/SKU ID</th>
                                         <th>Date Added</th>
                                         <th>Actions</th>
+                                        <th>Stock</th>
+                                        <th>Details</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -466,6 +479,19 @@ export default function AllInventoryPage() {
                                                     }
                                                 </button>
                                             </td>
+                                            <td className={styles.tdStock}>
+                                                <span className={`${styles.tableStockValue} ${item.inventoryMetrics?.currentStock <= 10 ? styles.lowStock : ''}`}>
+                                                    {item.inventoryMetrics?.currentStock ?? 0}
+                                                </span>
+                                            </td>
+                                            <td className={styles.tdView}>
+                                                <button 
+                                                    className={styles.viewDetailsBtn}
+                                                    onClick={() => setSelectedItem(item)}
+                                                >
+                                                    View Details
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -498,6 +524,75 @@ export default function AllInventoryPage() {
                 message={message} 
                 onClose={() => setMessage({ text: "", type: "" })} 
             />
+
+            {selectedItem && (
+                <div className={styles.modalOverlay} onClick={() => setSelectedItem(null)}>
+                    <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                        <button className={styles.closeModal} onClick={() => setSelectedItem(null)}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                        
+                        <div className={styles.modalScrollArea}>
+                            <div className={styles.modalHeader}>
+                                <div className={styles.modalImageContainer}>
+                                    {selectedItem.driveId ? (
+                                        <Image
+                                            src={`https://drive.google.com/thumbnail?id=${selectedItem.driveId}&sz=w600`}
+                                            alt={selectedItem.id}
+                                            referrerPolicy="no-referrer"
+                                            fill
+                                            className={styles.modalImage}
+                                            unoptimized
+                                        />
+                                    ) : (
+                                        <div className={styles.modalImagePlaceholder}>No Image</div>
+                                    )}
+                                </div>
+                                <div className={styles.modalMainInfo}>
+                                    <h2 className={styles.modalId}>{selectedItem.id}</h2>
+                                    <p className={styles.modalVertical}>{selectedItem.vertical}</p>
+                                    <p className={styles.modalDate}>
+                                        Added on {new Date(selectedItem.timestamp).toLocaleString('en-US', {
+                                            month: 'long', day: 'numeric', year: 'numeric',
+                                            hour: '2-digit', minute: '2-digit'
+                                        })}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className={styles.metricsGrid}>
+                                <div className={styles.metricCard}>
+                                    <span className={styles.metricLabel}>Initial Stock</span>
+                                    <span className={styles.metricValue}>{selectedItem.inventoryMetrics?.initialStock ?? 0}</span>
+                                </div>
+                                <div className={`${styles.metricCard} ${styles.highlightMetric}`}>
+                                    <span className={styles.metricLabel}>Current Stock</span>
+                                    <span className={styles.metricValue}>{selectedItem.inventoryMetrics?.currentStock ?? 0}</span>
+                                </div>
+                                <div className={styles.metricCard}>
+                                    <span className={styles.metricLabel}>Gross Ordered</span>
+                                    <span className={styles.metricValue}>{selectedItem.inventoryMetrics?.grossOrdered ?? 0}</span>
+                                </div>
+                                <div className={styles.metricCard}>
+                                    <span className={styles.metricLabel}>Net Sold</span>
+                                    <span className={styles.metricValue}>{selectedItem.inventoryMetrics?.netSold ?? 0}</span>
+                                </div>
+                                <div className={styles.metricCard}>
+                                    <span className={styles.metricLabel}>Cancelled</span>
+                                    <span className={styles.metricValue}>{selectedItem.inventoryMetrics?.cancelled ?? 0}</span>
+                                </div>
+                                <div className={styles.metricCard}>
+                                    <span className={styles.metricLabel}>Returned</span>
+                                    <span className={styles.metricValue}>{selectedItem.inventoryMetrics?.returned ?? 0}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

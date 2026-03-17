@@ -473,3 +473,238 @@
     border-color: #ef4444;
     transform: scale(1.1);
 }
+
+/* --- NEW STYLES --- */
+.stockBadge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    background-color: rgba(51, 65, 85, 0.5);
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    width: fit-content;
+}
+
+.stockLabel {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.stockValue {
+    font-weight: 700;
+    color: #10b981;
+    font-size: 1rem;
+}
+
+.lowStock {
+    color: #f43f5e;
+}
+
+.clickableOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    cursor: pointer;
+    z-index: 5;
+}
+
+/* Ensure buttons are above the overlay */
+.deleteBtn, .smallCopyBtn, .viewDetailsBtn, .listDeleteBtn {
+    z-index: 15;
+}
+
+.tdStock {
+    width: 100px;
+    text-align: center;
+}
+
+.tableStockValue {
+    font-weight: 700;
+    color: #10b981;
+}
+
+.tdView {
+    width: 120px;
+    text-align: center;
+}
+
+.viewDetailsBtn {
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.viewDetailsBtn:hover {
+    background-color: #2563eb;
+}
+
+/* --- MODAL STYLES --- */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 2rem;
+}
+
+.modalContent {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 800px;
+    max-height: 90vh;
+    position: relative;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+}
+
+.closeModal {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: #334155;
+    border: none;
+    color: #f1f5f9;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.2s;
+}
+
+.closeModal:hover {
+    background-color: #ef4444;
+    transform: rotate(90deg);
+}
+
+.modalScrollArea {
+    padding: 2.5rem;
+    overflow-y: auto;
+}
+
+.modalHeader {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 2rem;
+    margin-bottom: 2.5rem;
+}
+
+@media (max-width: 768px) {
+    .modalHeader {
+        grid-template-columns: 1fr;
+    }
+}
+
+.modalImageContainer {
+    width: 100%;
+    aspect-ratio: 1;
+    position: relative;
+    background-color: #0f172a;
+    border-radius: 12px;
+    border: 1px solid #334155;
+    overflow: hidden;
+}
+
+.modalImage {
+    object-fit: contain;
+    padding: 1rem;
+}
+
+.modalImagePlaceholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+}
+
+.modalMainInfo {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.modalId {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #f8fafc;
+    margin: 0;
+    line-height: 1.1;
+}
+
+.modalVertical {
+    font-size: 1.25rem;
+    color: #3b82f6;
+    font-weight: 600;
+    margin: 0.5rem 0 1rem;
+}
+
+.modalDate {
+    font-size: 0.95rem;
+    color: #94a3b8;
+    margin: 0;
+}
+
+.metricsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1.25rem;
+}
+
+.metricCard {
+    background-color: #0f172a;
+    border: 1px solid #334155;
+    padding: 1.25rem;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.highlightMetric {
+    border-color: #3b82f6;
+    background-color: rgba(59, 130, 246, 0.05);
+}
+
+.metricLabel {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+
+.metricValue {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #f1f5f9;
+}
+
+.highlightMetric .metricValue {
+    color: #10b981;
+}
