@@ -58,7 +58,7 @@ export default function AddInventory() {
 
         const payload = {
             pin: sessionStorage.getItem("app_pin"),
-            action: "getInventory",
+            action: "getBasicInventory",
             page: 1,
             pageSize: 50000,
             sort: "newest_first"

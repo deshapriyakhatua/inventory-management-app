@@ -24,9 +24,9 @@ export default function UploadSalesLog() {
             // Mapping for Order-CSV
             return {
                 orderedOn: row['Ordered On'],
-                orderId: row['Order Id'],
-                orderItemId: row['ORDER ITEM ID']?.replace(/^'/, ''),
-                sku: row['SKU'],
+                orderId: row['Order Id']?.trim(),
+                orderItemId: row['ORDER ITEM ID']?.replace(/^'/, '')?.trim(),
+                sku: row['SKU']?.trim(),
                 quantity: Number(row['Quantity']) || 0,
                 status: undefined,
                 originalStatus: undefined
@@ -37,9 +37,9 @@ export default function UploadSalesLog() {
 
             return {
                 orderedOn: row['Order Approval Date'],
-                orderId: row['Order ID'],
-                orderItemId: row['Order Item ID']?.replace(/^'/, ''),
-                sku: row['SKU'],
+                orderId: row['Order ID']?.trim(),
+                orderItemId: row['Order Item ID']?.replace(/^'/, '')?.trim(),
+                sku: row['SKU']?.trim(),
                 quantity: Number(row['Quantity']) || 0,
                 status: isLogisticsReturn ? undefined : 'CANCELLED',
                 originalStatus: isLogisticsReturn ? undefined : 'CANCELLED'

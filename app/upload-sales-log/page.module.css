@@ -188,7 +188,7 @@
 
 .previewTableContainer {
     max-height: 400px;
-    overflow-y: auto;
+    overflow: auto; /* Support both horizontal and vertical scrolling */
 }
 
 .table {
@@ -270,6 +270,10 @@
     text-align: center;
     border-right: 1px solid #334155;
     box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+}
+
+.table th.stickyColumn {
+    z-index: 30; /* Intersection of sticky header and sticky column needs higher z-index */
 }
 
 .statusBadge {

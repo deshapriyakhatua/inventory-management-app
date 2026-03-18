@@ -25,6 +25,8 @@ export default function AllInventoryPage() {
     const [selectedVertical, setSelectedVertical] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedItem, setSelectedItem] = useState(null); // For expander modal
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState(null);
 
     useEffect(() => {
         loadInitialData();
@@ -97,7 +99,15 @@ export default function AllInventoryPage() {
         fetchInventory(true); // Force fetch from server
     };
 
-    const handleDelete = async (id) => {
+    const handleDelete = (id) => {
+        setItemToDelete(id);
+        setShowDeleteConfirm(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!itemToDelete) return;
+        
+        const id = itemToDelete;
         setDeletingItemId(id);
         setDeleteButtonLoading(true);
         const payload = {
@@ -133,6 +143,8 @@ export default function AllInventoryPage() {
         } finally {
             setDeleteButtonLoading(false);
             setDeletingItemId(null);
+            setShowDeleteConfirm(false);
+            setItemToDelete(null);
         }
     };
 
@@ -204,7 +216,6 @@ export default function AllInventoryPage() {
                 } else if (response.data && Array.isArray(response.data.items)) {
                     fetchedData = response.data.items;
                 }
-
                 setAllInventoryData(fetchedData);
                 localStorage.setItem("all_inventory_data", JSON.stringify(fetchedData));
                 
@@ -338,18 +349,19 @@ export default function AllInventoryPage() {
             </div>
 
             {loading ? (
-                <div className={styles.loadingContainer}>
+                <div className={styles.loadingContainer} style={{ flex: 1 }}>
                     <div className={styles.spinner}></div>
                     <p>Loading Inventory...</p>
                 </div>
             ) : inventory.length === 0 ? (
-                <div className={styles.emptyState}>
+                <div className={styles.emptyState} style={{ flex: 1 }}>
                     <p>No inventory items found.</p>
                 </div>
             ) : (
                 <div className={styles.contentArea}>
-                    {viewMode === 'grid' ? (
-                        <div className={styles.gridContainer}>
+                    <div className={styles.scrollWrapper}>
+                        {viewMode === 'grid' ? (
+                            <div className={styles.gridContainer}>
                             {inventory.map((item) => (
                                 <div key={item.id} className={styles.gridCard}>
                                     <button
@@ -498,6 +510,7 @@ export default function AllInventoryPage() {
                             </table>
                         </div>
                     )}
+                </div>
 
                     {/* Pagination */}
                     <div className={styles.pagination}>
@@ -524,6 +537,42 @@ export default function AllInventoryPage() {
                 message={message} 
                 onClose={() => setMessage({ text: "", type: "" })} 
             />
+
+            {showDeleteConfirm && (
+                <div className={styles.confirmOverlay} onClick={() => setShowDeleteConfirm(false)}>
+                    <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.confirmHeader}>
+                            <div className={styles.warningIcon}>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                            </div>
+                            <h3 className={styles.confirmTitle}>Confirm Deletion</h3>
+                        </div>
+                        <p className={styles.confirmMessage}>
+                            Are you sure you want to delete this inventory item? This action cannot be undone.
+                        </p>
+                        <div className={styles.confirmActions}>
+                            <button 
+                                className={styles.cancelBtn} 
+                                onClick={() => setShowDeleteConfirm(false)}
+                                disabled={deleteButtonLoading}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                className={styles.confirmDeleteBtn} 
+                                onClick={confirmDelete}
+                                disabled={deleteButtonLoading}
+                            >
+                                {deleteButtonLoading ? "Deleting..." : "Yes, Delete"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {selectedItem && (
                 <div className={styles.modalOverlay} onClick={() => setSelectedItem(null)}>
@@ -552,7 +601,19 @@ export default function AllInventoryPage() {
                                     )}
                                 </div>
                                 <div className={styles.modalMainInfo}>
-                                    <h2 className={styles.modalId}>{selectedItem.id}</h2>
+                                    <div className={styles.idWithCopy}>
+                                        <h2 className={styles.modalId}>{selectedItem.id}</h2>
+                                        <button 
+                                            className={styles.copyButton} 
+                                            onClick={() => copyToClipboard(selectedItem.id, "Inventory ID")}
+                                            title="Copy ID"
+                                        >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
                                     <p className={styles.modalVertical}>{selectedItem.vertical}</p>
                                     <p className={styles.modalDate}>
                                         Added on {new Date(selectedItem.timestamp).toLocaleString('en-US', {
@@ -589,6 +650,79 @@ export default function AllInventoryPage() {
                                     <span className={styles.metricValue}>{selectedItem.inventoryMetrics?.returned ?? 0}</span>
                                 </div>
                             </div>
+
+                            {/* SKUs Section */}
+                            {selectedItem.skus && selectedItem.skus.length > 0 && (
+                                <div className={styles.modalSection}>
+                                    <h3 className={styles.sectionTitle}>Associated SKUs</h3>
+                                    <div className={styles.skuGrid}>
+                                        {selectedItem.skus.map((sku, index) => (
+                                            <div key={index} className={styles.skuCard}>
+                                                <div className={styles.skuInfo}>
+                                                    <div className={styles.skuMain}>
+                                                        <span className={styles.skuIdLabel}>SKU ID</span>
+                                                        <div className={styles.skuIdWithCopy}>
+                                                            <span className={styles.skuIdValue}>{sku.skuId}</span>
+                                                            <button 
+                                                                className={styles.copyButtonSmall} 
+                                                                onClick={() => copyToClipboard(sku.skuId, "SKU ID")}
+                                                                title="Copy SKU ID"
+                                                            >
+                                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div className={styles.skuMarketplace}>
+                                                        <span className={styles.marketplaceBadge}>{sku.marketplace}</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* Combo Items */}
+                                                {sku.comboItems && sku.comboItems.length > 0 && (
+                                                    <div className={styles.comboSection}>
+                                                        <span className={styles.comboLabel}>Combo Items</span>
+                                                        <div className={styles.comboGrid}>
+                                                            {sku.comboItems.map((combo, cIndex) => (
+                                                                <div key={cIndex} className={styles.comboItem}>
+                                                                    <div className={styles.comboImageWrapper}>
+                                                                        {combo.driveId ? (
+                                                                            <Image 
+                                                                                src={`https://drive.google.com/thumbnail?id=${combo.driveId}&sz=w300`}
+                                                                                alt={combo.id} 
+                                                                                fill 
+                                                                                className={styles.comboImg}
+                                                                                unoptimized
+                                                                            />
+                                                                        ) : (
+                                                                            <div className={styles.comboPlaceholder}>NA</div>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className={styles.comboIdContainer}>
+                                                                        <span className={styles.comboId}>{combo.id}</span>
+                                                                        <button 
+                                                                            className={styles.copyButtonTiny} 
+                                                                            onClick={() => copyToClipboard(combo.id, "Combo Inventory ID")}
+                                                                            title="Copy ID"
+                                                                        >
+                                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                                                            </svg>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

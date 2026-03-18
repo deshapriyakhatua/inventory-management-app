@@ -4,15 +4,21 @@
     margin: 0 auto;
     font-family: var(--font-geist-sans), sans-serif;
     color: #f8fafc;
+    height: 100vh; /* Fill entire viewport height */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Prevent container-level scroll */
+    box-sizing: border-box; /* Ensure padding is included in height */
 }
 
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0; /* Header doesn't shrink */
 }
 
 .title {
@@ -209,7 +215,35 @@
 .contentArea {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 1.5rem;
+    flex: 1;
+    overflow: hidden; /* Scroll will happen in scrollWrapper */
+}
+
+.scrollWrapper {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 0.5rem; /* Space for scrollbar */
+}
+
+/* Custom Scrollbar for premium feel */
+.scrollWrapper::-webkit-scrollbar {
+    width: 6px;
+}
+
+.scrollWrapper::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05); /* Very subtle track */
+    border-radius: 10px;
+}
+
+.scrollWrapper::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.3); /* Transparent blue thumb */
+    border-radius: 10px;
+    transition: background 0.3s ease;
+}
+
+.scrollWrapper::-webkit-scrollbar-thumb:hover {
+    background: rgba(59, 130, 246, 0.6); /* More visible on hover */
 }
 
 /* --- GRID VIEW --- */
@@ -390,7 +424,10 @@
     justify-content: center;
     align-items: center;
     gap: 1rem;
-    margin-top: 1rem;
+    margin-top: 0.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    flex-shrink: 0; /* Pagination doesn't shrink */
 }
 
 .pageBtn {
@@ -649,6 +686,37 @@
     justify-content: center;
 }
 
+.idWithCopy {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.copyButton {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+    padding: 0.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.copyButton:hover {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.4);
+    color: #60a5fa;
+    transform: translateY(-1px);
+}
+
+.copyButton:active {
+    transform: translateY(0);
+}
+
 .modalId {
     font-size: 2.5rem;
     font-weight: 800;
@@ -707,4 +775,286 @@
 
 .highlightMetric .metricValue {
     color: #10b981;
+}
+
+/* --- CONFIRMATION MODAL --- */
+.confirmOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.confirmModal {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    animation: modalAppear 0.3s ease-out;
+}
+
+@keyframes modalAppear {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.confirmHeader {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.warningIcon {
+    color: #f59e0b;
+    background-color: rgba(245, 158, 11, 0.1);
+    padding: 0.5rem;
+    border-radius: 50%;
+    display: flex;
+}
+
+.confirmTitle {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #f8fafc;
+    margin: 0;
+}
+
+.confirmMessage {
+    color: #94a3b8;
+    line-height: 1.5;
+    margin-bottom: 2rem;
+}
+
+.confirmActions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.cancelBtn {
+    background: transparent;
+    border: 1px solid #334155;
+    color: #94a3b8;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.cancelBtn:hover {
+    background-color: #334155;
+    color: #f1f5f9;
+}
+
+.confirmDeleteBtn {
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+.confirmDeleteBtn:hover {
+    background-color: #dc2626;
+}
+
+.confirmDeleteBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* --- ENHANCED MODAL SECTIONS --- */
+.sectionTitle {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin: 2.5rem 0 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.skuGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.skuCard {
+    background-color: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: border-color 0.2s;
+}
+
+.skuCard:hover {
+    border-color: #3b82f6;
+}
+
+.skuInfo {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.25rem;
+}
+
+.skuMain {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.skuIdLabel {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: #94a3b8;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.skuIdValue {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.skuIdWithCopy {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.copyButtonSmall {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    padding: 0.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.copyButtonSmall:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #f8fafc;
+}
+
+.marketplaceBadge {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.comboSection {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.comboLabel {
+    font-size: 0.85rem;
+    color: #cbd5e1;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 0.75rem;
+}
+
+.comboGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 1rem;
+}
+
+.comboItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: rgba(30, 41, 59, 0.5);
+    padding: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.comboImageWrapper {
+    width: 60px;
+    height: 60px;
+    position: relative;
+    border-radius: 6px;
+    overflow: hidden;
+    background-color: #020617;
+}
+
+.comboImg {
+    object-fit: cover;
+}
+
+.comboPlaceholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: #475569;
+}
+
+.comboIdContainer {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    width: 100%;
+    justify-content: center;
+}
+
+.comboId {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #94a3b8;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80px;
+}
+
+.copyButtonTiny {
+    background: transparent;
+    border: none;
+    color: #475569;
+    padding: 2px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 2px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.copyButtonTiny:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #94a3b8;
 }
