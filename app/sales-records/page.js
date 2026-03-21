@@ -43,7 +43,7 @@ export default function SalesRecordsPage() {
 
     // Pagination / Server-side state
     const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(20);
+    const [pageSize, setPageSize] = useState(500);
     const [totalItems, setTotalItems] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
 
@@ -495,7 +495,7 @@ export default function SalesRecordsPage() {
                                     value={pageSize}
                                     onChange={e => setPageSize(Number(e.target.value))}
                                 >
-                                    {[50, 500, 5000, 50000, 500000, 5000000].map(size => (
+                                    {[500, 5000, 50000, 500000, 5000000].map(size => (
                                         <option key={size} value={size}>{size}</option>
                                     ))}
                                 </select>

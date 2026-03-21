@@ -1125,3 +1125,34 @@
     background: rgba(255, 255, 255, 0.05);
     color: #94a3b8;
 }
+
+.comboQuantity {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    width: 100%;
+    justify-content: center;
+}
+
+.comboQtyLabel {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #94a3b8;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80px;
+}
+
+.comboQtyValue {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #94a3b8;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80px;
+}
+

@@ -733,6 +733,10 @@ export default function AllInventoryPage() {
                                                                             </svg>
                                                                         </button>
                                                                     </div>
+                                                                    <div className={styles.comboQuantity}>
+                                                                        <span className={styles.comboQtyLabel}>Qty</span>
+                                                                        <span className={styles.comboQtyValue}>{combo.currentStock}</span>
+                                                                    </div>
                                                                 </div>
                                                             ))}
                                                         </div>
