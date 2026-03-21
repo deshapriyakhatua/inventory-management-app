@@ -53,7 +53,7 @@ export default function AllInventoryPage() {
         // 2. Filter by Search Query
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
-            filtered = filtered.filter(item => 
+            filtered = filtered.filter(item =>
                 item.id.toLowerCase().includes(query)
             );
         }
@@ -62,7 +62,7 @@ export default function AllInventoryPage() {
         filtered.sort((a, b) => {
             const dateA = new Date(a.timestamp || 0).getTime();
             const dateB = new Date(b.timestamp || 0).getTime();
-            
+
             if (sortOrder === "newest_first") {
                 return dateB - dateA;
             } else {
@@ -76,7 +76,7 @@ export default function AllInventoryPage() {
         // 5. Paginate
         const startIndex = (currentPage - 1) * pageSize;
         const paginatedItems = filtered.slice(startIndex, startIndex + pageSize);
-        
+
         setInventory(paginatedItems);
     };
 
@@ -106,7 +106,7 @@ export default function AllInventoryPage() {
 
     const confirmDelete = async () => {
         if (!itemToDelete) return;
-        
+
         const id = itemToDelete;
         setDeletingItemId(id);
         setDeleteButtonLoading(true);
@@ -170,7 +170,7 @@ export default function AllInventoryPage() {
 
     const fetchInventory = async (forceRefresh = false) => {
         const pin = sessionStorage.getItem("app_pin");
-        
+
         // Check local storage if not forcing refresh
         if (!forceRefresh) {
             const cachedData = localStorage.getItem("all_inventory_data");
@@ -193,7 +193,7 @@ export default function AllInventoryPage() {
         }
 
         setMessage({ text: "", type: "" });
-        
+
         const payload = {
             pin,
             action: "getInventory",
@@ -218,7 +218,7 @@ export default function AllInventoryPage() {
                 }
                 setAllInventoryData(fetchedData);
                 localStorage.setItem("all_inventory_data", JSON.stringify(fetchedData));
-                
+
                 if (forceRefresh) {
                     setMessage({ text: "Inventory refreshed successfully.", type: "success" });
                 }
@@ -243,11 +243,11 @@ export default function AllInventoryPage() {
         <div className={styles.container}>
             <div className={styles.header}>
                 <h1 className={styles.title}>All Inventory</h1>
-                
+
                 <div className={styles.controlsRow}>
                     <div className={styles.filtersGroup}>
                         <div className={styles.searchBox}>
-                            <input 
+                            <input
                                 type="text"
                                 placeholder="Search Inventory ID..."
                                 value={searchQuery}
@@ -263,7 +263,7 @@ export default function AllInventoryPage() {
                             </button>
                         </div>
 
-                        <select 
+                        <select
                             className={styles.filterSelect}
                             value={selectedVertical}
                             onChange={(e) => {
@@ -277,7 +277,7 @@ export default function AllInventoryPage() {
                             ))}
                         </select>
 
-                        <select 
+                        <select
                             className={styles.filterSelect}
                             value={sortOrder}
                             onChange={(e) => {
@@ -289,9 +289,9 @@ export default function AllInventoryPage() {
                             <option value="oldest_first">Oldest First</option>
                         </select>
 
-                        <button 
-                            className={styles.resetBtn} 
-                            onClick={handleReset} 
+                        <button
+                            className={styles.resetBtn}
+                            onClick={handleReset}
                             title="Reset Filters"
                         >
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -302,9 +302,9 @@ export default function AllInventoryPage() {
                             Reset
                         </button>
 
-                        <button 
+                        <button
                             className={`${styles.refreshBtn} ${refreshing ? styles.spinning : ''}`}
-                            onClick={handleRefresh} 
+                            onClick={handleRefresh}
                             disabled={refreshing}
                             title="Refresh Data"
                         >
@@ -318,7 +318,7 @@ export default function AllInventoryPage() {
                     </div>
 
                     <div className={styles.viewControls}>
-                        <button 
+                        <button
                             className={`${styles.viewBtn} ${viewMode === 'grid' ? styles.activeView : ''}`}
                             onClick={() => setViewMode('grid')}
                             title="Grid View"
@@ -330,7 +330,7 @@ export default function AllInventoryPage() {
                                 <rect x="3" y="14" width="7" height="7"></rect>
                             </svg>
                         </button>
-                        <button 
+                        <button
                             className={`${styles.viewBtn} ${viewMode === 'list' ? styles.activeView : ''}`}
                             onClick={() => setViewMode('list')}
                             title="List View"
@@ -362,155 +362,155 @@ export default function AllInventoryPage() {
                     <div className={styles.scrollWrapper}>
                         {viewMode === 'grid' ? (
                             <div className={styles.gridContainer}>
-                            {inventory.map((item) => (
-                                <div key={item.id} className={styles.gridCard}>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleDelete(item.id)}
-                                        className={styles.deleteBtn}
-                                        title="Delete Inventory"
-                                        disabled={deleteButtonLoading}
-                                    >
-                                        {deleteButtonLoading && deletingItemId === item.id
-                                            ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-                                                <path d="M21 3v5h-5"></path>
-                                            </svg>
-                                            : <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <polyline points="3 6 5 6 21 6"></polyline>
-                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                            </svg>
-                                        }
-                                    </button>
-                                    <div className={styles.imageContainer}>
-                                        {item.driveId ? (
-                                            <Image
-                                                src={`https://drive.google.com/thumbnail?id=${item.driveId}&sz=w300`}
-                                                alt={item.id}
-                                                referrerPolicy="no-referrer"
-                                                fill
-                                                className={styles.itemImage}
-                                                unoptimized
-                                            />
-                                        ) : (
-                                            <div className={styles.imagePlaceholder}>No Image</div>
-                                        )}
-                                    </div>
-                                    <div className={styles.cardInfo}>
-                                        <div className={styles.skuHeaderRow}>
-                                            <p className={styles.itemId} title={item.id}>{item.id}</p>
-                                            <button 
-                                                className={styles.smallCopyBtn}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    copyToClipboard(item.id, "Inventory ID");
-                                                }}
-                                                title="Copy ID"
-                                            >
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                {inventory.map((item) => (
+                                    <div key={item.id} className={styles.gridCard}>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDelete(item.id)}
+                                            className={styles.deleteBtn}
+                                            title="Delete Inventory"
+                                            disabled={deleteButtonLoading}
+                                        >
+                                            {deleteButtonLoading && deletingItemId === item.id
+                                                ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                                                    <path d="M21 3v5h-5"></path>
                                                 </svg>
-                                            </button>
+                                                : <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                </svg>
+                                            }
+                                        </button>
+                                        <div className={styles.imageContainer}>
+                                            {item.driveId ? (
+                                                <Image
+                                                    src={`https://drive.google.com/thumbnail?id=${item.driveId}&sz=w300`}
+                                                    alt={item.id}
+                                                    referrerPolicy="no-referrer"
+                                                    fill
+                                                    className={styles.itemImage}
+                                                    unoptimized
+                                                />
+                                            ) : (
+                                                <div className={styles.imagePlaceholder}>No Image</div>
+                                            )}
                                         </div>
-                                        <p className={styles.itemDate}>
-                                            {new Date(item.timestamp).toLocaleDateString('en-US', {
-                                                month: 'short', day: 'numeric', year: 'numeric'
-                                            })}
-                                        </p>
-                                        <div className={styles.stockBadge}>
-                                            <span className={styles.stockLabel}>Stock:</span>
-                                            <span className={`${styles.stockValue} ${item.inventoryMetrics?.currentStock <= 10 ? styles.lowStock : ''}`}>
-                                                {item.inventoryMetrics?.currentStock ?? 0}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div 
-                                        className={styles.clickableOverlay} 
-                                        onClick={() => setSelectedItem(item)}
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className={styles.listContainer}>
-                            <table className={styles.table}>
-                                <thead>
-                                    <tr>
-                                        <th>Image</th>
-                                        <th>Inventory/SKU ID</th>
-                                        <th>Date Added</th>
-                                        <th>Actions</th>
-                                        <th>Stock</th>
-                                        <th>Details</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {inventory.map((item) => (
-                                        <tr key={item.id} className={styles.tableRow}>
-                                            <td className={styles.tdImage}>
-                                                {item.driveId ? (
-                                                    <div className={styles.listThumbnailContainer}>
-                                                        <Image
-                                                            src={`https://drive.google.com/thumbnail?id=${item.driveId}&sz=w100`}
-                                                            alt={item.id}
-                                                            referrerPolicy="no-referrer"
-                                                            fill
-                                                            className={styles.listThumbnail}
-                                                            unoptimized
-                                                        />
-                                                    </div>
-                                                ) : (
-                                                    <div className={styles.listThumbnailPlaceholder}>-</div>
-                                                )}
-                                            </td>
-                                            <td className={styles.tdId}>{item.id}</td>
-                                            <td className={styles.tdDate}>
-                                                {new Date(item.timestamp).toLocaleString('en-US', {
-                                                    month: 'short', day: 'numeric', year: 'numeric',
-                                                    hour: '2-digit', minute: '2-digit'
-                                                })}
-                                            </td>
-                                            <td className={styles.tdActions}>
+                                        <div className={styles.cardInfo}>
+                                            <div className={styles.skuHeaderRow}>
+                                                <p className={styles.itemId} title={item.id}>{item.id}</p>
                                                 <button
-                                                    type="button"
-                                                    onClick={() => handleDelete(item.id)}
-                                                    className={styles.listDeleteBtn}
-                                                    title="Delete Inventory"
-                                                    disabled={deleteButtonLoading}
+                                                    className={styles.smallCopyBtn}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        copyToClipboard(item.id, "Inventory ID");
+                                                    }}
+                                                    title="Copy ID"
                                                 >
-                                                    {deleteButtonLoading && deletingItemId === item.id
-                                                        ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                            <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-                                                            <path d="M21 3v5h-5"></path>
-                                                        </svg>
-                                                        : <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                            <polyline points="3 6 5 6 21 6"></polyline>
-                                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                                        </svg>
-                                                    }
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                                    </svg>
                                                 </button>
-                                            </td>
-                                            <td className={styles.tdStock}>
-                                                <span className={`${styles.tableStockValue} ${item.inventoryMetrics?.currentStock <= 10 ? styles.lowStock : ''}`}>
+                                            </div>
+                                            <p className={styles.itemDate}>
+                                                {new Date(item.timestamp).toLocaleDateString('en-US', {
+                                                    month: 'short', day: 'numeric', year: 'numeric'
+                                                })}
+                                            </p>
+                                            <div className={styles.stockBadge}>
+                                                <span className={styles.stockLabel}>Stock:</span>
+                                                <span className={`${styles.stockValue} ${item.inventoryMetrics?.currentStock <= 10 ? styles.lowStock : ''}`}>
                                                     {item.inventoryMetrics?.currentStock ?? 0}
                                                 </span>
-                                            </td>
-                                            <td className={styles.tdView}>
-                                                <button 
-                                                    className={styles.viewDetailsBtn}
-                                                    onClick={() => setSelectedItem(item)}
-                                                >
-                                                    View Details
-                                                </button>
-                                            </td>
+                                            </div>
+                                        </div>
+                                        <div
+                                            className={styles.clickableOverlay}
+                                            onClick={() => setSelectedItem(item)}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className={styles.listContainer}>
+                                <table className={styles.table}>
+                                    <thead>
+                                        <tr>
+                                            <th>Image</th>
+                                            <th>Inventory/SKU ID</th>
+                                            <th>Date Added</th>
+                                            <th>Actions</th>
+                                            <th>Stock</th>
+                                            <th>Details</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
+                                    </thead>
+                                    <tbody>
+                                        {inventory.map((item) => (
+                                            <tr key={item.id} className={styles.tableRow}>
+                                                <td className={styles.tdImage}>
+                                                    {item.driveId ? (
+                                                        <div className={styles.listThumbnailContainer}>
+                                                            <Image
+                                                                src={`https://drive.google.com/thumbnail?id=${item.driveId}&sz=w100`}
+                                                                alt={item.id}
+                                                                referrerPolicy="no-referrer"
+                                                                fill
+                                                                className={styles.listThumbnail}
+                                                                unoptimized
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <div className={styles.listThumbnailPlaceholder}>-</div>
+                                                    )}
+                                                </td>
+                                                <td className={styles.tdId}>{item.id}</td>
+                                                <td className={styles.tdDate}>
+                                                    {new Date(item.timestamp).toLocaleString('en-US', {
+                                                        month: 'short', day: 'numeric', year: 'numeric',
+                                                        hour: '2-digit', minute: '2-digit'
+                                                    })}
+                                                </td>
+                                                <td className={styles.tdActions}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDelete(item.id)}
+                                                        className={styles.listDeleteBtn}
+                                                        title="Delete Inventory"
+                                                        disabled={deleteButtonLoading}
+                                                    >
+                                                        {deleteButtonLoading && deletingItemId === item.id
+                                                            ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                                                                <path d="M21 3v5h-5"></path>
+                                                            </svg>
+                                                            : <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <polyline points="3 6 5 6 21 6"></polyline>
+                                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                            </svg>
+                                                        }
+                                                    </button>
+                                                </td>
+                                                <td className={styles.tdStock}>
+                                                    <span className={`${styles.tableStockValue} ${item.inventoryMetrics?.currentStock <= 10 ? styles.lowStock : ''}`}>
+                                                        {item.inventoryMetrics?.currentStock ?? 0}
+                                                    </span>
+                                                </td>
+                                                <td className={styles.tdView}>
+                                                    <button
+                                                        className={styles.viewDetailsBtn}
+                                                        onClick={() => setSelectedItem(item)}
+                                                    >
+                                                        View Details
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Pagination */}
                     {totalItems > 0 && (
@@ -522,10 +522,10 @@ export default function AllInventoryPage() {
 
                                 <div className={styles.pageSizeWrapper}>
                                     <label htmlFor="pageSizeSelect" className={styles.pageSizeLabel}>Rows per page:</label>
-                                    <select 
+                                    <select
                                         id="pageSizeSelect"
-                                        className={styles.pageSizeSelect} 
-                                        value={pageSize} 
+                                        className={styles.pageSizeSelect}
+                                        value={pageSize}
                                         onChange={e => {
                                             setPageSize(Number(e.target.value));
                                             setCurrentPage(1);
@@ -553,9 +553,9 @@ export default function AllInventoryPage() {
                 </div>
             )}
 
-            <Toast 
-                message={message} 
-                onClose={() => setMessage({ text: "", type: "" })} 
+            <Toast
+                message={message}
+                onClose={() => setMessage({ text: "", type: "" })}
             />
 
             {showDeleteConfirm && (
@@ -575,15 +575,15 @@ export default function AllInventoryPage() {
                             Are you sure you want to delete this inventory item? This action cannot be undone.
                         </p>
                         <div className={styles.confirmActions}>
-                            <button 
-                                className={styles.cancelBtn} 
+                            <button
+                                className={styles.cancelBtn}
                                 onClick={() => setShowDeleteConfirm(false)}
                                 disabled={deleteButtonLoading}
                             >
                                 Cancel
                             </button>
-                            <button 
-                                className={styles.confirmDeleteBtn} 
+                            <button
+                                className={styles.confirmDeleteBtn}
                                 onClick={confirmDelete}
                                 disabled={deleteButtonLoading}
                             >
@@ -603,7 +603,7 @@ export default function AllInventoryPage() {
                                 <line x1="6" y1="6" x2="18" y2="18"></line>
                             </svg>
                         </button>
-                        
+
                         <div className={styles.modalScrollArea}>
                             <div className={styles.modalHeader}>
                                 <div className={styles.modalImageContainer}>
@@ -623,8 +623,8 @@ export default function AllInventoryPage() {
                                 <div className={styles.modalMainInfo}>
                                     <div className={styles.idWithCopy}>
                                         <h2 className={styles.modalId}>{selectedItem.id}</h2>
-                                        <button 
-                                            className={styles.copyButton} 
+                                        <button
+                                            className={styles.copyButton}
                                             onClick={() => copyToClipboard(selectedItem.id, "Inventory ID")}
                                             title="Copy ID"
                                         >
@@ -683,8 +683,8 @@ export default function AllInventoryPage() {
                                                         <span className={styles.skuIdLabel}>SKU ID</span>
                                                         <div className={styles.skuIdWithCopy}>
                                                             <span className={styles.skuIdValue}>{sku.skuId}</span>
-                                                            <button 
-                                                                className={styles.copyButtonSmall} 
+                                                            <button
+                                                                className={styles.copyButtonSmall}
                                                                 onClick={() => copyToClipboard(sku.skuId, "SKU ID")}
                                                                 title="Copy SKU ID"
                                                             >
@@ -699,7 +699,7 @@ export default function AllInventoryPage() {
                                                         <span className={styles.marketplaceBadge}>{sku.marketplace}</span>
                                                     </div>
                                                 </div>
-                                                
+
                                                 {/* Combo Items */}
                                                 {sku.comboItems && sku.comboItems.length > 0 && (
                                                     <div className={styles.comboSection}>
@@ -709,10 +709,10 @@ export default function AllInventoryPage() {
                                                                 <div key={cIndex} className={styles.comboItem}>
                                                                     <div className={styles.comboImageWrapper}>
                                                                         {combo.driveId ? (
-                                                                            <Image 
+                                                                            <Image
                                                                                 src={`https://drive.google.com/thumbnail?id=${combo.driveId}&sz=w300`}
-                                                                                alt={combo.id} 
-                                                                                fill 
+                                                                                alt={combo.id}
+                                                                                fill
                                                                                 className={styles.comboImg}
                                                                                 unoptimized
                                                                             />
@@ -722,8 +722,8 @@ export default function AllInventoryPage() {
                                                                     </div>
                                                                     <div className={styles.comboIdContainer}>
                                                                         <span className={styles.comboId}>{combo.id}</span>
-                                                                        <button 
-                                                                            className={styles.copyButtonTiny} 
+                                                                        <button
+                                                                            className={styles.copyButtonTiny}
                                                                             onClick={() => copyToClipboard(combo.id, "Combo Inventory ID")}
                                                                             title="Copy ID"
                                                                         >

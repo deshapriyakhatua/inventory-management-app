@@ -6,12 +6,12 @@ import Toast from "../../components/Toast/Toast";
 
 // All available columns
 const ALL_COLUMNS = [
-    { key: "timestamp",    label: "Record Date" },
-    { key: "orderId",      label: "Order ID" },
-    { key: "lineId",       label: "Line ID" },
-    { key: "skuId",        label: "SKU ID" },
-    { key: "quantity",     label: "Qty" },
-    { key: "status",       label: "Status" },
+    { key: "timestamp", label: "Record Date" },
+    { key: "orderId", label: "Order ID" },
+    { key: "lineId", label: "Line ID" },
+    { key: "skuId", label: "SKU ID" },
+    { key: "quantity", label: "Qty" },
+    { key: "status", label: "Status" },
 ];
 
 const DEFAULT_VISIBLE = ["timestamp", "orderId", "lineId", "skuId", "quantity", "status"];
@@ -19,19 +19,19 @@ const CACHE_MINUTES = 10;
 const EDITABLE_FIELDS = ["status"];
 
 export default function SalesRecordsPage() {
-    const [loading, setLoading]       = useState(true);
+    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [message, setMessage]       = useState({ text: "", type: "" });
-    
+    const [message, setMessage] = useState({ text: "", type: "" });
+
     // Core data
     const [allRecords, setAllRecords] = useState([]);
 
     // Filtering & Sorting State
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState([]); // array of statuses
-    const [sortBy, setSortBy]           = useState("timestamp");
-    const [sortOrder, setSortOrder]     = useState("desc");
-    
+    const [sortBy, setSortBy] = useState("timestamp");
+    const [sortOrder, setSortOrder] = useState("desc");
+
     // Dynamic Columns State
     const [visibleColumns, setVisibleColumns] = useState(() => {
         const initial = {};
@@ -40,18 +40,18 @@ export default function SalesRecordsPage() {
     });
     const [isColMenuOpen, setIsColMenuOpen] = useState(false);
     const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
-    
+
     // Pagination / Server-side state
     const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize]       = useState(20);
-    const [totalItems, setTotalItems]   = useState(0);
-    const [totalPages, setTotalPages]   = useState(1);
+    const [pageSize, setPageSize] = useState(20);
+    const [totalItems, setTotalItems] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
 
     // Bulk Edit State
-    const [isEditing, setIsEditing]   = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
     const [editedRows, setEditedRows] = useState({});
-    const [updating, setUpdating]     = useState(false);
-    
+    const [updating, setUpdating] = useState(false);
+
     const colMenuRef = useRef(null);
     const statusMenuRef = useRef(null);
 
@@ -68,12 +68,12 @@ export default function SalesRecordsPage() {
     // ── Fetch & Cache ──────────────────────────────────────────────────
     const fetchSalesRecords = useCallback(async (forceRefresh = false) => {
         const pin = sessionStorage.getItem("app_pin");
-        
+
         // Check cache first
         if (!forceRefresh) {
             const cachedData = localStorage.getItem("sales_records_cache");
             const cacheTime = localStorage.getItem("sales_records_cache_time");
-            
+
             if (cachedData && cacheTime) {
                 const ageMinutes = (new Date().getTime() - parseInt(cacheTime)) / (1000 * 60);
                 if (ageMinutes < CACHE_MINUTES) {
@@ -93,7 +93,7 @@ export default function SalesRecordsPage() {
             pin,
             action: "getSalesLog",
             page: 1,
-            pageSize: 50000, 
+            pageSize: 50000,
             sortBy: "timestamp",
             sortOrder: "desc"
         };
@@ -108,11 +108,11 @@ export default function SalesRecordsPage() {
             if (response.status === 200 && response.data) {
                 const sales = response.data.sales || [];
                 setAllRecords(sales);
-                
+
                 // Set cache
                 localStorage.setItem("sales_records_cache", JSON.stringify(sales));
                 localStorage.setItem("sales_records_cache_time", new Date().getTime().toString());
-                
+
                 if (forceRefresh) setMessage({ text: "Records refreshed and cached.", type: "success" });
             } else {
                 setMessage({ text: response.message || "Failed to load records.", type: "error" });
@@ -129,7 +129,7 @@ export default function SalesRecordsPage() {
     useEffect(() => { fetchSalesRecords(false); }, [fetchSalesRecords]);
 
     // ── Client-Side Processing ──────────────────────────────────────────
-    
+
     // All unique statuses in the dataset for the filter dropdown
     const availableStatuses = useMemo(() => {
         const stSet = new Set(allRecords.map(r => r.status).filter(Boolean));
@@ -142,7 +142,7 @@ export default function SalesRecordsPage() {
         // 1. Search Filter
         if (searchQuery.trim()) {
             const q = searchQuery.toLowerCase();
-            result = result.filter(r => 
+            result = result.filter(r =>
                 (r.orderId && r.orderId.toLowerCase().includes(q)) ||
                 (r.lineId && r.lineId.toLowerCase().includes(q)) ||
                 (r.skuId && String(r.skuId).toLowerCase().includes(q))
@@ -161,18 +161,18 @@ export default function SalesRecordsPage() {
 
             if (valA === null || valA === undefined || valA === "") valA = 0;
             if (valB === null || valB === undefined || valB === "") valB = 0;
-            
+
             if (sortBy === 'timestamp') {
                 valA = new Date(valA).getTime() || 0;
                 valB = new Date(valB).getTime() || 0;
-            } 
+            }
             else if (typeof valA === 'string' && typeof valB === 'string') {
                 valA = valA.toLowerCase();
                 valB = valB.toLowerCase();
             }
 
             if (sortOrder === "asc") return valA > valB ? 1 : valA < valB ? -1 : 0;
-            else                     return valA < valB ? 1 : valA > valB ? -1 : 0;
+            else return valA < valB ? 1 : valA > valB ? -1 : 0;
         });
 
         return result;
@@ -210,12 +210,12 @@ export default function SalesRecordsPage() {
     const handleBulkUpdate = async () => {
         const pin = sessionStorage.getItem("app_pin");
         const updates = Object.values(editedRows);
-        
+
         if (updates.length === 0) {
             setIsEditing(false);
             return;
         }
-        
+
         setUpdating(true);
         try {
             const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
@@ -256,7 +256,7 @@ export default function SalesRecordsPage() {
     };
 
     const toggleStatusFilter = (status) => {
-        setStatusFilter(prev => 
+        setStatusFilter(prev =>
             prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
         );
     };
@@ -275,12 +275,12 @@ export default function SalesRecordsPage() {
 
     const statusClass = (status) => {
         switch ((status || "").toUpperCase()) {
-            case "DISPATCHED":  return styles.badgeBlue;
-            case "DELIVERED":   return styles.badgeGreen;
-            case "CANCELLED":   return styles.badgeRed;
-            case "RETURNED":    return styles.badgeOrange;
+            case "DISPATCHED": return styles.badgeBlue;
+            case "DELIVERED": return styles.badgeGreen;
+            case "CANCELLED": return styles.badgeRed;
+            case "RETURNED": return styles.badgeOrange;
             case "CANCELLED_BEFORE_PICKUP": return styles.badgeOrange;
-            default:            return styles.badgeGray;   // ORDERED
+            default: return styles.badgeGray;   // ORDERED
         }
     };
 
@@ -292,7 +292,7 @@ export default function SalesRecordsPage() {
         if (key === 'status') {
             if (isEditing) {
                 return (
-                    <select 
+                    <select
                         className={`${styles.cellSelect} ${isEdited ? styles.editedCell : ""}`}
                         value={displayValue || ""}
                         onChange={(e) => handleCellChange(rec.orderId, rec.lineId, key, e.target.value)}
@@ -312,7 +312,7 @@ export default function SalesRecordsPage() {
         if (key === 'timestamp') return <span className={styles.dateText}>{formatDate(displayValue)}</span>;
         if (key === 'orderId') return <span className={styles.highlightText}>{displayValue || "N/A"}</span>;
         if (key === 'skuId') return <span className={styles.skuText}>{displayValue}</span>;
-        
+
         return displayValue || <span className={styles.na}>—</span>;
     };
 
@@ -323,15 +323,15 @@ export default function SalesRecordsPage() {
                 <h1 className={styles.title}>Sales Records</h1>
 
                 <div className={styles.filtersRow}>
-                    
+
                     {/* Search */}
                     <div className={styles.searchWrapper}>
                         <svg className={styles.searchIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                        <input 
-                            type="text" 
-                            className={styles.searchInput} 
-                            placeholder="Search Order, Line or SKU…" 
-                            value={searchQuery} 
+                        <input
+                            type="text"
+                            className={styles.searchInput}
+                            placeholder="Search Order, Line or SKU…"
+                            value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
                         />
                     </div>
@@ -349,8 +349,8 @@ export default function SalesRecordsPage() {
                                 ) : (
                                     availableStatuses.map(status => (
                                         <label key={status} className={styles.dropdownItem}>
-                                            <input 
-                                                type="checkbox" 
+                                            <input
+                                                type="checkbox"
                                                 checked={statusFilter.includes(status)}
                                                 onChange={() => toggleStatusFilter(status)}
                                                 className={styles.dropdownCheckbox}
@@ -373,8 +373,8 @@ export default function SalesRecordsPage() {
                             <div className={styles.dropdownMenu}>
                                 {ALL_COLUMNS.map(c => (
                                     <label key={c.key} className={styles.dropdownItem}>
-                                        <input 
-                                            type="checkbox" 
+                                        <input
+                                            type="checkbox"
                                             checked={!!visibleColumns[c.key]}
                                             onChange={() => toggleColumn(c.key)}
                                             className={styles.dropdownCheckbox}
@@ -407,7 +407,7 @@ export default function SalesRecordsPage() {
                         </button>
                     ) : (
                         <div className={styles.editControls}>
-                            <button 
+                            <button
                                 className={`${styles.updateBtn} ${updating ? styles.updating : ""}`}
                                 onClick={handleBulkUpdate}
                                 disabled={updating}
@@ -437,49 +437,50 @@ export default function SalesRecordsPage() {
                 </div>
             </div>
 
-            <div className={styles.card}>
-                <div className={styles.tableContainer}>
-                    {loading ? (
-                        <div className={styles.loadingContainer}>
-                            <div className={styles.spinner}></div>
-                            <p>Loading 50K records from server…</p>
-                        </div>
-                    ) : processedRecords.length > 0 ? (
-                        <table className={styles.table}>
-                            <thead>
-                                <tr>
-                                    {ALL_COLUMNS.filter(c => visibleColumns[c.key]).map(c => (
-                                        <th key={`th-${c.key}`}>
-                                            <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", cursor: "pointer" }} onClick={() => { if(sortBy === c.key) setSortOrder(sortOrder === "asc" ? "desc" : "asc"); else { setSortBy(c.key); setSortOrder("desc"); } }}>
-                                                {c.label}
-                                                {sortBy === c.key && (
-                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                        {sortOrder === "desc" ? <polyline points="6 9 12 15 18 9"></polyline> : <polyline points="18 15 12 9 6 15"></polyline>}
-                                                    </svg>
-                                                )}
-                                            </div>
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {paginatedRecords.map((rec, index) => (
-                                    <tr key={`row-${rec.orderId}-${rec.lineId}-${index}`}>
+            <div className={styles.contentArea}>
+                <div className={styles.scrollWrapper}>
+                    <div className={styles.tableContainer}>
+                        {loading ? (
+                            <div className={styles.loadingContainer}>
+                                <div className={styles.spinner}></div>
+                                <p>Loading 50K records from server…</p>
+                            </div>
+                        ) : processedRecords.length > 0 ? (
+                            <table className={styles.table}>
+                                <thead>
+                                    <tr>
                                         {ALL_COLUMNS.filter(c => visibleColumns[c.key]).map(c => (
-                                            <td key={`td-${c.key}-${index}`}>
-                                                {renderCellContent(c.key, rec)}
-                                            </td>
+                                            <th key={`th-${c.key}`}>
+                                                <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", cursor: "pointer" }} onClick={() => { if (sortBy === c.key) setSortOrder(sortOrder === "asc" ? "desc" : "asc"); else { setSortBy(c.key); setSortOrder("desc"); } }}>
+                                                    {c.label}
+                                                    {sortBy === c.key && (
+                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                            {sortOrder === "desc" ? <polyline points="6 9 12 15 18 9"></polyline> : <polyline points="18 15 12 9 6 15"></polyline>}
+                                                        </svg>
+                                                    )}
+                                                </div>
+                                            </th>
                                         ))}
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    ) : (
-                        <div className={styles.emptyState}>No matching records found.</div>
-                    )}
+                                </thead>
+                                <tbody>
+                                    {paginatedRecords.map((rec, index) => (
+                                        <tr key={`row-${rec.orderId}-${rec.lineId}-${index}`}>
+                                            {ALL_COLUMNS.filter(c => visibleColumns[c.key]).map(c => (
+                                                <td key={`td-${c.key}-${index}`}>
+                                                    {renderCellContent(c.key, rec)}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <div className={styles.emptyState}>No matching records found.</div>
+                        )}
+                    </div>
                 </div>
-
-                        {!loading && totalItemsCount > 0 && (
+                {!loading && totalItemsCount > 0 && (
                     <div className={styles.pagination}>
                         <div className={styles.paginationLeft}>
                             <span className={styles.pageInfo}>
@@ -488,10 +489,10 @@ export default function SalesRecordsPage() {
 
                             <div className={styles.pageSizeWrapper}>
                                 <label htmlFor="pageSizeSelect" className={styles.pageSizeLabel}>Rows per page:</label>
-                                <select 
+                                <select
                                     id="pageSizeSelect"
-                                    className={styles.pageSizeSelect} 
-                                    value={pageSize} 
+                                    className={styles.pageSizeSelect}
+                                    value={pageSize}
                                     onChange={e => setPageSize(Number(e.target.value))}
                                 >
                                     {[50, 500, 5000, 50000, 500000, 5000000].map(size => (

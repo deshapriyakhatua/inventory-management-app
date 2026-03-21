@@ -18,7 +18,7 @@ export default function AllListingsPage() {
     const [message, setMessage] = useState({ text: "", type: "" });
     const [deleteButtonLoading, setDeleteButtonLoading] = useState(false);
     const [deletingListingId, setDeletingListingId] = useState(null);
-    const pageSize = 20;
+    const [pageSize, setPageSize] = useState(100);
 
     // Filter/Sort States
     const [sortOrder, setSortOrder] = useState("newest_first");
@@ -42,7 +42,7 @@ export default function AllListingsPage() {
     // Apply Filters, Sort, and Pagination locally whenever dependencies change
     useEffect(() => {
         processLocalData();
-    }, [allListingsData, currentPage, sortOrder, selectedVertical, selectedMarketplace, searchQuery, inventoryIdQuery]);
+    }, [allListingsData, currentPage, sortOrder, selectedVertical, selectedMarketplace, searchQuery, inventoryIdQuery, pageSize]);
 
     const processLocalData = () => {
         let filtered = [...allListingsData];
@@ -79,7 +79,7 @@ export default function AllListingsPage() {
         filtered.sort((a, b) => {
             const dateA = new Date(a.createdAt || 0).getTime();
             const dateB = new Date(b.createdAt || 0).getTime();
-            
+
             if (sortOrder === "newest_first") {
                 return dateB - dateA;
             } else {
@@ -93,7 +93,7 @@ export default function AllListingsPage() {
         // 6. Paginate
         const startIndex = (currentPage - 1) * pageSize;
         const paginatedItems = filtered.slice(startIndex, startIndex + pageSize);
-        
+
         setListings(paginatedItems);
     };
 
@@ -175,7 +175,7 @@ export default function AllListingsPage() {
 
     const fetchListings = async (forceRefresh = false) => {
         const pin = sessionStorage.getItem("app_pin");
-        
+
         // Check local storage if not forcing refresh
         if (!forceRefresh) {
             const cachedData = localStorage.getItem("all_listings_data");
@@ -198,7 +198,7 @@ export default function AllListingsPage() {
         }
 
         setMessage({ text: "", type: "" });
-        
+
         const payload = {
             pin,
             action: "getListing",
@@ -228,7 +228,7 @@ export default function AllListingsPage() {
 
                 setAllListingsData(fetchedData);
                 localStorage.setItem("all_listings_data", JSON.stringify(fetchedData));
-                
+
                 if (forceRefresh) {
                     setMessage({ text: "Listings refreshed successfully.", type: "success" });
                 }
@@ -246,18 +246,18 @@ export default function AllListingsPage() {
         }
     };
 
-    const handleNextPage = () => setCurrentPage(prev => prev + 1);
+    const handleNextPage = () => setCurrentPage(prev => Math.min(Math.ceil(totalItems / pageSize) || 1, prev + 1));
     const handlePrevPage = () => setCurrentPage(prev => Math.max(1, prev - 1));
 
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <h1 className={styles.title}>All Listings</h1>
-                
+                <h1 className={styles.title}>SKU</h1>
+
                 <div className={styles.controlsRow}>
                     <div className={styles.filtersGroup}>
                         <div className={styles.searchBox}>
-                            <input 
+                            <input
                                 type="text"
                                 placeholder="Search SKU ID..."
                                 value={searchQuery}
@@ -274,7 +274,7 @@ export default function AllListingsPage() {
                         </div>
 
                         <div className={styles.searchBox}>
-                            <input 
+                            <input
                                 type="text"
                                 placeholder="Search Inventory ID..."
                                 value={inventoryIdQuery}
@@ -289,7 +289,7 @@ export default function AllListingsPage() {
                             </button>
                         </div>
 
-                        <select 
+                        <select
                             className={styles.filterSelect}
                             value={selectedVertical}
                             onChange={(e) => {
@@ -303,7 +303,7 @@ export default function AllListingsPage() {
                             ))}
                         </select>
 
-                        <select 
+                        <select
                             className={styles.filterSelect}
                             value={selectedMarketplace}
                             onChange={(e) => {
@@ -322,7 +322,7 @@ export default function AllListingsPage() {
                             <option value="Other">Other</option>
                         </select>
 
-                        <select 
+                        <select
                             className={styles.filterSelect}
                             value={sortOrder}
                             onChange={(e) => {
@@ -334,9 +334,9 @@ export default function AllListingsPage() {
                             <option value="oldest_first">Oldest First</option>
                         </select>
 
-                        <button 
-                            className={styles.resetBtn} 
-                            onClick={handleReset} 
+                        <button
+                            className={styles.resetBtn}
+                            onClick={handleReset}
                             title="Reset Filters"
                         >
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -347,9 +347,9 @@ export default function AllListingsPage() {
                             Reset
                         </button>
 
-                        <button 
+                        <button
                             className={`${styles.refreshBtn} ${refreshing ? styles.spinning : ''}`}
-                            onClick={handleRefresh} 
+                            onClick={handleRefresh}
                             disabled={refreshing}
                             title="Refresh Data"
                         >
@@ -363,7 +363,7 @@ export default function AllListingsPage() {
                     </div>
 
                     <div className={styles.viewControls}>
-                        <button 
+                        <button
                             className={`${styles.viewBtn} ${viewMode === 'grid' ? styles.activeView : ''}`}
                             onClick={() => setViewMode('grid')}
                             title="Grid View"
@@ -375,7 +375,7 @@ export default function AllListingsPage() {
                                 <rect x="3" y="14" width="7" height="7"></rect>
                             </svg>
                         </button>
-                        <button 
+                        <button
                             className={`${styles.viewBtn} ${viewMode === 'list' ? styles.activeView : ''}`}
                             onClick={() => setViewMode('list')}
                             title="List View"
@@ -404,149 +404,76 @@ export default function AllListingsPage() {
                 </div>
             ) : (
                 <div className={styles.contentArea}>
-                    {viewMode === 'grid' ? (
-                        <div className={styles.gridContainer}>
-                            {listings.map((item) => {
-                                const validImages = item.inventoryItems?.filter(inv => inv.imageId) || [];
-                                const displayImages = validImages.slice(0, 4);
+                    <div className={styles.scrollWrapper}>
+                        {viewMode === 'grid' ? (
+                            <div className={styles.gridContainer}>
+                                {listings.map((item) => {
+                                    const validImages = item.inventoryItems?.filter(inv => inv.imageId) || [];
+                                    const displayImages = validImages.slice(0, 4);
 
-                                return (
-                                    <div 
-                                        key={item.skuId} 
-                                        className={styles.gridCard}
-                                        onClick={() => setSelectedListing(item)}
-                                        style={{ cursor: 'pointer' }}
-                                    >
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleDelete(item.skuId);
-                                            }}
-                                            className={styles.deleteBtn}
-                                            title="Delete Listing"
-                                            disabled={deleteButtonLoading}
-                                        >
-                                            {deleteButtonLoading && deletingListingId === item.skuId
-                                                ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-                                                    <path d="M21 3v5h-5"></path>
-                                                </svg>
-                                                : <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                                </svg>
-                                            }
-                                        </button>
-                                        <div className={styles.imageContainer} data-count={displayImages.length}>
-                                            {displayImages.length > 0 ? (
-                                                displayImages.map((inv, idx) => (
-                                                    <div key={idx} className={styles.multiImageCell}>
-                                                        <Image
-                                                            src={`https://drive.google.com/thumbnail?id=${inv.imageId}&sz=w300`}
-                                                            alt={item.skuId}
-                                                            referrerPolicy="no-referrer"
-                                                            fill
-                                                            className={styles.itemImage}
-                                                            unoptimized
-                                                        />
-                                                        {idx === 3 && validImages.length > 4 && (
-                                                            <div className={styles.moreImagesOverlay}>
-                                                                +{validImages.length - 4}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <div className={styles.imagePlaceholder}>
-                                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5, marginBottom: '0.5rem' }}>
-                                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                                                        <polyline points="21 15 16 10 5 21"></polyline>
-                                                    </svg>
-                                                    <br/>No Images
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className={styles.cardInfo}>
-                                            <div className={styles.skuHeaderRow}>
-                                                <p className={styles.itemId}>{item.skuId}</p>
-                                                <button 
-                                                    className={styles.smallCopyBtn}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        copyToClipboard(item.skuId, "SKU ID");
-                                                    }}
-                                                    title="Copy SKU ID"
-                                                >
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '4px' }}>
-                                                <p className={styles.itemDate}>{item.vertical}</p>
-                                                <span style={{ color: '#64748b', fontSize: '0.8rem' }}>•</span>
-                                                <p className={styles.itemDate} style={{ color: '#94a3b8' }}>{item.marketplace || 'Direct'}</p>
-                                            </div>
-                                            <p className={styles.itemDate}>
-                                                {new Date(item.createdAt).toLocaleDateString('en-US', {
-                                                    month: 'short', day: 'numeric', year: 'numeric'
-                                                })}
-                                            </p>
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    ) : (
-                        <div className={styles.listContainer}>
-                            <table className={styles.table}>
-                                <thead>
-                                    <tr>
-                                        <th>Thumbnails</th>
-                                        <th>SKU ID</th>
-                                        <th>Vertical</th>
-                                        <th>Marketplace</th>
-                                        <th>Date Created</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {listings.map((item) => (
-                                        <tr 
-                                            key={item.skuId} 
-                                            className={styles.tableRow}
+                                    return (
+                                        <div
+                                            key={item.skuId}
+                                            className={styles.gridCard}
                                             onClick={() => setSelectedListing(item)}
+                                            style={{ cursor: 'pointer' }}
                                         >
-                                            <td className={styles.tdImage}>
-                                                {item.inventoryItems && item.inventoryItems.length > 0 ? (
-                                                    <div className={styles.listThumbStack}>
-                                                        {item.inventoryItems.map((inv, idx) => (
-                                                            inv.imageId ? (
-                                                                <div key={idx} className={styles.listThumbnailContainer}>
-                                                                    <Image
-                                                                        src={`https://drive.google.com/thumbnail?id=${inv.imageId}&sz=w100`}
-                                                                        alt={inv.inventoryId}
-                                                                        referrerPolicy="no-referrer"
-                                                                        fill
-                                                                        className={styles.listThumbnail}
-                                                                        unoptimized
-                                                                    />
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDelete(item.skuId);
+                                                }}
+                                                className={styles.deleteBtn}
+                                                title="Delete Listing"
+                                                disabled={deleteButtonLoading}
+                                            >
+                                                {deleteButtonLoading && deletingListingId === item.skuId
+                                                    ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                                                        <path d="M21 3v5h-5"></path>
+                                                    </svg>
+                                                    : <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                    </svg>
+                                                }
+                                            </button>
+                                            <div className={styles.imageContainer} data-count={displayImages.length}>
+                                                {displayImages.length > 0 ? (
+                                                    displayImages.map((inv, idx) => (
+                                                        <div key={idx} className={styles.multiImageCell}>
+                                                            <Image
+                                                                src={`https://drive.google.com/thumbnail?id=${inv.imageId}&sz=w300`}
+                                                                alt={item.skuId}
+                                                                referrerPolicy="no-referrer"
+                                                                fill
+                                                                className={styles.itemImage}
+                                                                unoptimized
+                                                            />
+                                                            {idx === 3 && validImages.length > 4 && (
+                                                                <div className={styles.moreImagesOverlay}>
+                                                                    +{validImages.length - 4}
                                                                 </div>
-                                                            ) : null
-                                                        ))}
-                                                    </div>
+                                                            )}
+                                                        </div>
+                                                    ))
                                                 ) : (
-                                                    <div className={styles.listThumbnailPlaceholder}>-</div>
+                                                    <div className={styles.imagePlaceholder}>
+                                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5, marginBottom: '0.5rem' }}>
+                                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                                            <polyline points="21 15 16 10 5 21"></polyline>
+                                                        </svg>
+                                                        <br />No Images
+                                                    </div>
                                                 )}
-                                            </td>
-                                            <td className={styles.tdId}>
-                                                <div className={styles.listSkuRow}>
-                                                    {item.skuId}
-                                                    <button 
-                                                        className={styles.listSmallCopyBtn}
+                                            </div>
+                                            <div className={styles.cardInfo}>
+                                                <div className={styles.skuHeaderRow}>
+                                                    <p className={styles.itemId}>{item.skuId}</p>
+                                                    <button
+                                                        className={styles.smallCopyBtn}
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             copyToClipboard(item.skuId, "SKU ID");
@@ -559,62 +486,156 @@ export default function AllListingsPage() {
                                                         </svg>
                                                     </button>
                                                 </div>
-                                            </td>
-                                            <td className={styles.tdVertical}>{item.vertical}</td>
-                                            <td className={styles.tdVertical} style={{ color: '#94a3b8' }}>{item.marketplace || 'Direct'}</td>
-                                            <td className={styles.tdDate}>
-                                                {new Date(item.createdAt).toLocaleString('en-US', {
-                                                    month: 'short', day: 'numeric', year: 'numeric',
-                                                })}
-                                            </td>
-                                            <td className={styles.tdActions}>
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDelete(item.skuId);
-                                                    }}
-                                                    className={styles.listDeleteBtn}
-                                                    title="Delete Listing"
-                                                    disabled={deleteButtonLoading}
-                                                >
-                                                    {deleteButtonLoading && deletingListingId === item.skuId
-                                                        ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                            <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-                                                            <path d="M21 3v5h-5"></path>
-                                                        </svg>
-                                                        : <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                            <polyline points="3 6 5 6 21 6"></polyline>
-                                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                                        </svg>
-                                                    }
-                                                </button>
-                                            </td>
+                                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '4px' }}>
+                                                    <p className={styles.itemDate}>{item.vertical}</p>
+                                                    <span style={{ color: '#64748b', fontSize: '0.8rem' }}>•</span>
+                                                    <p className={styles.itemDate} style={{ color: '#94a3b8' }}>{item.marketplace || 'Direct'}</p>
+                                                </div>
+                                                <p className={styles.itemDate}>
+                                                    {new Date(item.createdAt).toLocaleDateString('en-US', {
+                                                        month: 'short', day: 'numeric', year: 'numeric'
+                                                    })}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        ) : (
+                            <div className={styles.listContainer}>
+                                <table className={styles.table}>
+                                    <thead>
+                                        <tr>
+                                            <th>Thumbnails</th>
+                                            <th>SKU ID</th>
+                                            <th>Vertical</th>
+                                            <th>Marketplace</th>
+                                            <th>Date Created</th>
+                                            <th>Actions</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        {listings.map((item) => (
+                                            <tr
+                                                key={item.skuId}
+                                                className={styles.tableRow}
+                                                onClick={() => setSelectedListing(item)}
+                                            >
+                                                <td className={styles.tdImage}>
+                                                    {item.inventoryItems && item.inventoryItems.length > 0 ? (
+                                                        <div className={styles.listThumbStack}>
+                                                            {item.inventoryItems.map((inv, idx) => (
+                                                                inv.imageId ? (
+                                                                    <div key={idx} className={styles.listThumbnailContainer}>
+                                                                        <Image
+                                                                            src={`https://drive.google.com/thumbnail?id=${inv.imageId}&sz=w100`}
+                                                                            alt={inv.inventoryId}
+                                                                            referrerPolicy="no-referrer"
+                                                                            fill
+                                                                            className={styles.listThumbnail}
+                                                                            unoptimized
+                                                                        />
+                                                                    </div>
+                                                                ) : null
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div className={styles.listThumbnailPlaceholder}>-</div>
+                                                    )}
+                                                </td>
+                                                <td className={styles.tdId}>
+                                                    <div className={styles.listSkuRow}>
+                                                        {item.skuId}
+                                                        <button
+                                                            className={styles.listSmallCopyBtn}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                copyToClipboard(item.skuId, "SKU ID");
+                                                            }}
+                                                            title="Copy SKU ID"
+                                                        >
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                                <td className={styles.tdVertical}>{item.vertical}</td>
+                                                <td className={styles.tdVertical} style={{ color: '#94a3b8' }}>{item.marketplace || 'Direct'}</td>
+                                                <td className={styles.tdDate}>
+                                                    {new Date(item.createdAt).toLocaleString('en-US', {
+                                                        month: 'short', day: 'numeric', year: 'numeric',
+                                                    })}
+                                                </td>
+                                                <td className={styles.tdActions}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDelete(item.skuId);
+                                                        }}
+                                                        className={styles.listDeleteBtn}
+                                                        title="Delete Listing"
+                                                        disabled={deleteButtonLoading}
+                                                    >
+                                                        {deleteButtonLoading && deletingListingId === item.skuId
+                                                            ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                                                                <path d="M21 3v5h-5"></path>
+                                                            </svg>
+                                                            : <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <polyline points="3 6 5 6 21 6"></polyline>
+                                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                            </svg>
+                                                        }
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                    {/* Pagination */}
+                    {totalItems > 0 && (
+                        <div className={styles.pagination}>
+                            <div className={styles.paginationLeft}>
+                                <span className={styles.pageInfo}>
+                                    Showing {Math.min((currentPage - 1) * pageSize + 1, totalItems)}–{Math.min(currentPage * pageSize, totalItems)} of {totalItems} entries
+                                </span>
+
+                                <div className={styles.pageSizeWrapper}>
+                                    <label htmlFor="pageSizeSelect" className={styles.pageSizeLabel}>Rows per page:</label>
+                                    <select
+                                        id="pageSizeSelect"
+                                        className={styles.pageSizeSelect}
+                                        value={pageSize}
+                                        onChange={e => {
+                                            setPageSize(Number(e.target.value));
+                                            setCurrentPage(1);
+                                        }}
+                                    >
+                                        {[20, 50, 100, 500, 5000].map(size => (
+                                            <option key={size} value={size}>{size}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                            <div className={styles.pageControls}>
+                                <button className={styles.pageBtn} disabled={currentPage === 1}
+                                    onClick={handlePrevPage}>
+                                    Previous
+                                </button>
+                                <span className={styles.pageDisplay}>Page {currentPage} of {Math.ceil(totalItems / pageSize) || 1}</span>
+                                <button className={styles.pageBtn} disabled={currentPage >= (Math.ceil(totalItems / pageSize) || 1)}
+                                    onClick={handleNextPage}>
+                                    Next
+                                </button>
+                            </div>
                         </div>
                     )}
-
-                    {/* Pagination */}
-                    <div className={styles.pagination}>
-                        <button 
-                            className={styles.pageBtn} 
-                            onClick={handlePrevPage} 
-                            disabled={currentPage === 1}
-                        >
-                            Previous
-                        </button>
-                        <span className={styles.pageInfo}>Page {currentPage}</span>
-                        <button 
-                            className={styles.pageBtn} 
-                            onClick={handleNextPage}
-                            disabled={listings.length < pageSize} 
-                        >
-                            Next
-                        </button>
-                    </div>
                 </div>
             )}
 
@@ -631,12 +652,12 @@ export default function AllListingsPage() {
                                 </svg>
                             </button>
                         </div>
-                        
+
                         <div className={styles.modalBody}>
                             <div className={styles.modalSection}>
                                 <div className={styles.skuHeaderRow}>
                                     <h3>{selectedListing.skuId}</h3>
-                                    <button 
+                                    <button
                                         className={styles.iconCopyBtn}
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -697,7 +718,7 @@ export default function AllListingsPage() {
                                                 </div>
                                                 <div className={styles.modalCardFooter}>
                                                     <span className={styles.modalInventoryId}>{inv.inventoryId}</span>
-                                                    <button 
+                                                    <button
                                                         className={styles.smallCopyBtn}
                                                         onClick={(e) => {
                                                             e.stopPropagation();
@@ -723,9 +744,9 @@ export default function AllListingsPage() {
                 </div>
             )}
 
-            <Toast 
-                message={message} 
-                onClose={() => setMessage({ text: "", type: "" })} 
+            <Toast
+                message={message}
+                onClose={() => setMessage({ text: "", type: "" })}
             />
         </div>
     );
