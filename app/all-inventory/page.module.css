@@ -578,6 +578,20 @@
     transform: scale(1.1);
 }
 
+.stockAndPriceContainer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.itemPrice {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #3ca9f1;
+}
+
+
 /* --- NEW STYLES --- */
 .stockBadge {
     display: flex;
@@ -973,6 +987,16 @@
     border-color: #3b82f6;
 }
 
+.inactiveSku {
+    background-color: rgb(73, 12, 12);
+    opacity: 0.5;
+}
+
+.blockedSku {
+    background-color: rgb(63, 28, 8);
+    opacity: 0.5;
+}
+
 .skuInfo {
     display: flex;
     justify-content: space-between;
@@ -1009,7 +1033,7 @@
 .copyButtonSmall {
     background: transparent;
     border: none;
-    color: #64748b;
+    color: #b1bed1;
     padding: 0.2rem;
     cursor: pointer;
     display: flex;
@@ -1024,6 +1048,31 @@
     color: #f8fafc;
 }
 
+
+.statusBadge {
+    padding: 0.25rem 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.activeStatus {
+    color: rgb(16, 185, 129);
+}
+
+.inactiveStatus {
+    color: rgb(239, 68, 68);
+}
+
+.blockedStatus {
+    color: rgb(245, 159, 11);
+}
+
+.skuBadges {
+    display: flex;
+    gap: 0.5rem;
+    flex-direction: column;
+}
+
 .marketplaceBadge {
     background-color: rgba(59, 130, 246, 0.15);
     color: #60a5fa;
@@ -1031,6 +1080,17 @@
     border-radius: 20px;
     font-size: 0.8rem;
     font-weight: 600;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.netSoldBadge {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: #45a71f;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
     border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
@@ -1110,7 +1170,7 @@
 .copyButtonTiny {
     background: transparent;
     border: none;
-    color: #475569;
+    color: #94a6c0;
     padding: 2px;
     cursor: pointer;
     display: flex;

@@ -418,11 +418,16 @@ export default function AllInventoryPage() {
                                                     month: 'short', day: 'numeric', year: 'numeric'
                                                 })}
                                             </p>
-                                            <div className={styles.stockBadge}>
-                                                <span className={styles.stockLabel}>Stock:</span>
-                                                <span className={`${styles.stockValue} ${item.inventoryMetrics?.currentStock <= 10 ? styles.lowStock : ''}`}>
-                                                    {item.inventoryMetrics?.currentStock ?? 0}
-                                                </span>
+                                            <div className={styles.stockAndPriceContainer}>
+                                                <div className={styles.stockBadge}>
+                                                    <span className={styles.stockLabel}>Stock:</span>
+                                                    <span className={`${styles.stockValue} ${item.inventoryMetrics?.currentStock <= 10 ? styles.lowStock : ''}`}>
+                                                        {item.inventoryMetrics?.currentStock ?? 0}
+                                                    </span>
+                                                </div>
+                                                <p className={styles.itemPrice}>
+                                                    ₹{Math.ceil(item.inventoryMetrics?.pricePerItem ?? 0)}
+                                                </p>
                                             </div>
                                         </div>
                                         <div
@@ -645,13 +650,17 @@ export default function AllInventoryPage() {
                             </div>
 
                             <div className={styles.metricsGrid}>
-                                <div className={styles.metricCard}>
-                                    <span className={styles.metricLabel}>Initial Stock</span>
-                                    <span className={styles.metricValue}>{selectedItem.inventoryMetrics?.initialStock ?? 0}</span>
+                                <div className={`${styles.metricCard} ${styles.highlightMetric}`}>
+                                    <span className={styles.metricLabel}>Unit Price</span>
+                                    <span className={styles.metricValue}>₹ {Math.ceil(selectedItem.inventoryMetrics?.pricePerItem ?? 0)}</span>
                                 </div>
                                 <div className={`${styles.metricCard} ${styles.highlightMetric}`}>
                                     <span className={styles.metricLabel}>Current Stock</span>
                                     <span className={styles.metricValue}>{selectedItem.inventoryMetrics?.currentStock ?? 0}</span>
+                                </div>
+                                <div className={styles.metricCard}>
+                                    <span className={styles.metricLabel}>Initial Stock</span>
+                                    <span className={styles.metricValue}>{selectedItem.inventoryMetrics?.initialStock ?? 0}</span>
                                 </div>
                                 <div className={styles.metricCard}>
                                     <span className={styles.metricLabel}>Gross Ordered</span>
@@ -677,7 +686,7 @@ export default function AllInventoryPage() {
                                     <h3 className={styles.sectionTitle}>Associated SKUs</h3>
                                     <div className={styles.skuGrid}>
                                         {selectedItem.skus.map((sku, index) => (
-                                            <div key={index} className={styles.skuCard}>
+                                            <div key={index} className={`${styles.skuCard} ${sku.status === 'Active' ? styles.activeSku : sku.status === 'Blocked' ? styles.blockedSku : styles.inactiveSku}`}>
                                                 <div className={styles.skuInfo}>
                                                     <div className={styles.skuMain}>
                                                         <span className={styles.skuIdLabel}>SKU ID</span>
@@ -694,9 +703,11 @@ export default function AllInventoryPage() {
                                                                 </svg>
                                                             </button>
                                                         </div>
+                                                        <span className={`${styles.statusBadge} ${sku.status === 'Active' ? styles.activeStatus : sku.status === 'Blocked' ? styles.blockedStatus : styles.inactiveStatus}`}>{sku.status}</span>
                                                     </div>
-                                                    <div className={styles.skuMarketplace}>
+                                                    <div className={styles.skuBadges}>
                                                         <span className={styles.marketplaceBadge}>{sku.marketplace}</span>
+                                                        <span className={styles.netSoldBadge}>Sold: {sku.netSold}</span>
                                                     </div>
                                                 </div>
 
@@ -734,7 +745,7 @@ export default function AllInventoryPage() {
                                                                         </button>
                                                                     </div>
                                                                     <div className={styles.comboQuantity}>
-                                                                        <span className={styles.comboQtyLabel}>Qty</span>
+                                                                        <span className={styles.comboQtyLabel}>Stock: </span>
                                                                         <span className={styles.comboQtyValue}>{combo.currentStock}</span>
                                                                     </div>
                                                                 </div>
