@@ -418,6 +418,7 @@ export default function CreateNewListing() {
                             <option value="">Select marketplace</option>
                             <option value="Amazon">Amazon</option>
                             <option value="Flipkart">Flipkart</option>
+                            <option value="Shopsy">Shopsy</option>
                             <option value="Meesho">Meesho</option>
                             <option value="Website">Website</option>
                             <option value="Other">Other</option>
