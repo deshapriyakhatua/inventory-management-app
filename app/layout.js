@@ -1,7 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "../components/AuthProvider";
-import Sidebar from "../components/Sidebar/Sidebar";
+import LayoutContent from "../components/LayoutContent";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,12 +23,9 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`} style={{ margin: 0, padding: 0, height: "100vh", overflow: "hidden" }}>
         <AuthProvider>
-          <div style={{ display: "flex", height: "100vh", width: "100vw", overflow: "hidden" }}>
-            <Sidebar />
-            <main style={{ flex: 1, height: "100vh", overflowY: "auto", overflowX: "hidden", background: "var(--background)" }}>
-              {children}
-            </main>
-          </div>
+          <LayoutContent>
+            {children}
+          </LayoutContent>
         </AuthProvider>
       </body>
     </html>

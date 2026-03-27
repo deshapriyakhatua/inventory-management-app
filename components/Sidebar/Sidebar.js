@@ -2,15 +2,34 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import styles from "./Sidebar.module.css";
+import { toast } from "sonner";
 
 const Sidebar = () => {
     const [isExpanded, setIsExpanded] = useState(false);
     const pathname = usePathname();
+    const router = useRouter();
 
     const toggleSidebar = () => {
         setIsExpanded(!isExpanded);
+    };
+
+    const handleLogout = async () => {
+        try {
+            const res = await fetch("/api/public/auth/logout", {
+                method: "POST"
+            });
+            if (res.ok) {
+                toast.success("Logged out successfully");
+                router.push("/login");
+            } else {
+                toast.error("Logout failed");
+            }
+        } catch (error) {
+            console.error("Logout error:", error);
+            toast.error("An error occurred during logout");
+        }
     };
 
     const navItems = [
@@ -123,6 +142,23 @@ const Sidebar = () => {
                     )
                 })}
             </nav>
+
+            <div className={styles.sidebarFooter}>
+                <button 
+                    className={styles.logoutBtn} 
+                    onClick={handleLogout}
+                    title={!isExpanded ? "Logout" : ""}
+                >
+                    <span className={styles.icon}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                    </span>
+                    <span className={styles.navText}>Logout</span>
+                </button>
+            </div>
         </aside>
     );
 };

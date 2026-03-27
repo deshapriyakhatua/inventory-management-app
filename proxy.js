@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { SECURE_API_ROUTES } from "./lib/routes";
+import { SECURE_API_ROUTES, PROTECTED_UI_ROUTES } from "./lib/routes";
 import { decrypt } from './lib/session';
 
 export async function proxy(request) {
@@ -74,6 +74,23 @@ export async function proxy(request) {
                 { error: 'You are not authorized to access this route' },
                 { status: 401 }
             );
+        }
+    }
+
+    // authorization for UI routes (Pages)
+    if (PROTECTED_UI_ROUTES.some(route => pathname.startsWith(route))) {
+        if (!session?.user) {
+            return NextResponse.redirect(new URL('/login', request.url));
+        }
+        
+        if (pathname.startsWith('/super-admin')) {
+            if (session.user.role !== 'superadmin') {
+                return NextResponse.redirect(new URL('/', request.url));
+            }
+        } else if (pathname.startsWith('/admin')) {
+            if (session.user.role !== 'admin' && session.user.role !== 'superadmin') {
+                return NextResponse.redirect(new URL('/', request.url));
+            }
         }
     }
 

@@ -127,3 +127,38 @@
     background-color: #334155;
     border-radius: 20px;
 }
+
+.sidebarFooter {
+    margin-top: auto;
+    padding: 1rem 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.logoutBtn {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 0.75rem 1.25rem;
+    background: transparent;
+    border: none;
+    border-left: 3px solid transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.logoutBtn:hover {
+    background-color: rgba(239, 68, 68, 0.1); /* Subtle red tint on hover */
+    color: #f87171;
+}
+
+.logoutBtn .navText {
+    margin-left: 1rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.collapsed .logoutBtn .navText {
+    display: none;
+}

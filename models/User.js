@@ -2,9 +2,8 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
     name: String,
-    username: String,
-    email: String,
-    password: String,
+    phone: String,
+    pin: String,
     verified: { 
         type: Boolean,
         default: false,
@@ -20,4 +19,8 @@ const userSchema = new mongoose.Schema({
     },
 });
 
-export default mongoose.models.User || mongoose.model("User", userSchema);
+if (mongoose.models.User) {
+    delete mongoose.models.User;
+}
+
+export default mongoose.model("User", userSchema);

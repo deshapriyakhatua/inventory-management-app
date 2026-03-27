@@ -8,22 +8,28 @@ export async function POST(req) {
   try {
     await connectToDatabase();
     const body = await req.json();
-    const { email, username, password } = body;
+    const { phone, pin } = body;
 
-    if ((!email && !username) || !password) {
-      return NextResponse.json({ error: "Username/Email and password are required" }, { status: 400 });
+    if (!phone || !pin) {
+      return NextResponse.json({ error: "Phone and 4-digit PIN are required" }, { status: 400 });
     }
 
-    // Find by email or username
+    // Find by phone
     const user = await User.findOne({ 
-      $or: [{ email }, { username: email || username }] 
+      phone: phone
     });
 
     if (!user) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    console.log("DEBUG: Login User Object Keys", { 
+      keys: Object.keys(user.toObject ? user.toObject() : user),
+      receivedPin: pin,
+      userId: user._id 
+    });
+
+    const isMatch = await bcrypt.compare(pin, user.pin || user.password || "");
 
     if (!isMatch) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
@@ -34,8 +40,7 @@ export async function POST(req) {
         id: user._id.toString(),
         role: user.role,
         name: user.name,
-        email: user.email,
-        username: user.username
+        phone: user.phone,
     };
 
     await createSession(payload);

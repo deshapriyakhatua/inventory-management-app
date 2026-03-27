@@ -7,21 +7,27 @@ export async function POST(req) {
   try {
     await connectToDatabase();
     const body = await req.json();
-    const { name, username, email, password } = body;
+    const { name, phone, pin } = body;
 
-    if (!name || !username || !email || !password) {
+    if (!name || !phone || !pin) {
       return NextResponse.json({ error: "All fields are required" }, { status: 400 });
     }
 
+    console.log("DEBUG: Registering User", { name, phone, pinReceived: !!pin });
+
+    if (!/^\d{4}$/.test(pin)) {
+      return NextResponse.json({ error: "PIN must be exactly 4 digits" }, { status: 400 });
+    }
+
     const existingUser = await User.findOne({ 
-      $or: [{ email }, { username }] 
+      phone: phone
     });
 
     if (existingUser) {
-      return NextResponse.json({ error: "User already exists with that email or username" }, { status: 409 });
+      return NextResponse.json({ error: "User already exists with that phone number" }, { status: 409 });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPin = await bcrypt.hash(pin, 10);
     
     // Determine role: if first user, make them superadmin
     const userCount = await User.countDocuments();
@@ -29,15 +35,14 @@ export async function POST(req) {
 
     const newUser = await User.create({
       name,
-      username,
-      email,
-      password: hashedPassword,
+      phone,
+      pin: hashedPin,
       role
     });
 
     return NextResponse.json({ 
       message: "User registered successfully", 
-      user: { id: newUser._id, name: newUser.name, email: newUser.email, role: newUser.role } 
+      user: { id: newUser._id, name: newUser.name, phone: newUser.phone, role: newUser.role } 
     }, { status: 201 });
 
   } catch (error) {
