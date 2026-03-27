@@ -2,8 +2,14 @@
 const nextConfig = {
   /* config options here */
   reactCompiler: true,
-  output: "export",
   images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '*',
+        pathname: '/**',
+      },
+    ],
     unoptimized: true
   },
 };
