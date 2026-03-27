@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 import { SECURE_API_ROUTES } from "./lib/routes";
 import { decrypt } from './lib/session';
 
-export async function middleware(request) {
+export async function proxy(request) {
 
     const pathname = request.nextUrl.pathname;
-    // console.log('middleware: ', 'pathname: ', pathname, 'url:', request.url);
+    // console.log('proxy: ', 'pathname: ', pathname, 'url:', request.url);
 
     let session = { };
 
@@ -42,7 +42,7 @@ export async function middleware(request) {
     if (SECURE_API_ROUTES.some(route => pathname.startsWith(route))) {
         // Validate session
         if (!session?.user) {
-            console.log('middleware: secure api routes not accessable with out valid session')
+            console.log('proxy: secure api routes not accessable with out valid session')
             return NextResponse.json(
                 { error: 'Please Sign in First' },
                 { status: 401 }
@@ -53,7 +53,7 @@ export async function middleware(request) {
     // authorization for secure api routes
     if (pathname.startsWith('/api/employee')) {
         if (session?.user?.role !== 'employee' && session?.user?.role !== 'admin') {
-            console.log('middleware: secure api route /api/employee not accessable with out valid permission')
+            console.log('proxy: secure api route /api/employee not accessable with out valid permission')
             return NextResponse.json(
                 { error: 'You are not authorized to access this route' },
                 { status: 401 }
@@ -61,7 +61,7 @@ export async function middleware(request) {
         }
     } else if (pathname.startsWith('/api/admin')) {
         if (session?.user?.role !== 'admin' && session?.user?.role !== 'superadmin') {
-            console.log('middleware: secure api route /api/admin not accessable with out valid permission')
+            console.log('proxy: secure api route /api/admin not accessable with out valid permission')
             return NextResponse.json(
                 { error: 'You are not authorized to access this route' },
                 { status: 401 }
@@ -69,7 +69,7 @@ export async function middleware(request) {
         }
     } else if (pathname.startsWith('/api/super-admin')) {
         if (session?.user?.role !== 'superadmin') {
-            console.log('middleware: secure api route /api/superadmin not accessable with out valid permission')
+            console.log('proxy: secure api route /api/superadmin not accessable with out valid permission')
             return NextResponse.json(
                 { error: 'You are not authorized to access this route' },
                 { status: 401 }
@@ -88,7 +88,7 @@ export async function middleware(request) {
 
 };
 
-// Apply middleware only to specific routes
+// Apply proxy only to specific routes
 export const config = {
     matcher: [
         '/((?!_next/static|favicon.ico).*)',
