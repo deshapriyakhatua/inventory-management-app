@@ -51,6 +51,12 @@
     gap: 12px;
 }
 
+.inputRow {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+}
+
 .input {
     flex: 1;
     background-color: #0f172a;
@@ -363,4 +369,104 @@ select.input {
     color: #94a3b8;
     font-size: 0.8rem;
     margin: 0;
+}
+
+/* Confirmation Modal */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+.modalContent {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 400px;
+    padding: 24px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.3s ease;
+}
+
+.modalHeader {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.modalHeader h2 {
+    color: #f8fafc;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.modalBody {
+    margin-bottom: 24px;
+}
+
+.modalMessage {
+    color: #94a3b8;
+    font-size: 1rem;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.modalFooter {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.cancelBtn {
+    background-color: transparent;
+    color: #94a3b8;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cancelBtn:hover {
+    background-color: #334155;
+    color: #f8fafc;
+}
+
+.deleteConfirmBtn {
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.deleteConfirmBtn:hover {
+    background-color: #dc2626;
+    transform: translateY(-1px);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }

@@ -1216,3 +1216,11 @@
     max-width: 80px;
 }
 
+/* Archived Item Styles */
+.archivedRow {
+    opacity: 0.5;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+.archivedRow > td {
+    color: #94a3b8;
+}

@@ -191,42 +191,35 @@ export default function CreateNewListing() {
         if (!forceRefresh) {
             const cachedInventory = localStorage.getItem("all_inventory_data");
             if (cachedInventory) {
-            try {
-                const parsed = JSON.parse(cachedInventory);
-                const verticalInventory = parsed.filter(item => item.vertical === vertical);
-                
-                // Sort by newest first
-                verticalInventory.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-                
-                setInventoryItems(verticalInventory.slice(0, 100));
-                setLoadingInventoryItems(false);
-                return;
-            } catch (e) {
-                console.error("Failed to parse cached inventory", e);
+                try {
+                    const parsed = JSON.parse(cachedInventory);
+                    const verticalInventory = parsed.filter(item => item.vertical === vertical);
+                    
+                    // Sort by newest first
+                    verticalInventory.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+                    
+                    setInventoryItems(verticalInventory.slice(0, 100));
+                    setLoadingInventoryItems(false);
+                    return;
+                } catch (e) {
+                    console.error("Failed to parse cached inventory", e);
+                }
             }
         }
-        }
-
-        const payload = {
-            pin: sessionStorage.getItem("app_pin"),
-            action: "getInventory",
-            vertical: vertical,
-            page: 1,
-            pageSize: 100, // Fetch lots of items to show in the grid
-        };
 
         try {
-            const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify(payload),
-            });
+            const response = await fetch("/api/employee/inventory");
             const result = await response.json();
 
-            if (result.status === 200) {
-                setInventoryItems(result.data);
+            if (response.ok) {
+                const fetchedData = result.data || [];
+                // Update cache
+                localStorage.setItem("all_inventory_data", JSON.stringify(fetchedData));
+                
+                const verticalInventory = fetchedData.filter(item => item.vertical === vertical);
+                setInventoryItems(verticalInventory);
             } else {
-                console.error("API Error:", result.message);
+                console.error("API Error:", result.error);
             }
         } catch (error) {
             console.error("Network Error:", error);
@@ -453,34 +446,38 @@ export default function CreateNewListing() {
                                     <div className={styles.grid}>
                                         {inventoryItems.map((item) => (
                                             <div
-                                                key={item.id}
-                                                className={`${styles.gridItem} ${selectedInventoryIds.includes(item.id) ? styles.gridItemSelected : ""}`}
-                                                onClick={() => toggleSelection(item.id)}
+                                                key={item._id}
+                                                className={`${styles.gridItem} ${selectedInventoryIds.includes(item.inventoryId) ? styles.gridItemSelected : ""}`}
+                                                onClick={() => toggleSelection(item.inventoryId)}
                                             >
-                                                {selectedInventoryIds.includes(item.id) && (
+                                                {selectedInventoryIds.includes(item.inventoryId) && (
                                                     <div className={styles.checkmark}>
                                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                                             <polyline points="20 6 9 17 4 12"></polyline>
                                                         </svg>
                                                     </div>
                                                 )}
-
-                                                {item.driveId ? (
-                                                    <div className={styles.imageContainer}>
+                                                <div className={styles.imageContainer}>
+                                                    {item.imageUrl ? (
                                                         <Image
-                                                            src={`https://drive.google.com/thumbnail?id=${item.driveId}&sz=w200`}
-                                                            alt={item.id}
-                                                            referrerPolicy="no-referrer"
+                                                            src={item.imageUrl}
+                                                            alt={item.inventoryId}
                                                             fill
                                                             style={{ objectFit: 'cover' }}
                                                             unoptimized
                                                         />
-                                                    </div>
-                                                ) : (
-                                                    <div className={styles.imagePlaceholder}>No Image</div>
-                                                )}
+                                                    ) : (
+                                                        <div className={styles.imagePlaceholder}>
+                                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.3 }}>
+                                                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                                                <polyline points="21 15 16 10 5 21"></polyline>
+                                                            </svg>
+                                                        </div>
+                                                    )}
+                                                </div>
                                                 <div className={styles.itemInfo}>
-                                                    <p className={styles.itemId}>{item.id}</p>
+                                                    <p className={styles.itemId}>{item.inventoryId}</p>
                                                 </div>
                                             </div>
                                         ))}

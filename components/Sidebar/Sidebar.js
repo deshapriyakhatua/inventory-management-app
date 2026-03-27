@@ -5,11 +5,13 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import styles from "./Sidebar.module.css";
 import { toast } from "sonner";
+import { useAuth } from "../AuthProvider";
 
 const Sidebar = () => {
     const [isExpanded, setIsExpanded] = useState(false);
     const pathname = usePathname();
     const router = useRouter();
+    const { user } = useAuth();
 
     const toggleSidebar = () => {
         setIsExpanded(!isExpanded);
@@ -113,6 +115,22 @@ const Sidebar = () => {
         }
     ];
 
+    // Filter nav items based on role
+    const filteredNavItems = navItems.slice();
+    
+    if (user?.role === "admin" || user?.role === "superadmin") {
+        filteredNavItems.push({
+            title: "Add Vertical",
+            path: "/admin/add-vertical",
+            icon: (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+            )
+        });
+    }
+
     return (
         <aside className={`${styles.sidebar} ${isExpanded ? styles.expanded : styles.collapsed}`}>
             <div className={styles.sidebarHeader}>
@@ -127,7 +145,7 @@ const Sidebar = () => {
             </div>
 
             <nav className={styles.navMenu}>
-                {navItems.map((item) => {
+                {filteredNavItems.map((item) => {
                     const isActive = pathname === item.path;
                     return (
                         <Link 
