@@ -136,7 +136,6 @@ export default function UploadSalesLog() {
         }
 
         setIsSubmitting(true);
-        const pin = sessionStorage.getItem("app_pin");
 
         // Map parsed data to the API format
         const salesItems = parsedData.map(item => ({
@@ -144,7 +143,8 @@ export default function UploadSalesLog() {
             lineId: item.orderItemId,
             skuId: item.sku,
             quantity: item.quantity,
-            status: item.status
+            status: item.status || null,
+            orderedOn: item.orderedOn || null,
         })).filter(item => item.orderId && item.skuId && item.quantity > 0);
 
         if (salesItems.length === 0) {
@@ -153,31 +153,23 @@ export default function UploadSalesLog() {
             return;
         }
 
-        const payload = {
-            pin,
-            action: "bulkRecordSales",
-            salesItems
-        };
-
         try {
-            const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
+            const res = await fetch("/api/employee/sales-records", {
                 method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify(payload)
-            }).then(r => r.json());
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ marketplace, salesItems }),
+            });
+            const response = await res.json();
 
-            if (response.status === 200) {
-                setMessage({ text: response.message || `Successfully uploaded ${salesItems.length} records.`, type: "success" });
+            if (res.ok && response.success) {
+                const { inserted = 0, updated = 0, total = salesItems.length } = response;
+                setMessage({
+                    text: `Upload complete: ${inserted} new, ${updated} updated (${total} total).`,
+                    type: "success",
+                });
                 removeFile();
-            } else if (response.status === 422 && response.data && typeof response.data === "object") {
-                const err = response.data;
-                let msg = err.message || "Update cancelled.";
-
-                if (err.invalidStatuses?.length) msg += ` Invalid statuses: ${err.invalidStatuses.join(" | ")}`;
-                setMessage({ text: msg, type: "error" });
             } else {
-                console.log("Error Response:", response);
-                setMessage({ text: response.message || "Failed to upload data.", type: "error" });
+                setMessage({ text: response.error || "Failed to upload data.", type: "error" });
             }
         } catch (error) {
             setMessage({ text: "Network error occurred.", type: "error" });

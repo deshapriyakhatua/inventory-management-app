@@ -15,8 +15,7 @@ const ALL_COLUMNS = [
 ];
 
 const DEFAULT_VISIBLE = ["timestamp", "orderId", "lineId", "skuId", "quantity", "status"];
-const CACHE_MINUTES = 10;
-const EDITABLE_FIELDS = ["status"];
+const ALL_STATUSES = ["ORDERED", "DISPATCHED", "CANCELLED", "CANCELLED_BEFORE_PICKUP", "RETURNED", "DELIVERED"];
 
 export default function SalesRecordsPage() {
     const [loading, setLoading] = useState(true);
@@ -26,9 +25,9 @@ export default function SalesRecordsPage() {
     // Core data
     const [allRecords, setAllRecords] = useState([]);
 
-    // Filtering & Sorting State
+    // Filtering & Sorting State (drive server-side fetch)
     const [searchQuery, setSearchQuery] = useState("");
-    const [statusFilter, setStatusFilter] = useState([]); // array of statuses
+    const [statusFilter, setStatusFilter] = useState([]);
     const [sortBy, setSortBy] = useState("timestamp");
     const [sortOrder, setSortOrder] = useState("desc");
 
@@ -41,7 +40,7 @@ export default function SalesRecordsPage() {
     const [isColMenuOpen, setIsColMenuOpen] = useState(false);
     const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
 
-    // Pagination / Server-side state
+    // Server-side Pagination State
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(500);
     const [totalItems, setTotalItems] = useState(0);
@@ -51,6 +50,10 @@ export default function SalesRecordsPage() {
     const [isEditing, setIsEditing] = useState(false);
     const [editedRows, setEditedRows] = useState({});
     const [updating, setUpdating] = useState(false);
+
+    // Debounce timer for search
+    const searchTimerRef = useRef(null);
+    const [debouncedSearch, setDebouncedSearch] = useState("");
 
     const colMenuRef = useRef(null);
     const statusMenuRef = useRef(null);
@@ -65,57 +68,49 @@ export default function SalesRecordsPage() {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    // ── Fetch & Cache ──────────────────────────────────────────────────
-    const fetchSalesRecords = useCallback(async (forceRefresh = false) => {
-        const pin = sessionStorage.getItem("app_pin");
+    // Debounce search input
+    useEffect(() => {
+        if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+        searchTimerRef.current = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+            setCurrentPage(1);
+        }, 400);
+        return () => clearTimeout(searchTimerRef.current);
+    }, [searchQuery]);
 
-        // Check cache first
-        if (!forceRefresh) {
-            const cachedData = localStorage.getItem("sales_records_cache");
-            const cacheTime = localStorage.getItem("sales_records_cache_time");
+    // Reset to page 1 when filters/sort change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [statusFilter, sortBy, sortOrder, pageSize]);
 
-            if (cachedData && cacheTime) {
-                const ageMinutes = (new Date().getTime() - parseInt(cacheTime)) / (1000 * 60);
-                if (ageMinutes < CACHE_MINUTES) {
-                    try {
-                        setAllRecords(JSON.parse(cachedData));
-                        setLoading(false);
-                        return;
-                    } catch (e) { console.error("Cache parse error", e); }
-                }
-            }
-        }
+    // ── Server-Side Fetch ──────────────────────────────────────────────────
+    const fetchSalesRecords = useCallback(async (opts = {}) => {
+        const isRefresh = opts.forceRefresh === true;
 
-        if (forceRefresh) setRefreshing(true);
+        if (isRefresh) setRefreshing(true);
         else setLoading(true);
 
-        const payload = {
-            pin,
-            action: "getSalesLog",
-            page: 1,
-            pageSize: 50000,
-            sortBy: "timestamp",
-            sortOrder: "desc"
-        };
+        const params = new URLSearchParams({
+            page: String(opts.page ?? currentPage),
+            pageSize: String(opts.pageSize ?? pageSize),
+            sortBy,
+            sortOrder,
+        });
+
+        if (debouncedSearch) params.set("search", debouncedSearch);
+        if (statusFilter.length > 0) params.set("status", statusFilter.join(","));
 
         try {
-            const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify(payload),
-            }).then(r => r.json());
+            const res = await fetch(`/api/employee/sales-records?${params.toString()}`);
+            const response = await res.json();
 
-            if (response.status === 200 && response.data) {
-                const sales = response.data.sales || [];
-                setAllRecords(sales);
-
-                // Set cache
-                localStorage.setItem("sales_records_cache", JSON.stringify(sales));
-                localStorage.setItem("sales_records_cache_time", new Date().getTime().toString());
-
-                if (forceRefresh) setMessage({ text: "Records refreshed and cached.", type: "success" });
+            if (res.ok && response.success) {
+                setAllRecords(response.data || []);
+                setTotalItems(response.totalItems || 0);
+                setTotalPages(response.totalPages || 1);
+                if (isRefresh) setMessage({ text: "Records refreshed.", type: "success" });
             } else {
-                setMessage({ text: response.message || "Failed to load records.", type: "error" });
+                setMessage({ text: response.error || "Failed to load records.", type: "error" });
             }
         } catch {
             setMessage({ text: "Network error fetching records.", type: "error" });
@@ -123,67 +118,12 @@ export default function SalesRecordsPage() {
             setLoading(false);
             setRefreshing(false);
         }
-    }, []);
+    }, [currentPage, pageSize, sortBy, sortOrder, debouncedSearch, statusFilter]);
 
-    // Initial load
-    useEffect(() => { fetchSalesRecords(false); }, [fetchSalesRecords]);
-
-    // ── Client-Side Processing ──────────────────────────────────────────
-
-    // All unique statuses in the dataset for the filter dropdown
-    const availableStatuses = useMemo(() => {
-        const stSet = new Set(allRecords.map(r => r.status).filter(Boolean));
-        return Array.from(stSet).sort();
-    }, [allRecords]);
-
-    const processedRecords = useMemo(() => {
-        let result = [...allRecords];
-
-        // 1. Search Filter
-        if (searchQuery.trim()) {
-            const q = searchQuery.toLowerCase();
-            result = result.filter(r =>
-                (r.orderId && r.orderId.toLowerCase().includes(q)) ||
-                (r.lineId && r.lineId.toLowerCase().includes(q)) ||
-                (r.skuId && String(r.skuId).toLowerCase().includes(q))
-            );
-        }
-
-        // 2. Status Filter
-        if (statusFilter.length > 0) {
-            result = result.filter(r => statusFilter.includes(r.status));
-        }
-
-        // 3. Sort
-        result.sort((a, b) => {
-            let valA = a[sortBy];
-            let valB = b[sortBy];
-
-            if (valA === null || valA === undefined || valA === "") valA = 0;
-            if (valB === null || valB === undefined || valB === "") valB = 0;
-
-            if (sortBy === 'timestamp') {
-                valA = new Date(valA).getTime() || 0;
-                valB = new Date(valB).getTime() || 0;
-            }
-            else if (typeof valA === 'string' && typeof valB === 'string') {
-                valA = valA.toLowerCase();
-                valB = valB.toLowerCase();
-            }
-
-            if (sortOrder === "asc") return valA > valB ? 1 : valA < valB ? -1 : 0;
-            else return valA < valB ? 1 : valA > valB ? -1 : 0;
-        });
-
-        return result;
-    }, [allRecords, searchQuery, statusFilter, sortBy, sortOrder]);
-
-    const totalItemsCount = processedRecords.length;
-    const totalPagesCount = Math.ceil(totalItemsCount / pageSize) || 1;
-    const paginatedRecords = processedRecords.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
-    // Reset pagination when filters change
-    useEffect(() => { setCurrentPage(1); }, [searchQuery, statusFilter, sortBy, sortOrder, pageSize]);
+    // Re-fetch whenever page/sort/filter/search changes
+    useEffect(() => {
+        fetchSalesRecords();
+    }, [fetchSalesRecords]);
 
     // ── Handlers ────────────────────────────────────────────────────────
     const handleRefresh = () => {
@@ -191,7 +131,7 @@ export default function SalesRecordsPage() {
             if (!confirm("You have unsaved changes. Refresh anyway?")) return;
         }
         setEditedRows({});
-        fetchSalesRecords(true);
+        fetchSalesRecords({ forceRefresh: true });
     };
 
     const handleCellChange = (orderId, lineId, field, value) => {
@@ -202,13 +142,12 @@ export default function SalesRecordsPage() {
                 ...(prev[rowKey] || {}),
                 orderId,
                 lineId,
-                [field]: value
-            }
+                [field]: value,
+            },
         }));
     };
 
     const handleBulkUpdate = async () => {
-        const pin = sessionStorage.getItem("app_pin");
         const updates = Object.values(editedRows);
 
         if (updates.length === 0) {
@@ -218,25 +157,22 @@ export default function SalesRecordsPage() {
 
         setUpdating(true);
         try {
-            const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify({
-                    pin,
-                    action: "bulkRecordSales",
-                    salesItems: updates
-                }),
-            }).then(r => r.json());
+            const res = await fetch("/api/employee/sales-records", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ updates }),
+            });
+            const response = await res.json();
 
-            if (response.status === 200) {
-                setMessage({ text: `Successfully updated ${updates.length} records.`, type: "success" });
+            if (res.ok && response.success) {
+                setMessage({ text: `Successfully updated ${response.modifiedCount} records.`, type: "success" });
                 setEditedRows({});
                 setIsEditing(false);
-                fetchSalesRecords(true);
+                fetchSalesRecords({ forceRefresh: true });
             } else {
-                setMessage({ text: response.message || "Bulk update failed.", type: "error" });
+                setMessage({ text: response.error || "Bulk update failed.", type: "error" });
             }
-        } catch (error) {
+        } catch {
             setMessage({ text: "Network error during bulk update.", type: "error" });
         } finally {
             setUpdating(false);
@@ -268,7 +204,7 @@ export default function SalesRecordsPage() {
             const d = new Date(dateStr);
             return d.toLocaleDateString("en-IN", {
                 year: "numeric", month: "short", day: "numeric",
-                hour: "2-digit", minute: "2-digit"
+                hour: "2-digit", minute: "2-digit",
             });
         } catch { return dateStr; }
     };
@@ -280,7 +216,7 @@ export default function SalesRecordsPage() {
             case "CANCELLED": return styles.badgeRed;
             case "RETURNED": return styles.badgeOrange;
             case "CANCELLED_BEFORE_PICKUP": return styles.badgeOrange;
-            default: return styles.badgeGray;   // ORDERED
+            default: return styles.badgeGray;
         }
     };
 
@@ -289,7 +225,7 @@ export default function SalesRecordsPage() {
         const isEdited = editedRows[rowKey] && editedRows[rowKey][key] !== undefined;
         const displayValue = isEdited ? editedRows[rowKey][key] : rec[key];
 
-        if (key === 'status') {
+        if (key === "status") {
             if (isEditing) {
                 return (
                     <select
@@ -297,21 +233,16 @@ export default function SalesRecordsPage() {
                         value={displayValue || ""}
                         onChange={(e) => handleCellChange(rec.orderId, rec.lineId, key, e.target.value)}
                     >
-                        <option value="ORDERED">ORDERED</option>
-                        <option value="CANCELLED">CANCELLED</option>
-                        <option value="DISPATCHED">DISPATCHED</option>
-                        <option value="CANCELLED_BEFORE_PICKUP">CANCELLED_BEFORE_PICKUP</option>
-                        <option value="RETURNED">RETURNED</option>
-                        <option value="DELIVERED">DELIVERED</option>
+                        {ALL_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                 );
             }
             return <span className={`${styles.badge} ${statusClass(displayValue)}`}>{displayValue || "ORDERED"}</span>;
         }
 
-        if (key === 'timestamp') return <span className={styles.dateText}>{formatDate(displayValue)}</span>;
-        if (key === 'orderId') return <span className={styles.highlightText}>{displayValue || "N/A"}</span>;
-        if (key === 'skuId') return <span className={styles.skuText}>{displayValue}</span>;
+        if (key === "timestamp") return <span className={styles.dateText}>{formatDate(displayValue)}</span>;
+        if (key === "orderId") return <span className={styles.highlightText}>{displayValue || "N/A"}</span>;
+        if (key === "skuId") return <span className={styles.skuText}>{displayValue}</span>;
 
         return displayValue || <span className={styles.na}>—</span>;
     };
@@ -344,21 +275,17 @@ export default function SalesRecordsPage() {
                         </button>
                         {isStatusMenuOpen && (
                             <div className={styles.dropdownMenu}>
-                                {availableStatuses.length === 0 ? (
-                                    <div className={styles.dropdownEmpty}>No statuses loaded</div>
-                                ) : (
-                                    availableStatuses.map(status => (
-                                        <label key={status} className={styles.dropdownItem}>
-                                            <input
-                                                type="checkbox"
-                                                checked={statusFilter.includes(status)}
-                                                onChange={() => toggleStatusFilter(status)}
-                                                className={styles.dropdownCheckbox}
-                                            />
-                                            {status}
-                                        </label>
-                                    ))
-                                )}
+                                {ALL_STATUSES.map(status => (
+                                    <label key={status} className={styles.dropdownItem}>
+                                        <input
+                                            type="checkbox"
+                                            checked={statusFilter.includes(status)}
+                                            onChange={() => toggleStatusFilter(status)}
+                                            className={styles.dropdownCheckbox}
+                                        />
+                                        {status}
+                                    </label>
+                                ))}
                             </div>
                         )}
                     </div>
@@ -443,9 +370,9 @@ export default function SalesRecordsPage() {
                         {loading ? (
                             <div className={styles.loadingContainer}>
                                 <div className={styles.spinner}></div>
-                                <p>Loading 50K records from server…</p>
+                                <p>Loading records…</p>
                             </div>
-                        ) : processedRecords.length > 0 ? (
+                        ) : allRecords.length > 0 ? (
                             <table className={styles.table}>
                                 <thead>
                                     <tr>
@@ -464,7 +391,7 @@ export default function SalesRecordsPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {paginatedRecords.map((rec, index) => (
+                                    {allRecords.map((rec, index) => (
                                         <tr key={`row-${rec.orderId}-${rec.lineId}-${index}`}>
                                             {ALL_COLUMNS.filter(c => visibleColumns[c.key]).map(c => (
                                                 <td key={`td-${c.key}-${index}`}>
@@ -480,11 +407,12 @@ export default function SalesRecordsPage() {
                         )}
                     </div>
                 </div>
-                {!loading && totalItemsCount > 0 && (
+
+                {!loading && totalItems > 0 && (
                     <div className={styles.pagination}>
                         <div className={styles.paginationLeft}>
                             <span className={styles.pageInfo}>
-                                Showing {Math.min((currentPage - 1) * pageSize + 1, totalItemsCount)}–{Math.min(currentPage * pageSize, totalItemsCount)} of {totalItemsCount} entries
+                                Showing {Math.min((currentPage - 1) * pageSize + 1, totalItems)}–{Math.min(currentPage * pageSize, totalItems)} of {totalItems} entries
                             </span>
 
                             <div className={styles.pageSizeWrapper}>
@@ -495,20 +423,20 @@ export default function SalesRecordsPage() {
                                     value={pageSize}
                                     onChange={e => setPageSize(Number(e.target.value))}
                                 >
-                                    {[500, 5000, 50000, 500000, 5000000].map(size => (
+                                    {[100, 250, 500, 1000, 2000, 5000].map(size => (
                                         <option key={size} value={size}>{size}</option>
                                     ))}
                                 </select>
                             </div>
                         </div>
                         <div className={styles.pageControls}>
-                            <button className={styles.pageBtn} disabled={currentPage === 1}
+                            <button className={styles.pageBtn} disabled={currentPage === 1 || loading}
                                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}>
                                 Previous
                             </button>
-                            <span className={styles.pageDisplay}>Page {currentPage} of {totalPagesCount}</span>
-                            <button className={styles.pageBtn} disabled={currentPage >= totalPagesCount}
-                                onClick={() => setCurrentPage(prev => Math.min(totalPagesCount, prev + 1))}>
+                            <span className={styles.pageDisplay}>Page {currentPage} of {totalPages}</span>
+                            <button className={styles.pageBtn} disabled={currentPage >= totalPages || loading}
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}>
                                 Next
                             </button>
                         </div>
