@@ -6,16 +6,16 @@ const MARKETPLACE_SVGS = {
   Amazon: ({ size = 20 }) => (
     <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Amazon "a" smile */}
-      <rect width="100" height="100" rx="12" fill="#FF9900"/>
-      <text x="50%" y="52%" dominantBaseline="middle" textAnchor="middle" fontSize="52" fontWeight="900" fill="white" fontFamily="Arial, sans-serif">a</text>
-      <path d="M28 68 Q50 78 72 68" stroke="white" strokeWidth="5" strokeLinecap="round" fill="none"/>
-      <path d="M68 62 L74 68 L68 74" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      <circle cx="50" cy="50" r="50" fill="#000000ff"/>
+      <text x="50%" y="52%" dominantBaseline="middle" textAnchor="middle" fontSize="100" fontWeight="900" fill="white" fontFamily="Arial, sans-serif">a</text>
+      <path d="M28 68 Q50 78 72 68" stroke="white" strokeWidth="10" strokeLinecap="round" fill="none"/>
+      <path d="M68 62 L74 68 L68 74" stroke="white" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
     </svg>
   ),
   Flipkart: ({ size = 20 }) => (
     <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="100" height="100" rx="12" fill="#2874F0"/>
-      <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle" fontSize="50" fontWeight="900" fill="#FFD700" fontFamily="Arial, sans-serif">F</text>
+      <rect width="100" height="100" rx="12" fill="#FFD700"/>
+      <text x="60%" y="96%" dominantBaseline="middle" textAnchor="middle" fontSize="130" fontWeight="700" fill="#2874F0" fontFamily="Arial, sans-serif">f</text>
     </svg>
   ),
   Myntra: ({ size = 20 }) => (
@@ -38,10 +38,8 @@ const MARKETPLACE_SVGS = {
   ),
   Shopsy: ({ size = 20 }) => (
     <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="100" height="100" rx="12" fill="#0088FF"/>
-      {/* Shopping bag icon */}
-      <path d="M30 40 L35 75 L65 75 L70 40 Z" fill="white" opacity="0.9"/>
-      <path d="M38 40 Q38 25 50 25 Q62 25 62 40" stroke="white" strokeWidth="5" fill="none" strokeLinecap="round"/>
+      <circle cx="50" cy="50" r="50" fill="#ffffffff"/>
+      <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle" fontSize="90" fontWeight="900" fill="#0051ffff" fontFamily="Arial, sans-serif">S</text>
     </svg>
   ),
   Website: ({ size = 20 }) => (

@@ -1222,6 +1222,10 @@
     transition: background-color 0.15s;
     font-family: inherit;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
 }
 
 .addTagBtn:hover {
@@ -1333,6 +1337,14 @@
 
 .pickerSearchClear:hover {
     color: #ef4444;
+}
+
+.inventoryPickerGridContainer {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    scrollbar-width: thin;
+    scrollbar-color: #334155 transparent;
 }
 
 .inventoryPickerGrid {

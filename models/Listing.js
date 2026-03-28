@@ -4,7 +4,6 @@ const listingSchema = new mongoose.Schema({
   skuId: {
     type: String,
     required: true,
-    unique: true,
     index: true,
   },
   vertical: {
@@ -33,5 +32,7 @@ const listingSchema = new mongoose.Schema({
     required: false, 
   },
 }, { timestamps: true });
+
+listingSchema.index({ skuId: 1, marketplace: 1 }, { unique: true });
 
 export default mongoose.models.Listing || mongoose.model("Listing", listingSchema);

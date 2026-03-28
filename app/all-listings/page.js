@@ -8,27 +8,27 @@ import { fetchVerticalsData } from "../../utils/apiUtils";
 import MarketplaceLogo from "../../components/MarketplaceLogo/MarketplaceLogo";
 
 const STATUS_COLORS = {
-  active:   { dot: '#22c55e', label: '#22c55e' },   // green
-  inactive: { dot: '#f59e0b', label: '#f59e0b' },   // amber
-  blocked:  { dot: '#ef4444', label: '#ef4444' },   // red
-  archived: { dot: '#94a3b8', label: '#94a3b8' },   // slate
+    active: { dot: '#22c55e', label: '#22c55e' },   // green
+    inactive: { dot: '#f59e0b', label: '#f59e0b' },   // amber
+    blocked: { dot: '#ef4444', label: '#ef4444' },   // red
+    archived: { dot: '#94a3b8', label: '#94a3b8' },   // slate
 };
 
 function StatusDot({ status, size = 8 }) {
-  const color = STATUS_COLORS[status?.toLowerCase()]?.dot || '#94a3b8';
-  return (
-    <span
-      style={{
-        display: 'inline-block',
-        width: size,
-        height: size,
-        borderRadius: '50%',
-        backgroundColor: color,
-        flexShrink: 0,
-        boxShadow: `0 0 5px ${color}88`,
-      }}
-    />
-  );
+    const color = STATUS_COLORS[status?.toLowerCase()]?.dot || '#94a3b8';
+    return (
+        <span
+            style={{
+                display: 'inline-block',
+                width: size,
+                height: size,
+                borderRadius: '50%',
+                backgroundColor: color,
+                flexShrink: 0,
+                boxShadow: `0 0 5px ${color}88`,
+            }}
+        />
+    );
 }
 
 export default function AllListingsPage() {
@@ -526,7 +526,7 @@ export default function AllListingsPage() {
                                                 className={styles.editCardBtn}
                                                 title="Edit Listing"
                                             >
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                                             </button>
                                             <div className={styles.imageContainer} data-count={displayImages.length}>
                                                 {displayImages.length > 0 ? (
@@ -688,7 +688,7 @@ export default function AllListingsPage() {
                                                             className={styles.listEditBtn}
                                                             title="Edit Listing"
                                                         >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                                                         </button>
                                                         <button
                                                             type="button"
@@ -698,8 +698,8 @@ export default function AllListingsPage() {
                                                             disabled={deleteButtonLoading}
                                                         >
                                                             {deleteButtonLoading && deletingListingId === item.skuId
-                                                                ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
-                                                                : <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                                                ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /></svg>
+                                                                : <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                                                             }
                                                         </button>
                                                     </div>
@@ -830,21 +830,21 @@ export default function AllListingsPage() {
                                 {selectedListing.inventoryItems && selectedListing.inventoryItems.length > 0 ? (
                                     <div className={styles.modalInventoryGrid}>
                                         {selectedListing.inventoryItems.map((inv, idx) => (
-                                                <div key={idx} className={styles.modalInventoryCard}>
-                                                    <div className={styles.modalImageWrapper}>
-                                                        {inv.imageUrl ? (
-                                                            <Image
-                                                                src={inv.imageUrl}
-                                                                alt={inv.inventoryId}
-                                                                referrerPolicy="no-referrer"
-                                                                fill
-                                                                style={{ objectFit: 'cover' }}
-                                                                unoptimized
-                                                            />
-                                                        ) : (
-                                                            <div className={styles.modalImagePlaceholder}>No Image</div>
-                                                        )}
-                                                    </div>
+                                            <div key={idx} className={styles.modalInventoryCard}>
+                                                <div className={styles.modalImageWrapper}>
+                                                    {inv.imageUrl ? (
+                                                        <Image
+                                                            src={inv.imageUrl}
+                                                            alt={inv.inventoryId}
+                                                            referrerPolicy="no-referrer"
+                                                            fill
+                                                            style={{ objectFit: 'cover' }}
+                                                            unoptimized
+                                                        />
+                                                    ) : (
+                                                        <div className={styles.modalImagePlaceholder}>No Image</div>
+                                                    )}
+                                                </div>
                                                 <div className={styles.modalCardFooter}>
                                                     <span className={styles.modalInventoryId}>{inv.inventoryId}</span>
                                                     <button
@@ -883,7 +883,7 @@ export default function AllListingsPage() {
                                 <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>{editingListing.skuId}</p>
                             </div>
                             <button className={styles.closeBtn} onClick={() => setEditingListing(null)}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                             </button>
                         </div>
 
@@ -965,7 +965,7 @@ export default function AllListingsPage() {
                                     className={styles.addTagBtn}
                                     onClick={openInventoryPicker}
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
                                     Select from Inventory
                                 </button>
                             </div>
@@ -994,12 +994,12 @@ export default function AllListingsPage() {
                                 </p>
                             </div>
                             <button className={styles.closeBtn} onClick={() => setShowInventoryPicker(false)}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                             </button>
                         </div>
 
                         <div className={styles.inventoryPickerSearch}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: '#64748b' }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: '#64748b' }}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                             <input
                                 type="text"
                                 placeholder="Search inventory ID..."
@@ -1013,52 +1013,54 @@ export default function AllListingsPage() {
                             )}
                         </div>
 
-                        <div className={styles.inventoryPickerGrid}>
-                            {inventoryPickerLoading ? (
-                                <div className={styles.inventoryPickerLoading}>
-                                    <div className={styles.spinner} />
-                                    <p>Loading inventory...</p>
-                                </div>
-                            ) : (() => {
-                                const filtered = inventoryPickerItems.filter(inv =>
-                                    !inventoryPickerSearch || inv.inventoryId?.toUpperCase().includes(inventoryPickerSearch)
-                                );
-                                return filtered.length === 0 ? (
-                                    <p className={styles.inventoryPickerEmpty}>No inventory items found.</p>
-                                ) : filtered.map(inv => {
-                                    const isSelected = editForm.inventoryItems.includes(inv.inventoryId);
-                                    return (
-                                        <div
-                                            key={inv.inventoryId}
-                                            className={`${styles.inventoryPickerCard} ${isSelected ? styles.inventoryPickerCardSelected : ''}`}
-                                            onClick={() => toggleInventoryItem(inv.inventoryId)}
-                                        >
-                                            <div className={styles.inventoryPickerImageWrap}>
-                                                {inv.imageUrl ? (
-                                                    <Image
-                                                        src={inv.imageUrl}
-                                                        alt={inv.inventoryId}
-                                                        referrerPolicy="no-referrer"
-                                                        fill
-                                                        className={styles.inventoryPickerImage}
-                                                        unoptimized
-                                                    />
-                                                ) : (
-                                                    <div className={styles.inventoryPickerNoImage}>
-                                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                                                    </div>
-                                                )}
-                                                {isSelected && (
-                                                    <div className={styles.inventoryPickerCheckmark}>
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <p className={styles.inventoryPickerCardId}>{inv.inventoryId}</p>
-                                        </div>
+                        <div className={styles.inventoryPickerGridContainer}>
+                            <div className={styles.inventoryPickerGrid}>
+                                {inventoryPickerLoading ? (
+                                    <div className={styles.inventoryPickerLoading}>
+                                        <div className={styles.spinner} />
+                                        <p>Loading inventory...</p>
+                                    </div>
+                                ) : (() => {
+                                    const filtered = inventoryPickerItems.filter(inv =>
+                                        !inventoryPickerSearch || inv.inventoryId?.toUpperCase().includes(inventoryPickerSearch)
                                     );
-                                });
-                            })()}
+                                    return filtered.length === 0 ? (
+                                        <p className={styles.inventoryPickerEmpty}>No inventory items found.</p>
+                                    ) : filtered.map(inv => {
+                                        const isSelected = editForm.inventoryItems.includes(inv.inventoryId);
+                                        return (
+                                            <div
+                                                key={inv.inventoryId}
+                                                className={`${styles.inventoryPickerCard} ${isSelected ? styles.inventoryPickerCardSelected : ''}`}
+                                                onClick={() => toggleInventoryItem(inv.inventoryId)}
+                                            >
+                                                <div className={styles.inventoryPickerImageWrap}>
+                                                    {inv.imageUrl ? (
+                                                        <Image
+                                                            src={inv.imageUrl}
+                                                            alt={inv.inventoryId}
+                                                            referrerPolicy="no-referrer"
+                                                            fill
+                                                            className={styles.inventoryPickerImage}
+                                                            unoptimized
+                                                        />
+                                                    ) : (
+                                                        <div className={styles.inventoryPickerNoImage}>
+                                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
+                                                        </div>
+                                                    )}
+                                                    {isSelected && (
+                                                        <div className={styles.inventoryPickerCheckmark}>
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <p className={styles.inventoryPickerCardId}>{inv.inventoryId}</p>
+                                            </div>
+                                        );
+                                    });
+                                })()}
+                            </div>
                         </div>
 
                         <div className={styles.inventoryPickerFooter}>

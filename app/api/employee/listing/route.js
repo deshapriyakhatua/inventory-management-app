@@ -22,10 +22,10 @@ export async function POST(request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Check if SKU already exists
-    const existingListing = await Listing.findOne({ skuId });
+    // Check if SKU already exists for the same marketplace
+    const existingListing = await Listing.findOne({ skuId, marketplace });
     if (existingListing) {
-      return NextResponse.json({ error: "SKU ID already exists" }, { status: 409 });
+      return NextResponse.json({ error: "SKU ID already exists for this marketplace" }, { status: 409 });
     }
 
     const newListing = await Listing.create({
