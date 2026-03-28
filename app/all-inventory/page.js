@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
 import Toast from "../../components/Toast/Toast";
+import SmoothImage from "../../components/SmoothImage/SmoothImage";
 import { fetchVerticalsData } from "../../utils/apiUtils";
 import { useAuth } from "../../components/AuthProvider";
 
@@ -458,12 +459,12 @@ export default function AllInventoryPage() {
                                         ) : null}
                                         <div className={styles.imageContainer}>
                                             {item.imageUrl ? (
-                                                <Image
+                                                <SmoothImage
                                                     src={item.imageUrl}
                                                     alt={item.inventoryId}
                                                     fill
                                                     className={styles.itemImage}
-                                                    unoptimized
+                                                    loading="lazy"
                                                 />
                                             ) : (
                                                 <div className={styles.imagePlaceholder}>No Image</div>
@@ -532,7 +533,7 @@ export default function AllInventoryPage() {
                                                 <td className={styles.tdImage}>
                                                     {item.imageUrl ? (
                                                         <div className={styles.listThumbnailContainer}>
-                                                            <Image
+                                                            <SmoothImage
                                                                 src={item.imageUrl}
                                                                 alt={item.inventoryId}
                                                                 fill
@@ -740,7 +741,7 @@ export default function AllInventoryPage() {
                             <div className={styles.modalHeader}>
                                 <div className={styles.modalImageContainer}>
                                     {selectedItem.imageUrl ? (
-                                        <Image
+                                        <SmoothImage
                                             src={selectedItem.imageUrl}
                                             alt={selectedItem.inventoryId}
                                             fill
