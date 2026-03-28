@@ -5,6 +5,31 @@ import Image from "next/image";
 import styles from "./page.module.css";
 import Toast from "../../components/Toast/Toast";
 import { fetchVerticalsData } from "../../utils/apiUtils";
+import MarketplaceLogo from "../../components/MarketplaceLogo/MarketplaceLogo";
+
+const STATUS_COLORS = {
+  active:   { dot: '#22c55e', label: '#22c55e' },   // green
+  inactive: { dot: '#f59e0b', label: '#f59e0b' },   // amber
+  blocked:  { dot: '#ef4444', label: '#ef4444' },   // red
+  archived: { dot: '#94a3b8', label: '#94a3b8' },   // slate
+};
+
+function StatusDot({ status, size = 8 }) {
+  const color = STATUS_COLORS[status?.toLowerCase()]?.dot || '#94a3b8';
+  return (
+    <span
+      style={{
+        display: 'inline-block',
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        backgroundColor: color,
+        flexShrink: 0,
+        boxShadow: `0 0 5px ${color}88`,
+      }}
+    />
+  );
+}
 
 export default function AllListingsPage() {
     const [allListingsData, setAllListingsData] = useState([]); // All data from API/Local Storage
@@ -27,8 +52,19 @@ export default function AllListingsPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [inventoryIdQuery, setInventoryIdQuery] = useState("");
 
-    // Modal State
+    // Detail Modal State
     const [selectedListing, setSelectedListing] = useState(null);
+
+    // Edit Modal State
+    const [editingListing, setEditingListing] = useState(null);
+    const [editForm, setEditForm] = useState({});
+    const [editSaving, setEditSaving] = useState(false);
+
+    // Inventory Picker State
+    const [showInventoryPicker, setShowInventoryPicker] = useState(false);
+    const [inventoryPickerItems, setInventoryPickerItems] = useState([]);
+    const [inventoryPickerLoading, setInventoryPickerLoading] = useState(false);
+    const [inventoryPickerSearch, setInventoryPickerSearch] = useState("");
 
     useEffect(() => {
         loadInitialData();
@@ -116,6 +152,81 @@ export default function AllListingsPage() {
     const handleRefresh = () => {
         setCurrentPage(1);
         fetchListings(true); // Force fetch from server
+    };
+
+    const openEditModal = (listing) => {
+        setEditingListing(listing);
+        setEditForm({
+            vertical: listing.vertical || "",
+            marketplace: listing.marketplace || "",
+            status: listing.status || "active",
+            inventoryItems: listing.inventoryItems?.map(inv => inv.inventoryId || inv) || [],
+        });
+        setShowInventoryPicker(false);
+        setInventoryPickerSearch("");
+    };
+
+    const openInventoryPicker = async () => {
+        setShowInventoryPicker(true);
+        if (inventoryPickerItems.length > 0) return; // already loaded
+        setInventoryPickerLoading(true);
+        try {
+            const res = await fetch("/api/employee/inventory");
+            const result = await res.json();
+            if (res.ok && result.success) {
+                setInventoryPickerItems(result.data || []);
+            }
+        } catch (e) {
+            console.error("Failed to load inventory for picker:", e);
+        } finally {
+            setInventoryPickerLoading(false);
+        }
+    };
+
+    const toggleInventoryItem = (inventoryId) => {
+        setEditForm(f => {
+            const exists = f.inventoryItems.includes(inventoryId);
+            return {
+                ...f,
+                inventoryItems: exists
+                    ? f.inventoryItems.filter(id => id !== inventoryId)
+                    : [...f.inventoryItems, inventoryId],
+            };
+        });
+    };
+
+    const handleEditSave = async () => {
+        setEditSaving(true);
+        try {
+            const res = await fetch("/api/employee/listing", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    skuId: editingListing.skuId,
+                    ...editForm,
+                }),
+            });
+            const result = await res.json();
+            if (res.ok && result.success) {
+                setMessage({ text: "Listing updated successfully.", type: "success" });
+                // Update local cache
+                const updated = allListingsData.map(item =>
+                    item.skuId === editingListing.skuId
+                        ? { ...item, ...editForm, inventoryItems: editForm.inventoryItems.map(id => ({ inventoryId: id, imageUrl: item.inventoryItems.find(i => i.inventoryId === id)?.imageUrl || null })) }
+                        : item
+                );
+                setAllListingsData(updated);
+                localStorage.setItem("all_listings_data", JSON.stringify(updated));
+                setEditingListing(null);
+            } else {
+                setMessage({ text: result.error || "Failed to update listing.", type: "error" });
+            }
+        } catch (e) {
+            console.error("Edit Error:", e);
+            setMessage({ text: "Network error. Please try again.", type: "error" });
+        } finally {
+            setEditSaving(false);
+        }
     };
 
     const handleDelete = async (skuId) => {
@@ -408,6 +519,15 @@ export default function AllListingsPage() {
                                                     </svg>
                                                 }
                                             </button>
+                                            {/* Edit button – sits top-right on the card */}
+                                            <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); openEditModal(item); }}
+                                                className={styles.editCardBtn}
+                                                title="Edit Listing"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                            </button>
                                             <div className={styles.imageContainer} data-count={displayImages.length}>
                                                 {displayImages.length > 0 ? (
                                                     displayImages.map((inv, idx) => (
@@ -455,10 +575,19 @@ export default function AllListingsPage() {
                                                         </svg>
                                                     </button>
                                                 </div>
-                                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '4px' }}>
-                                                    <p className={styles.itemDate}>{item.vertical}</p>
-                                                    <span style={{ color: '#64748b', fontSize: '0.8rem' }}>•</span>
-                                                    <p className={styles.itemDate} style={{ color: '#94a3b8' }}>{item.marketplace || 'Direct'}</p>
+                                                <div className={styles.metaInfoRow}>
+                                                    <StatusDot status={item.status} />
+                                                    <p
+                                                        className={styles.itemStatus}
+                                                        style={{ color: STATUS_COLORS[item.status?.toLowerCase()]?.label || '#94a3b8' }}
+                                                    >
+                                                        {item.status?.toUpperCase() || "ACTIVE"}
+                                                    </p>
+                                                    <span className={styles.dotSeparator}>•</span>
+                                                    <div className={styles.marketplaceBadge}>
+                                                        <MarketplaceLogo marketplace={item.marketplace} size={16} />
+                                                        <p className={styles.itemMarketplace}>{item.marketplace || 'Direct'}</p>
+                                                    </div>
                                                 </div>
                                                 <p className={styles.itemDate}>
                                                     {new Date(item.createdAt).toLocaleDateString('en-US', {
@@ -478,6 +607,7 @@ export default function AllListingsPage() {
                                             <th>Thumbnails</th>
                                             <th>SKU ID</th>
                                             <th>Vertical</th>
+                                            <th>Status</th>
                                             <th>Marketplace</th>
                                             <th>Date Created</th>
                                             <th>Actions</th>
@@ -531,35 +661,50 @@ export default function AllListingsPage() {
                                                     </div>
                                                 </td>
                                                 <td className={styles.tdVertical}>{item.vertical}</td>
-                                                <td className={styles.tdVertical} style={{ color: '#94a3b8' }}>{item.marketplace || 'Direct'}</td>
+                                                <td className={styles.tdStatus}>
+                                                    <div className={styles.statusBadge}>
+                                                        <StatusDot status={item.status} />
+                                                        <span style={{ color: STATUS_COLORS[item.status?.toLowerCase()]?.label || '#94a3b8' }}>
+                                                            {item.status?.charAt(0).toUpperCase() + item.status?.slice(1) || 'Active'}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className={styles.tdMarketplace}>
+                                                    <div className={styles.marketplaceBadge}>
+                                                        <MarketplaceLogo marketplace={item.marketplace} size={20} />
+                                                        <span>{item.marketplace || 'Direct'}</span>
+                                                    </div>
+                                                </td>
                                                 <td className={styles.tdDate}>
                                                     {new Date(item.createdAt).toLocaleString('en-US', {
                                                         month: 'short', day: 'numeric', year: 'numeric',
                                                     })}
                                                 </td>
                                                 <td className={styles.tdActions}>
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleDelete(item.skuId);
-                                                        }}
-                                                        className={styles.listDeleteBtn}
-                                                        title="Delete Listing"
-                                                        disabled={deleteButtonLoading}
-                                                    >
-                                                        {deleteButtonLoading && deletingListingId === item.skuId
-                                                            ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-                                                                <path d="M21 3v5h-5"></path>
-                                                            </svg>
-                                                            : <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                <polyline points="3 6 5 6 21 6"></polyline>
-                                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                                            </svg>
-                                                        }
-                                                    </button>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'center' }}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => { e.stopPropagation(); openEditModal(item); }}
+                                                            className={styles.listEditBtn}
+                                                            title="Edit Listing"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => { e.stopPropagation(); handleDelete(item.skuId); }}
+                                                            className={styles.listDeleteBtn}
+                                                            title="Delete Listing"
+                                                            disabled={deleteButtonLoading}
+                                                        >
+                                                            {deleteButtonLoading && deletingListingId === item.skuId
+                                                                ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                                                                : <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                                            }
+                                                        </button>
+                                                    </div>
                                                 </td>
+
                                             </tr>
                                         ))}
                                     </tbody>
@@ -642,12 +787,27 @@ export default function AllListingsPage() {
                                 </div>
                                 <div className={styles.metaGrid}>
                                     <div className={styles.metaItem}>
+                                        <span className={styles.metaLabel}>Status</span>
+                                        <div className={styles.metaValueBadge}>
+                                            <StatusDot status={selectedListing.status} size={10} />
+                                            <span
+                                                className={styles.metaValue}
+                                                style={{ color: STATUS_COLORS[selectedListing.status?.toLowerCase()]?.label || '#94a3b8' }}
+                                            >
+                                                {selectedListing.status?.charAt(0).toUpperCase() + selectedListing.status?.slice(1) || 'Active'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className={styles.metaItem}>
                                         <span className={styles.metaLabel}>Vertical</span>
                                         <span className={styles.metaValue}>{selectedListing.vertical}</span>
                                     </div>
                                     <div className={styles.metaItem}>
                                         <span className={styles.metaLabel}>Marketplace</span>
-                                        <span className={styles.metaValue}>{selectedListing.marketplace || 'Direct'}</span>
+                                        <div className={styles.metaValueBadge}>
+                                            <MarketplaceLogo marketplace={selectedListing.marketplace} size={22} />
+                                            <span className={styles.metaValue}>{selectedListing.marketplace || 'Direct'}</span>
+                                        </div>
                                     </div>
                                     <div className={styles.metaItem}>
                                         <span className={styles.metaLabel}>Date Created</span>
@@ -708,6 +868,206 @@ export default function AllListingsPage() {
                                     <p className={styles.modalEmpty}>No inventory associated with this SKU.</p>
                                 )}
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── EDIT MODAL ─────────────────────────────────────── */}
+            {editingListing && (
+                <div className={styles.modalOverlay} onClick={() => setEditingListing(null)}>
+                    <div className={styles.editModalContent} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <div>
+                                <h2>Edit Listing</h2>
+                                <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>{editingListing.skuId}</p>
+                            </div>
+                            <button className={styles.closeBtn} onClick={() => setEditingListing(null)}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+
+                        <div className={styles.editModalBody}>
+                            {/* Status */}
+                            <div className={styles.editField}>
+                                <label className={styles.editLabel}>Status</label>
+                                <div className={styles.editStatusGrid}>
+                                    {['active', 'inactive', 'blocked', 'archived'].map(s => (
+                                        <button
+                                            key={s}
+                                            type="button"
+                                            className={`${styles.statusPill} ${editForm.status === s ? styles.statusPillActive : ''}`}
+                                            style={editForm.status === s ? { borderColor: STATUS_COLORS[s]?.dot, color: STATUS_COLORS[s]?.label, backgroundColor: `${STATUS_COLORS[s]?.dot}18` } : {}}
+                                            onClick={() => setEditForm(f => ({ ...f, status: s }))}
+                                        >
+                                            <StatusDot status={s} size={7} />
+                                            {s.charAt(0).toUpperCase() + s.slice(1)}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Marketplace */}
+                            <div className={styles.editField}>
+                                <label className={styles.editLabel}>Marketplace</label>
+                                <div className={styles.editMarketplaceGrid}>
+                                    {['Amazon', 'Flipkart', 'Myntra', 'Meesho', 'Ajio', 'Shopsy', 'Website', 'Direct'].map(mp => (
+                                        <button
+                                            key={mp}
+                                            type="button"
+                                            className={`${styles.marketplacePill} ${editForm.marketplace === mp ? styles.marketplacePillActive : ''}`}
+                                            onClick={() => setEditForm(f => ({ ...f, marketplace: mp }))}
+                                        >
+                                            <MarketplaceLogo marketplace={mp} size={18} />
+                                            <span>{mp}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Vertical */}
+                            <div className={styles.editField}>
+                                <label className={styles.editLabel}>Vertical</label>
+                                <select
+                                    className={styles.editSelect}
+                                    value={editForm.vertical}
+                                    onChange={e => setEditForm(f => ({ ...f, vertical: e.target.value }))}
+                                >
+                                    <option value="">Select vertical...</option>
+                                    {verticals.map(v => (
+                                        <option key={v.verticalShort} value={v.verticalName}>{v.verticalName}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Inventory Items */}
+                            <div className={styles.editField}>
+                                <label className={styles.editLabel}>Inventory IDs</label>
+                                <div className={styles.editInventoryTags}>
+                                    {editForm.inventoryItems.map((id) => (
+                                        <span key={id} className={styles.inventoryTag}>
+                                            {id}
+                                            <button
+                                                type="button"
+                                                className={styles.removeTagBtn}
+                                                onClick={() => setEditForm(f => ({ ...f, inventoryItems: f.inventoryItems.filter(i => i !== id) }))}
+                                            >
+                                                ×
+                                            </button>
+                                        </span>
+                                    ))}
+                                    {editForm.inventoryItems.length === 0 && (
+                                        <span className={styles.inventoryTagEmpty}>No items selected</span>
+                                    )}
+                                </div>
+                                <button
+                                    type="button"
+                                    className={styles.addTagBtn}
+                                    onClick={openInventoryPicker}
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                    Select from Inventory
+                                </button>
+                            </div>
+
+                        </div>
+
+                        <div className={styles.editModalFooter}>
+                            <button className={styles.cancelBtn} onClick={() => setEditingListing(null)}>Cancel</button>
+                            <button className={styles.saveBtn} onClick={handleEditSave} disabled={editSaving}>
+                                {editSaving ? 'Saving...' : 'Save Changes'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── INVENTORY PICKER MODAL ──────────────────────────── */}
+            {showInventoryPicker && (
+                <div className={styles.modalOverlay} style={{ zIndex: 1100 }} onClick={() => setShowInventoryPicker(false)}>
+                    <div className={styles.inventoryPickerModal} onClick={e => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <div>
+                                <h2>Select Inventory</h2>
+                                <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem' }}>
+                                    {editForm.inventoryItems.length} selected
+                                </p>
+                            </div>
+                            <button className={styles.closeBtn} onClick={() => setShowInventoryPicker(false)}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+
+                        <div className={styles.inventoryPickerSearch}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: '#64748b' }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input
+                                type="text"
+                                placeholder="Search inventory ID..."
+                                className={styles.inventoryPickerSearchInput}
+                                value={inventoryPickerSearch}
+                                onChange={e => setInventoryPickerSearch(e.target.value.toUpperCase())}
+                                autoFocus
+                            />
+                            {inventoryPickerSearch && (
+                                <button className={styles.pickerSearchClear} onClick={() => setInventoryPickerSearch('')}>×</button>
+                            )}
+                        </div>
+
+                        <div className={styles.inventoryPickerGrid}>
+                            {inventoryPickerLoading ? (
+                                <div className={styles.inventoryPickerLoading}>
+                                    <div className={styles.spinner} />
+                                    <p>Loading inventory...</p>
+                                </div>
+                            ) : (() => {
+                                const filtered = inventoryPickerItems.filter(inv =>
+                                    !inventoryPickerSearch || inv.inventoryId?.toUpperCase().includes(inventoryPickerSearch)
+                                );
+                                return filtered.length === 0 ? (
+                                    <p className={styles.inventoryPickerEmpty}>No inventory items found.</p>
+                                ) : filtered.map(inv => {
+                                    const isSelected = editForm.inventoryItems.includes(inv.inventoryId);
+                                    return (
+                                        <div
+                                            key={inv.inventoryId}
+                                            className={`${styles.inventoryPickerCard} ${isSelected ? styles.inventoryPickerCardSelected : ''}`}
+                                            onClick={() => toggleInventoryItem(inv.inventoryId)}
+                                        >
+                                            <div className={styles.inventoryPickerImageWrap}>
+                                                {inv.imageUrl ? (
+                                                    <Image
+                                                        src={inv.imageUrl}
+                                                        alt={inv.inventoryId}
+                                                        referrerPolicy="no-referrer"
+                                                        fill
+                                                        className={styles.inventoryPickerImage}
+                                                        unoptimized
+                                                    />
+                                                ) : (
+                                                    <div className={styles.inventoryPickerNoImage}>
+                                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                                    </div>
+                                                )}
+                                                {isSelected && (
+                                                    <div className={styles.inventoryPickerCheckmark}>
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <p className={styles.inventoryPickerCardId}>{inv.inventoryId}</p>
+                                        </div>
+                                    );
+                                });
+                            })()}
+                        </div>
+
+                        <div className={styles.inventoryPickerFooter}>
+                            <span className={styles.inventoryPickerCount}>
+                                {editForm.inventoryItems.length} item{editForm.inventoryItems.length !== 1 ? 's' : ''} selected
+                            </span>
+                            <button className={styles.saveBtn} onClick={() => setShowInventoryPicker(false)}>
+                                Done
+                            </button>
                         </div>
                     </div>
                 </div>

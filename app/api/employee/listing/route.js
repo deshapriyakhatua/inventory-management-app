@@ -120,3 +120,47 @@ export async function DELETE(request) {
         return NextResponse.json({ error: "Failed to delete listing" }, { status: 500 });
     }
 }
+
+export async function PUT(request) {
+    try {
+        await connectToDatabase();
+
+        // Auth Protection
+        const session = (await cookies()).get('session')?.value;
+        const user = await decrypt(session);
+        if (!user) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const body = await request.json();
+        const { skuId, vertical, marketplace, status, inventoryItems } = body;
+
+        if (!skuId) {
+            return NextResponse.json({ error: "SKU ID is required" }, { status: 400 });
+        }
+
+        const updateData = {};
+        if (vertical !== undefined)        updateData.vertical = vertical;
+        if (marketplace !== undefined)     updateData.marketplace = marketplace;
+        if (status !== undefined)          updateData.status = status;
+        if (inventoryItems !== undefined) {
+            updateData.inventoryItems = inventoryItems;
+            updateData.itemCount = inventoryItems.length;
+        }
+
+        const updated = await Listing.findOneAndUpdate(
+            { skuId },
+            { $set: updateData },
+            { new: true, runValidators: true }
+        );
+
+        if (!updated) {
+            return NextResponse.json({ error: "Listing not found" }, { status: 404 });
+        }
+
+        return NextResponse.json({ success: true, data: updated });
+    } catch (error) {
+        console.error("Update Listing API Error:", error);
+        return NextResponse.json({ error: "Failed to update listing" }, { status: 500 });
+    }
+}

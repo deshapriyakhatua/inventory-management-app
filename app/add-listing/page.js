@@ -5,6 +5,7 @@ import styles from "./page.module.css";
 import Toast from "../../components/Toast/Toast";
 import { fetchVerticalsData } from "../../utils/apiUtils";
 import { useAuth } from "../../components/AuthProvider";
+import MarketplaceLogo from "../../components/MarketplaceLogo/MarketplaceLogo";
 
 export default function CreateNewListing() {
     const [verticalShort, setVerticalShort] = useState("");
@@ -577,7 +578,10 @@ export default function CreateNewListing() {
                                     )}
                                     <div className={styles.recentInfo}>
                                         <div className={styles.idRowWrapper}>
-                                            <p className={styles.recentId}>{item.skuId}</p>
+                                            <div className={styles.recentIdWithLogo}>
+                                                <MarketplaceLogo marketplace={item.marketplace} size={18} />
+                                                <p className={styles.recentId}>{item.skuId}</p>
+                                            </div>
                                             <button
                                                 type="button"
                                                 onClick={() => handleCopySku(item.skuId)}
