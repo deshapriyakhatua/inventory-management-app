@@ -29,6 +29,10 @@ export default function LoginPage() {
 
       if (res.ok) {
         toast.success("Login successful!");
+        
+        // Save PIN for Google Apps Script interactions
+        sessionStorage.setItem("app_pin", formData.pin);
+
         // Small delay to show the toast
         setTimeout(() => {
           router.push("/"); // Redirect to dashboard / home

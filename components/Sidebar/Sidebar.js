@@ -23,6 +23,7 @@ const Sidebar = () => {
                 method: "POST"
             });
             if (res.ok) {
+                sessionStorage.removeItem("app_pin");
                 toast.success("Logged out successfully");
                 router.push("/login");
             } else {

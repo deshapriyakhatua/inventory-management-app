@@ -121,28 +121,20 @@ export default function AllListingsPage() {
     const handleDelete = async (skuId) => {
         setDeletingListingId(skuId);
         setDeleteButtonLoading(true);
-        const payload = {
-            pin: sessionStorage.getItem("app_pin"),
-            action: "deleteListing",
-            skuId: skuId,
-        };
 
         try {
-            const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify(payload),
+            const response = await fetch(`/api/employee/listing?skuId=${skuId}`, {
+                method: "DELETE",
             });
             const result = await response.json();
-            if (result.status === 200) {
-                setMessage({ text: result.message ? result.message : "Listing deleted successfully.", type: "success" });
+            if (response.ok && result.success) {
+                setMessage({ text: "Listing deleted successfully.", type: "success" });
                 // Update local data
                 const updatedData = allListingsData.filter(item => item.skuId !== skuId);
                 setAllListingsData(updatedData);
                 localStorage.setItem("all_listings_data", JSON.stringify(updatedData));
             } else {
-                console.error("API Error:", result.message);
-                setMessage({ text: result.message || "Failed to delete listing.", type: "error" });
+                setMessage({ text: result.error || "Failed to delete listing.", type: "error" });
             }
         } catch (error) {
             console.error("Network Error:", error);
@@ -174,8 +166,6 @@ export default function AllListingsPage() {
     };
 
     const fetchListings = async (forceRefresh = false) => {
-        const pin = sessionStorage.getItem("app_pin");
-
         // Check local storage if not forcing refresh
         if (!forceRefresh) {
             const cachedData = localStorage.getItem("all_listings_data");
@@ -199,33 +189,12 @@ export default function AllListingsPage() {
 
         setMessage({ text: "", type: "" });
 
-        const payload = {
-            pin,
-            action: "getListing",
-            page: 1,
-            pageSize: 50000, // Fetch everything unconditionally
-            sort: "newest_first", // Fetch in predictable order
-        };
-
         try {
-            const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify(payload)
-            }).then(res => res.json());
+            const response = await fetch("/api/employee/listing");
+            const result = await response.json();
 
-            if (response.status === 200) {
-                let fetchedData = [];
-                if (response.data && Array.isArray(response.data.listings)) {
-                    fetchedData = response.data.listings;
-                } else if (response.message && Array.isArray(response.message.listings)) {
-                    fetchedData = response.message.listings;
-                } else if (Array.isArray(response.data)) {
-                    fetchedData = response.data;
-                } else if (Array.isArray(response.message)) {
-                    fetchedData = response.message;
-                }
-
+            if (response.ok && result.success) {
+                const fetchedData = result.data || [];
                 setAllListingsData(fetchedData);
                 localStorage.setItem("all_listings_data", JSON.stringify(fetchedData));
 
@@ -233,7 +202,7 @@ export default function AllListingsPage() {
                     setMessage({ text: "Listings refreshed successfully.", type: "success" });
                 }
             } else {
-                setMessage({ text: response.message || "Failed to load listings.", type: "error" });
+                setMessage({ text: result.error || "Failed to load listings.", type: "error" });
                 if (!allListingsData.length) setAllListingsData([]);
             }
         } catch (error) {
@@ -408,7 +377,7 @@ export default function AllListingsPage() {
                         {viewMode === 'grid' ? (
                             <div className={styles.gridContainer}>
                                 {listings.map((item) => {
-                                    const validImages = item.inventoryItems?.filter(inv => inv.imageId) || [];
+                                    const validImages = item.inventoryItems?.filter(inv => inv.imageUrl) || [];
                                     const displayImages = validImages.slice(0, 4);
 
                                     return (
@@ -444,7 +413,7 @@ export default function AllListingsPage() {
                                                     displayImages.map((inv, idx) => (
                                                         <div key={idx} className={styles.multiImageCell}>
                                                             <Image
-                                                                src={`https://drive.google.com/thumbnail?id=${inv.imageId}&sz=w300`}
+                                                                src={inv.imageUrl}
                                                                 alt={item.skuId}
                                                                 referrerPolicy="no-referrer"
                                                                 fill
@@ -525,10 +494,10 @@ export default function AllListingsPage() {
                                                     {item.inventoryItems && item.inventoryItems.length > 0 ? (
                                                         <div className={styles.listThumbStack}>
                                                             {item.inventoryItems.map((inv, idx) => (
-                                                                inv.imageId ? (
+                                                                inv.imageUrl ? (
                                                                     <div key={idx} className={styles.listThumbnailContainer}>
                                                                         <Image
-                                                                            src={`https://drive.google.com/thumbnail?id=${inv.imageId}&sz=w100`}
+                                                                            src={inv.imageUrl}
                                                                             alt={inv.inventoryId}
                                                                             referrerPolicy="no-referrer"
                                                                             fill
@@ -701,21 +670,21 @@ export default function AllListingsPage() {
                                 {selectedListing.inventoryItems && selectedListing.inventoryItems.length > 0 ? (
                                     <div className={styles.modalInventoryGrid}>
                                         {selectedListing.inventoryItems.map((inv, idx) => (
-                                            <div key={idx} className={styles.modalInventoryCard}>
-                                                <div className={styles.modalImageWrapper}>
-                                                    {inv.imageId ? (
-                                                        <Image
-                                                            src={`https://drive.google.com/thumbnail?id=${inv.imageId}&sz=w300`}
-                                                            alt={inv.inventoryId}
-                                                            referrerPolicy="no-referrer"
-                                                            fill
-                                                            style={{ objectFit: 'cover' }}
-                                                            unoptimized
-                                                        />
-                                                    ) : (
-                                                        <div className={styles.modalImagePlaceholder}>No Image</div>
-                                                    )}
-                                                </div>
+                                                <div key={idx} className={styles.modalInventoryCard}>
+                                                    <div className={styles.modalImageWrapper}>
+                                                        {inv.imageUrl ? (
+                                                            <Image
+                                                                src={inv.imageUrl}
+                                                                alt={inv.inventoryId}
+                                                                referrerPolicy="no-referrer"
+                                                                fill
+                                                                style={{ objectFit: 'cover' }}
+                                                                unoptimized
+                                                            />
+                                                        ) : (
+                                                            <div className={styles.modalImagePlaceholder}>No Image</div>
+                                                        )}
+                                                    </div>
                                                 <div className={styles.modalCardFooter}>
                                                     <span className={styles.modalInventoryId}>{inv.inventoryId}</span>
                                                     <button

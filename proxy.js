@@ -52,7 +52,7 @@ export async function proxy(request) {
 
     // authorization for secure api routes
     if (pathname.startsWith('/api/employee')) {
-        if (session?.user?.role !== 'employee' && session?.user?.role !== 'admin') {
+        if (session?.user?.role !== 'employee' && session?.user?.role !== 'admin' && session?.user?.role !== 'superadmin') {
             console.log('proxy: secure api route /api/employee not accessable with out valid permission')
             return NextResponse.json(
                 { error: 'You are not authorized to access this route' },

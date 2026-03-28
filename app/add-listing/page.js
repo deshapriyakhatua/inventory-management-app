@@ -1,10 +1,10 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
 import Toast from "../../components/Toast/Toast";
 import { fetchVerticalsData } from "../../utils/apiUtils";
+import { useAuth } from "../../components/AuthProvider";
 
 export default function CreateNewListing() {
     const [verticalShort, setVerticalShort] = useState("");
@@ -14,6 +14,8 @@ export default function CreateNewListing() {
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState({ text: "", type: "" });
     const [isGenerating, setIsGenerating] = useState(false);
+    const { user } = useAuth();
+    const [isMigrating, setIsMigrating] = useState(false);
 
     // Inventory Grid specific state
     const [inventoryItems, setInventoryItems] = useState([]);
@@ -48,58 +50,17 @@ export default function CreateNewListing() {
             setLoadingRecentListings(true);
         }
 
-        if (!forceRefresh) {
-            const cachedListings = localStorage.getItem("all_listings_data");
-            if (cachedListings) {
-                try {
-                    const parsed = JSON.parse(cachedListings);
-                    if (Array.isArray(parsed)) {
-                        // Sort by newest first
-                        parsed.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-                        setLoadingRecentListings(false);
-                        return parsed.slice(0, 5);
-                    }
-                } catch (e) {
-                    console.error("Failed to parse cached listings", e);
-                }
-            }
-        }
-
-        const payload = {
-            pin: sessionStorage.getItem("app_pin"),
-            action: "getListing",
-            page: 1,
-            pageSize: 50000,
-            sort: "newest_first"
-        };
-
         try {
-            const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify(payload),
-            });
+            const response = await fetch("/api/employee/listing?limit=10");
             const result = await response.json();
-            if (result.status === 200) {
-                let fetchedListings = [];
-                if (result.data && Array.isArray(result.data.listings)) {
-                    fetchedListings = result.data.listings;
-                } else if (result.message && Array.isArray(result.message.listings)) {
-                    fetchedListings = result.message.listings;
-                } else if (Array.isArray(result.data)) {
-                    fetchedListings = result.data;
-                } else if (Array.isArray(result.message)) {
-                    fetchedListings = result.message;
-                }
-
+            
+            if (response.ok && result.success) {
+                const fetchedListings = result.data || [];
                 // Update the local cache with fresh data
                 localStorage.setItem("all_listings_data", JSON.stringify(fetchedListings));
-                
-                // Sort by newest first
-                fetchedListings.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
                 return fetchedListings.slice(0, 5);
             } else {
-                console.error("API Error:", result.message);
+                console.error("API Error:", result.error);
                 return [];
             }
         } catch (error) {
@@ -111,28 +72,49 @@ export default function CreateNewListing() {
         }
     };
 
+    const handleMigrate = async () => {
+        const pin = prompt("Enter your 4-digit PIN to authorize migration from Google Apps Script:");
+        if (!pin) return;
+
+        try {
+            setIsMigrating(true);
+            setMessage({ text: "Migrating data... Please wait.", type: "info" });
+            
+            const response = await fetch("/api/employee/listing/migrate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ pin }),
+            });
+            
+            const result = await response.json();
+            if (response.ok && result.success) {
+                setMessage({ text: result.message, type: "success" });
+                loadData(true);
+            } else {
+                setMessage({ text: result.error || "Migration failed.", type: "error" });
+            }
+        } catch (error) {
+            console.error("Migration Error:", error);
+            setMessage({ text: "Migration failed due to network error.", type: "error" });
+        } finally {
+            setIsMigrating(false);
+        }
+    };
+
     const handleDelete = async (skuId) => {
         setDeletingListingId(skuId);
         setDeleteButtonLoading(true);
-        const payload = {
-            pin: sessionStorage.getItem("app_pin"),
-            action: "deleteListing",
-            skuId: skuId,
-        };
 
         try {
-            const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify(payload),
+            const response = await fetch(`/api/employee/listing?skuId=${skuId}`, {
+                method: "DELETE",
             });
             const result = await response.json();
-            if (result.status === 200) {
-                setMessage({ text: result.message ? result.message : "Listing deleted successfully.", type: "success" });
-                loadData(true); // Force fresh fetch after deletion
+            if (response.ok && result.success) {
+                setMessage({ text: "Listing deleted successfully.", type: "success" });
+                loadData(true); 
             } else {
-                console.error("API Error:", result.message);
-                setMessage({ text: "Failed to delete listing.", type: "error" });
+                setMessage({ text: result.error || "Failed to delete listing.", type: "error" });
             }
         } catch (error) {
             console.error("Network Error:", error);
@@ -247,37 +229,19 @@ export default function CreateNewListing() {
                 setMessage({ text: "Please select a Vertical first.", type: "error" });
                 return;
             }
-            const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-                method: "POST",
-                body: JSON.stringify({
-                    pin: sessionStorage.getItem("app_pin"),
-                    action: "generateSkuId", // Assuming we might have a specific endpoint, otherwise we could fallback
-                    vertical: verticalShort,
-                    itemCount: selectedInventoryIds.length
-                }),
-            });
+            if (selectedInventoryIds.length === 0) {
+                setMessage({ text: "Please select at least one inventory item.", type: "error" });
+                return;
+            }
 
+            const response = await fetch(`/api/employee/listing/generate-sku?verticalShort=${verticalShort}&itemCount=${selectedInventoryIds.length}`);
             const result = await response.json();
-            if (result.status === 200) {
-                setSkuId(result.message);
+
+            if (response.ok && result.success) {
+                setSkuId(result.nextId);
                 setMessage({ text: "SKU ID generated successfully.", type: "success" });
             } else {
-                // Fallback to generateId if generateSkuId fails (incase backend doesn't have it yet)
-                const fallbackResponse = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-                    method: "POST",
-                    body: JSON.stringify({
-                        pin: sessionStorage.getItem("app_pin"),
-                        action: "generateId",
-                        vertical: verticalShort
-                    }),
-                });
-                const fallbackResult = await fallbackResponse.json();
-                if (fallbackResult.status === 200) {
-                    setSkuId(fallbackResult.message + "-SKU");
-                    setMessage({ text: "SKU ID generated successfully.", type: "success" });
-                } else {
-                    setMessage({ text: "Failed to generate SKU: " + (result.message || fallbackResult.message), type: "error" });
-                }
+                setMessage({ text: result.error || "Failed to generate SKU ID.", type: "error" });
             }
         } catch (error) {
             console.error("Error generating SKU ID:", error);
@@ -308,56 +272,35 @@ export default function CreateNewListing() {
             return;
         }
 
-        const storedPin = sessionStorage.getItem("app_pin");
-        if (!storedPin) {
-            setMessage({ text: "Session expired. Please log in again.", type: "error" });
-            return;
-        }
-
         setIsLoading(true);
 
         try {
-            const payload = {
-                pin: storedPin,
-                action: "addListing",
-                vertical: vertical,
-                marketplace: marketplace,
-                skuId: skuId,
-                inventoryItems: selectedInventoryIds, // Send the chosen item IDs
-            };
-
-            const response = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
+            const response = await fetch("/api/employee/listing", {
                 method: "POST",
-                mode: "cors",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify(payload),
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    skuId: skuId,
+                    vertical: vertical,
+                    marketplace: marketplace,
+                    inventoryItems: selectedInventoryIds,
+                }),
             });
 
-            const text = await response.text();
+            const result = await response.json();
 
-            // Allow failing gracefully if endpoint handles differently
-            let result;
-            try {
-                result = JSON.parse(text);
-            } catch (e) {
-                // If the app script throws HTML
-                throw new Error("Invalid response from server");
-            }
-
-            if (result.status === 200) {
+            if (response.ok && result.success) {
                 setMessage({ text: "New listing created successfully!", type: "success" });
 
                 // Reset specific form fields
                 setSkuId("");
                 setSelectedInventoryIds([]);
-                // Optionally could reset vertical as well: setVertical(""); setVerticalShort("");
                 loadData(true); // Force fresh fetch to show the newly created listing
             } else {
-                setMessage({ text: "Failed to create listing: " + (result.message || "Unknown error"), type: "error" });
+                setMessage({ text: "Failed to create listing: " + (result.error || "Unknown error"), type: "error" });
             }
         } catch (error) {
             console.error("Error submitting form:", error);
-            setMessage({ text: "Error submitting. Server endpoint might need to implement action: 'addListing'.", type: "error" });
+            setMessage({ text: "Error submitting. Please try again.", type: "error" });
         } finally {
             setIsLoading(false);
         }
@@ -366,7 +309,41 @@ export default function CreateNewListing() {
     return (
         <div className={styles.container}>
             <div className={styles.card}>
-                <h1 className={styles.title}>Create New Listing</h1>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <h1 className={styles.title} style={{ marginBottom: 0 }}>Create New Listing</h1>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        {(user?.role === "admin" || user?.role === "superadmin") && (
+                            <button
+                                type="button"
+                                className={`${styles.refreshBtn} ${isMigrating ? styles.spinning : ''}`}
+                                onClick={handleMigrate}
+                                disabled={isMigrating}
+                                title="Import Data from Google Apps Script"
+                                style={{ color: '#38bdf8' }}
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Import Legacy
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            className={`${styles.refreshBtn} ${refreshingRecentListings ? styles.spinning : ''}`}
+                            onClick={() => loadData(true)}
+                            disabled={loadingRecentListings || refreshingRecentListings}
+                            title="Refresh Recent Listings"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <polyline points="1 20 1 14 7 14"></polyline>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
 
                 <form onSubmit={handleSubmit} className={styles.form}>
 
@@ -409,10 +386,12 @@ export default function CreateNewListing() {
                             disabled={isLoading}
                         >
                             <option value="">Select marketplace</option>
-                            <option value="Amazon">Amazon</option>
                             <option value="Flipkart">Flipkart</option>
                             <option value="Shopsy">Shopsy</option>
+                            <option value="Amazon">Amazon</option>
                             <option value="Meesho">Meesho</option>
+                            <option value="Myntra">Myntra</option>
+                            <option value="Ajio">Ajio</option>
                             <option value="Website">Website</option>
                             <option value="Other">Other</option>
                         </select>
@@ -498,7 +477,7 @@ export default function CreateNewListing() {
                                 id="skuId"
                                 value={skuId}
                                 onChange={(e) => setSkuId(e.target.value.toUpperCase())}
-                                placeholder="e.g., SKU-CZ-ER-004"
+                                placeholder="e.g., ER-01-0001"
                                 className={styles.input}
                                 disabled={isLoading || !verticalShort}
                             />
@@ -535,19 +514,6 @@ export default function CreateNewListing() {
                 <div className={styles.recentSection}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                         <h2 className={styles.recentTitle} style={{ marginBottom: 0 }}>Recently Added (Last {recentListings.length})</h2>
-                        <button
-                            type="button"
-                            className={`${styles.refreshBtn} ${refreshingRecentListings ? styles.spinning : ''}`}
-                            onClick={() => loadData(true)}
-                            disabled={loadingRecentListings || refreshingRecentListings}
-                            title="Refresh Recent Listings"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="23 4 23 10 17 10"></polyline>
-                                <polyline points="1 20 1 14 7 14"></polyline>
-                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                            </svg>
-                        </button>
                     </div>
                     {loadingRecentListings
                         ? <div className={styles.recentGrid}>
@@ -590,9 +556,9 @@ export default function CreateNewListing() {
                                         <div className={styles.recentImagesScrollContainer}>
                                             {item.inventoryItems.map((inv) => (
                                                 <div key={inv.inventoryId} className={styles.recentImageThumbWrapper}>
-                                                    {inv.imageId ? (
+                                                    {inv.imageUrl ? (
                                                         <Image
-                                                            src={`https://drive.google.com/thumbnail?id=${inv.imageId}&sz=w150`}
+                                                            src={inv.imageUrl}
                                                             alt={inv.inventoryId}
                                                             referrerPolicy="no-referrer"
                                                             fill
