@@ -23,12 +23,15 @@ export async function GET(request) {
       return NextResponse.json({ error: "Vertical short name is required" }, { status: 400 });
     }
 
+    const paddedItemCount = itemCount.toString().padStart(2, "0");  
+
     // Find the latest listing with this vertical prefix: VERTICALSHORT-XX-NNNN
     const latestListing = await Listing.findOne({
-      skuId: new RegExp(`^${verticalShort.toUpperCase()}-`, "i")
+      skuId: new RegExp(`^${verticalShort.toUpperCase()}-${paddedItemCount}-`, "i")
     }).sort({ skuId: -1 });
 
     let nextSerial = 1;
+    console.log(latestListing);
 
     if (latestListing) {
       const parts = latestListing.skuId.split("-");
@@ -45,7 +48,6 @@ export async function GET(request) {
       }
     }
 
-    const paddedItemCount = itemCount.toString().padStart(2, "0");
     const paddedSerial = nextSerial.toString().padStart(4, "0");
     const nextSkuId = `${verticalShort.toUpperCase()}-${paddedItemCount}-${paddedSerial}`;
 

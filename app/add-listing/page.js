@@ -52,13 +52,11 @@ export default function CreateNewListing() {
         }
 
         try {
-            const response = await fetch("/api/employee/listing?limit=10");
+            const response = await fetch("/api/employee/listing?limit=5");
             const result = await response.json();
             
             if (response.ok && result.success) {
                 const fetchedListings = result.data || [];
-                // Update the local cache with fresh data
-                localStorage.setItem("all_listings_data", JSON.stringify(fetchedListings));
                 return fetchedListings.slice(0, 5);
             } else {
                 console.error("API Error:", result.error);
