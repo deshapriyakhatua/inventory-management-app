@@ -1,0 +1,718 @@
+/* ── Shell ────────────────────────────────────────────── */
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1.5rem 2rem;
+    font-family: var(--font-geist-sans), sans-serif;
+    color: #f8fafc;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+/* ── Header ───────────────────────────────────────────── */
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+}
+
+.titleGroup {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin: 0;
+}
+
+.countBadge {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.2rem 0.65rem;
+}
+
+/* ── Controls ─────────────────────────────────────────── */
+.controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.searchBox {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 0.75rem;
+    color: #64748b;
+    pointer-events: none;
+}
+
+.searchInput {
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #f1f5f9;
+    padding: 0.5rem 2.25rem 0.5rem 2.25rem;
+    border-radius: 8px;
+    outline: none;
+    font-family: inherit;
+    font-size: 0.875rem;
+    width: 280px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.searchInput:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.searchInput::placeholder {
+    color: #475569;
+}
+
+.clearSearch {
+    position: absolute;
+    right: 0.6rem;
+    background: none;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.2rem;
+    border-radius: 4px;
+    transition: color 0.2s;
+}
+
+.clearSearch:hover { color: #f1f5f9; }
+
+.refreshBtn {
+    background: transparent;
+    border: 1px solid #334155;
+    color: #94a3b8;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s;
+}
+
+.refreshBtn:hover:not(:disabled) {
+    background: #334155;
+    color: #f1f5f9;
+}
+
+.refreshBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.spinning svg { animation: spin 1s linear infinite; }
+
+/* ── Empty / Loading ──────────────────────────────────── */
+.emptyState {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    color: #64748b;
+    font-size: 0.95rem;
+}
+
+.spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(59, 130, 246, 0.1);
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Content Area ─────────────────────────────────────── */
+.contentArea {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    overflow: hidden;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 0.75rem;
+}
+
+.scrollWrapper {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+}
+
+.scrollWrapper::-webkit-scrollbar { width: 5px; }
+.scrollWrapper::-webkit-scrollbar-track { background: transparent; }
+.scrollWrapper::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 10px; }
+.scrollWrapper::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.55); }
+
+/* ── Card Grid ────────────────────────────────────────── */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+/* ── Card ─────────────────────────────────────────────── */
+.card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 14px;
+    padding: 1.25rem;
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    border-color: #3b82f6;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Delete Card Button ── */
+.deleteCardBtn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(15, 23, 42, 0.7);
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.2s;
+    backdrop-filter: blur(4px);
+    z-index: 10;
+}
+
+.card:hover .deleteCardBtn { opacity: 1; }
+
+.deleteCardBtn:hover {
+    background: #ef4444;
+    color: white;
+    transform: scale(1.1);
+}
+
+/* ── Card Top ── */
+.cardTop {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #fff;
+    flex-shrink: 0;
+    letter-spacing: 0.02em;
+}
+
+.cardMeta { flex: 1; min-width: 0; }
+
+.cardName {
+    font-size: 0.975rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin: 0 0 0.2rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 1.5rem;
+}
+
+.cardPerson {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Card Details ── */
+.cardDetails {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.cardRow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    color: #94a3b8;
+}
+
+.cardRow svg { flex-shrink: 0; color: #475569; }
+
+.truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gstTag {
+    font-family: monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    background: rgba(59, 130, 246, 0.1);
+    color: #60a5fa;
+    border-radius: 4px;
+    padding: 0.1rem 0.4rem;
+}
+
+/* ── Card Footer ── */
+.cardFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    font-size: 0.75rem;
+}
+
+.shipBadge {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(16, 185, 129, 0.1);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 6px;
+    padding: 0.2rem 0.5rem;
+    font-weight: 600;
+    font-size: 0.73rem;
+}
+
+.addedDate { color: #475569; }
+
+/* ── Pagination ───────────────────────────────────────── */
+.pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    flex-shrink: 0;
+}
+
+.paginationLeft { display: flex; align-items: center; gap: 1.25rem; }
+.pageInfo { color: #64748b; font-size: 0.75rem; }
+.pageSizeWrapper { display: flex; align-items: center; gap: 0.4rem; }
+.pageSizeLabel { color: #64748b; font-size: 0.75rem; }
+
+.pageSizeSelect {
+    padding: 0.35rem 2rem 0.35rem 0.65rem;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    color: #e2e8f0;
+    font-size: 0.75rem;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    background-size: 12px;
+}
+
+.pageControls { display: flex; align-items: center; gap: 0.75rem; }
+.pageDisplay { color: #e2e8f0; font-size: 0.75rem; font-weight: 500; }
+
+.pageBtn {
+    padding: 0.4rem 0.85rem;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    color: #f1f5f9;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.pageBtn:not(:disabled):hover { background: #3b82f6; border-color: #3b82f6; }
+.pageBtn:disabled { opacity: 0.4; cursor: not-allowed; background: transparent; }
+
+/* ── Detail Modal ─────────────────────────────────────── */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1.5rem;
+}
+
+.modal {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+    animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+}
+
+@keyframes popIn {
+    from { opacity: 0; transform: scale(0.95) translateY(12px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.closeBtn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: #334155;
+    border: none;
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #f1f5f9;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.2s;
+}
+
+.closeBtn:hover {
+    background: #ef4444;
+    transform: rotate(90deg);
+}
+
+.modalScroll {
+    overflow-y: auto;
+    padding: 2rem;
+    flex: 1;
+}
+
+.modalScroll::-webkit-scrollbar { width: 5px; }
+.modalScroll::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 10px; }
+
+/* ── Modal Header ── */
+.modalHeader {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 1.75rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.modalHeader .avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.modalTitle {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #f8fafc;
+    margin: 0 0 0.25rem;
+}
+
+.modalSubtitle {
+    font-size: 0.875rem;
+    color: #60a5fa;
+    margin: 0 0 0.2rem;
+}
+
+.modalMeta {
+    font-size: 0.78rem;
+    color: #475569;
+    margin: 0;
+}
+
+/* ── Modal Sections ── */
+.modalSections { display: flex; flex-direction: column; gap: 1.25rem; }
+
+.modalSection {
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.modalSectionTitle {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin: 0 0 0.5rem;
+}
+
+/* ── Detail Row ── */
+.detailRow {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.3rem 0;
+}
+
+.detailIcon {
+    color: #475569;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+}
+
+.detailContent { flex: 1; min-width: 0; }
+
+.detailLabel {
+    display: block;
+    font-size: 0.7rem;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.1rem;
+}
+
+.detailValue {
+    display: block;
+    font-size: 0.875rem;
+    color: #e2e8f0;
+    font-weight: 500;
+    word-break: break-word;
+}
+
+.copyIconBtn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: #475569;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.copyIconBtn:hover {
+    color: #3b82f6;
+    border-color: rgba(59, 130, 246, 0.3);
+    background: rgba(59, 130, 246, 0.08);
+}
+
+/* ── Modal Actions ── */
+.modalActions {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    justify-content: flex-end;
+}
+
+.modalDeleteBtn {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+    padding: 0.55rem 1.2rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    transition: all 0.2s;
+}
+
+.modalDeleteBtn:hover {
+    background: #ef4444;
+    color: white;
+    border-color: #ef4444;
+}
+
+.modalRestoreBtn {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #10b981;
+    padding: 0.55rem 1.2rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    transition: all 0.2s;
+}
+
+.modalRestoreBtn:hover {
+    background: #10b981;
+    color: white;
+    border-color: #10b981;
+}
+
+/* ── Confirm Modal ────────────────────────────────────── */
+.confirmOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 1.5rem;
+}
+
+.confirmModal {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 14px;
+    padding: 2rem;
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    animation: popIn 0.2s ease-out;
+}
+
+.confirmIcon {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1rem;
+    background: rgba(239, 68, 68, 0.1);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    align-items: center;
+    margin: 0 auto 1rem;
+}
+
+.confirmTitle {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #f8fafc;
+    margin: 0 0 0.5rem;
+}
+
+.confirmMsg {
+    font-size: 0.875rem;
+    color: #94a3b8;
+    line-height: 1.55;
+    margin: 0 0 1.75rem;
+}
+
+.confirmActions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
+.cancelBtn {
+    background: transparent;
+    border: 1px solid #334155;
+    color: #94a3b8;
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.cancelBtn:hover:not(:disabled) { background: #334155; color: #f1f5f9; }
+.cancelBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.confirmDeleteBtn {
+    background: #ef4444;
+    border: none;
+    color: white;
+    padding: 0.6rem 1.4rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.confirmDeleteBtn:hover:not(:disabled) { background: #dc2626; }
+.confirmDeleteBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.confirmRestoreBtn {
+    background: #10b981;
+    border: none;
+    color: white;
+    padding: 0.6rem 1.4rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.confirmRestoreBtn:hover:not(:disabled) { background: #059669; }
+.confirmRestoreBtn:disabled { opacity: 0.6; cursor: not-allowed; }

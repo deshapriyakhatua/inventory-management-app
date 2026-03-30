@@ -58,6 +58,44 @@ const Sidebar = () => {
             )
         },
         {
+            title: "Map Sources",
+            path: "/map-sources",
+            icon: (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="18" cy="18" r="3"></circle>
+                    <circle cx="6" cy="6" r="3"></circle>
+                    <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
+                    <line x1="6" y1="9" x2="6" y2="21"></line>
+                </svg>
+            )
+        },
+        {
+            title: "Add Purchase",
+            path: "/add-purchase",
+            icon: (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="9" cy="21" r="1"></circle>
+                    <circle cx="20" cy="21" r="1"></circle>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                    <line x1="12" y1="10" x2="12" y2="16"></line>
+                    <line x1="9" y1="13" x2="15" y2="13"></line>
+                </svg>
+            )
+        },
+        {
+            title: "Purchase History",
+            path: "/purchase-history",
+            icon: (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <path d="M16 13H8"></path>
+                    <path d="M16 17H8"></path>
+                    <path d="M10 9H9H8"></path>
+                </svg>
+            )
+        },
+        {
             title: "Add Listing",
             path: "/add-listing",
             icon: (
@@ -111,6 +149,28 @@ const Sidebar = () => {
                     <line x1="18" y1="20" x2="18" y2="10"></line>
                     <line x1="12" y1="20" x2="12" y2="4"></line>
                     <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+            )
+        },
+        {
+            title: "Add Seller",
+            path: "/add-seller",
+            icon: (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+            )
+        },
+        {
+            title: "All Sellers",
+            path: "/all-sellers",
+            icon: (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                 </svg>
             )
         }

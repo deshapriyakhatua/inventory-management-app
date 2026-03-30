@@ -46,6 +46,12 @@ const inventorySchema = new mongoose.Schema({
   // Status
   isArchived: { type: Boolean, default: false },
 
+  // Sources Mapping
+  sources: [{
+    sellerId: { type: mongoose.Schema.Types.ObjectId, ref: "Seller", required: true },
+    sellerProductId: { type: String, default: "" }
+  }],
+
 }, { timestamps: true });
 
 // Check if the model already exists before defining it

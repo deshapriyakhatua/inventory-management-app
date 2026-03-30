@@ -1,0 +1,227 @@
+.container {
+  padding: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+  min-height: 100vh;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: #f1f5f9;
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.header {
+  margin-bottom: 2.5rem;
+}
+
+.title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.subtitle {
+  color: #94a3b8;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+}
+
+.formCard {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 2.5rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+}
+
+.sectionTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #334155;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem 2rem;
+  }
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.formGroup.full {
+  grid-column: 1 / -1;
+}
+
+.label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #cbd5e1;
+}
+
+.required {
+  color: #ef4444;
+  margin-left: 0.25rem;
+}
+
+.input, .select {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  background: #0f172a;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  color: #f1f5f9;
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.input:focus, .select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+  background: #1e293b;
+}
+
+.inventoryIdPreviewWrapper {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: #0f172a;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  padding: 0.25rem 0.5rem;
+  transition: all 0.2s;
+}
+
+.inventoryIdPreviewWrapper:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+  background: #1e293b;
+}
+
+.inputImagePreview {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid #334155;
+}
+
+.previewInput {
+  border: none !important;
+  box-shadow: none !important;
+  padding-left: 0.5rem !important;
+}
+
+.input:disabled, .select:disabled {
+  background: #0f172a;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Specific highlight for auto-filled Inventory ID */
+.input.autoFilled {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: #10b981;
+  color: #10b981;
+  font-weight: 600;
+  opacity: 1;
+}
+
+.select option {
+  background: #1e293b;
+  color: #f1f5f9;
+}
+
+.priceGroup {
+  position: relative;
+}
+
+.currencySymbol {
+  position: absolute;
+  top: 50%;
+  left: 1rem;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.priceInput {
+  padding-left: 2rem;
+}
+
+.submitBtn {
+  width: 100%;
+  padding: 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.submitBtn:hover:not(:disabled) {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.submitBtn:disabled {
+  background: #475569;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.loadingWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  gap: 1rem;
+  color: #94a3b8;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(59, 130, 246, 0.2);
+  border-radius: 50%;
+  border-top-color: #3b82f6;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
