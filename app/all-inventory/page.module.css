@@ -150,40 +150,6 @@
     animation: spin 1s linear infinite;
 }
 
-.viewControls {
-    display: flex;
-    gap: 0.5rem;
-    background-color: #1e293b;
-    padding: 0.25rem;
-    border-radius: 8px;
-    border: 1px solid #334155;
-}
-
-.viewBtn {
-    background: transparent;
-    border: none;
-    color: #94a3b8;
-    padding: 0.5rem;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-}
-
-.viewBtn:hover {
-    color: #f1f5f9;
-}
-
-.activeView {
-    background-color: #3b82f6;
-    color: #ffffff;
-}
-
-.activeView:hover {
-    color: #ffffff;
-}
 
 .loadingContainer, .emptyState {
     display: flex;
@@ -343,82 +309,6 @@
     margin: 0;
 }
 
-/* --- LIST VIEW --- */
-.listContainer {
-    background-color: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 12px;
-    overflow-x: auto;
-}
-
-.table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
-}
-
-.table th {
-    background-color: rgba(15, 23, 42, 0.5);
-    padding: 1rem 1.5rem;
-    font-weight: 600;
-    color: #cbd5e1;
-    border-bottom: 1px solid #334155;
-    white-space: nowrap;
-}
-
-.table td {
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    color: #f1f5f9;
-    vertical-align: middle;
-}
-
-.tableRow:last-child td {
-    border-bottom: none;
-}
-
-.tableRow:hover td {
-    background-color: rgba(255, 255, 255, 0.02);
-}
-
-.tdImage {
-    width: 80px;
-}
-
-.listThumbnailContainer {
-    width: 48px;
-    height: 48px;
-    position: relative;
-    background-color: #0f172a;
-    border-radius: 6px;
-    overflow: hidden;
-    border: 1px solid #334155;
-}
-
-.listThumbnail {
-    object-fit: cover;
-}
-
-.listThumbnailPlaceholder {
-    width: 48px;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #0f172a;
-    border-radius: 6px;
-    border: 1px solid #334155;
-    color: #64748b;
-}
-
-.tdId {
-    font-weight: 600;
-    font-size: 1rem;
-}
-
-.tdDate {
-    color: #94a3b8;
-}
 
 /* --- PAGINATION --- */
 .pagination {
@@ -552,31 +442,6 @@
     animation: spin 1s linear infinite;
 }
 
-.tdActions {
-    width: 60px;
-    text-align: center;
-}
-
-.listDeleteBtn {
-    background-color: rgba(15, 23, 42, 0.7);
-    color: #cbd5e1;
-    border: 1px solid #334155;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.listDeleteBtn:hover {
-    background-color: #ef4444;
-    color: white;
-    border-color: #ef4444;
-    transform: scale(1.1);
-}
 
 .stockAndPriceContainer {
     display: flex;
@@ -631,41 +496,6 @@
     z-index: 5;
 }
 
-/* Ensure buttons are above the overlay */
-.deleteBtn, .smallCopyBtn, .viewDetailsBtn, .listDeleteBtn {
-    z-index: 15;
-}
-
-.tdStock {
-    width: 100px;
-    text-align: center;
-}
-
-.tableStockValue {
-    font-weight: 700;
-    color: #10b981;
-}
-
-.tdView {
-    width: 120px;
-    text-align: center;
-}
-
-.viewDetailsBtn {
-    background-color: #3b82f6;
-    color: white;
-    border: none;
-    padding: 0.4rem 0.8rem;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.85rem;
-    font-weight: 500;
-    transition: background-color 0.2s;
-}
-
-.viewDetailsBtn:hover {
-    background-color: #2563eb;
-}
 
 /* --- MODAL STYLES --- */
 .modalOverlay {
@@ -1216,11 +1046,3 @@
     max-width: 80px;
 }
 
-/* Archived Item Styles */
-.archivedRow {
-    opacity: 0.5;
-    background-color: rgba(0, 0, 0, 0.05);
-}
-.archivedRow > td {
-    color: #94a3b8;
-}

@@ -14,7 +14,6 @@ export default function AllInventoryPage() {
     const [verticals, setVerticals] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [viewMode, setViewMode] = useState("grid"); // "grid" or "list"
     const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [message, setMessage] = useState({ text: "", type: "" });
@@ -374,34 +373,7 @@ export default function AllInventoryPage() {
                         )}
                     </div>
 
-                    <div className={styles.viewControls}>
-                        <button
-                            className={`${styles.viewBtn} ${viewMode === 'grid' ? styles.activeView : ''}`}
-                            onClick={() => setViewMode('grid')}
-                            title="Grid View"
-                        >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="3" y="3" width="7" height="7"></rect>
-                                <rect x="14" y="3" width="7" height="7"></rect>
-                                <rect x="14" y="14" width="7" height="7"></rect>
-                                <rect x="3" y="14" width="7" height="7"></rect>
-                            </svg>
-                        </button>
-                        <button
-                            className={`${styles.viewBtn} ${viewMode === 'list' ? styles.activeView : ''}`}
-                            onClick={() => setViewMode('list')}
-                            title="List View"
-                        >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="8" y1="6" x2="21" y2="6"></line>
-                                <line x1="8" y1="12" x2="21" y2="12"></line>
-                                <line x1="8" y1="18" x2="21" y2="18"></line>
-                                <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                                <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                                <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                            </svg>
-                        </button>
-                    </div>
+
                 </div>
             </div>
 
@@ -417,8 +389,7 @@ export default function AllInventoryPage() {
             ) : (
                 <div className={styles.contentArea}>
                     <div className={styles.scrollWrapper}>
-                        {viewMode === 'grid' ? (
-                            <div className={styles.gridContainer}>
+                        <div className={styles.gridContainer}>
                                 {inventory.map((item) => {
                                     const canArchive = user?.role === 'admin' || user?.role === 'superadmin' || item.addedBy === user?.id;
                                     return (
@@ -512,101 +483,6 @@ export default function AllInventoryPage() {
                                     </div>
                                 )})}
                             </div>
-                        ) : (
-                            <div className={styles.listContainer}>
-                                <table className={styles.table}>
-                                    <thead>
-                                        <tr>
-                                            <th>Image</th>
-                                            <th>Inventory/SKU ID</th>
-                                            <th>Date Added</th>
-                                            <th>Actions</th>
-                                            <th>Stock</th>
-                                            <th>Details</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {inventory.map((item) => {
-                                            const canArchive = user?.role === 'admin' || user?.role === 'superadmin' || item.addedBy === user?.id;
-                                            return (
-                                            <tr key={item._id} className={`${styles.tableRow} ${item.isArchived ? styles.archivedRow : ''}`}>
-                                                <td className={styles.tdImage}>
-                                                    {item.imageUrl ? (
-                                                        <div className={styles.listThumbnailContainer}>
-                                                            <SmoothImage
-                                                                src={item.imageUrl}
-                                                                alt={item.inventoryId}
-                                                                fill
-                                                                className={styles.listThumbnail}
-                                                                unoptimized
-                                                            />
-                                                        </div>
-                                                    ) : (
-                                                        <div className={styles.listThumbnailPlaceholder}>-</div>
-                                                    )}
-                                                </td>
-                                                <td className={styles.tdId}>{item.inventoryId}</td>
-                                                <td className={styles.tdDate}>
-                                                    {new Date(item.createdAt).toLocaleString('en-US', {
-                                                        month: 'short', day: 'numeric', year: 'numeric',
-                                                        hour: '2-digit', minute: '2-digit'
-                                                    })}
-                                                </td>
-                                                <td className={styles.tdActions}>
-                                                    {item.isArchived ? (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleRestore(item._id)}
-                                                            className={styles.listDeleteBtn}
-                                                            style={{ color: '#10b981' }}
-                                                            title="Restore Inventory"
-                                                            disabled={restoreButtonLoading}
-                                                        >
-                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                <polyline points="9 14 4 9 9 4"></polyline>
-                                                                <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
-                                                            </svg>
-                                                        </button>
-                                                    ) : canArchive ? (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleDelete(item._id)}
-                                                            className={styles.listDeleteBtn}
-                                                            title="Archive Inventory"
-                                                            disabled={deleteButtonLoading}
-                                                        >
-                                                            {deleteButtonLoading && deletingItemId === item._id
-                                                                ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                    <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-                                                                    <path d="M21 3v5h-5"></path>
-                                                                </svg>
-                                                                : <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                                                </svg>
-                                                            }
-                                                        </button>
-                                                    ) : null}
-                                                </td>
-                                                <td className={styles.tdStock}>
-                                                    <span className={`${styles.tableStockValue} ${item.currentStock <= 10 ? styles.lowStock : ''}`}>
-                                                        {item.currentStock ?? 0}
-                                                    </span>
-                                                </td>
-                                                <td className={styles.tdView}>
-                                                    <button
-                                                        className={styles.viewDetailsBtn}
-                                                        onClick={() => setSelectedItem(item)}
-                                                    >
-                                                        View Details
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        );})}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
                     </div>
 
                     {/* Pagination */}
