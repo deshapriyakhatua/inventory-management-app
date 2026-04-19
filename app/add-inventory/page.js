@@ -82,7 +82,7 @@ export default function AddInventory() {
 
     const loadVerticals = async () => {
         setLoadingVerticals(true);
-        const data = await fetchVerticalsData();
+        const data = await fetchVerticalsData(true);
         setVerticals(data);
         setLoadingVerticals(false);
     };

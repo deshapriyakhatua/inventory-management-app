@@ -1,12 +1,12 @@
 // Cache valid for 30 minutes
 const CACHE_EXPIRATION_MS = 30 * 60 * 1000;
 
-export const fetchVerticalsData = async () => {
+export const fetchVerticalsData = async (forceRefresh = false) => {
     // 1. Check Cache
     const cachedData = localStorage.getItem("verticals_cache");
     const cachedTime = localStorage.getItem("verticals_cache_timestamp");
 
-    if (cachedData && cachedTime) {
+    if (cachedData && cachedTime && !forceRefresh) {
         const timeElapsed = Date.now() - parseInt(cachedTime, 10);
         if (timeElapsed < CACHE_EXPIRATION_MS) {
             try {
