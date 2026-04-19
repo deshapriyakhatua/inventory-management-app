@@ -458,13 +458,13 @@ export default function AllListingsPage() {
                 <div className={styles.contentArea}>
                     <div className={styles.scrollWrapper}>
                         <div className={styles.gridContainer}>
-                                {listings.map((item) => {
+                                {listings.map((item, index) => {
                                     const validImages = item.inventoryItems?.filter(inv => inv.imageUrl) || [];
                                     const displayImages = validImages.slice(0, 4);
 
                                     return (
                                         <div
-                                            key={item.skuId}
+                                            key={index}
                                             className={styles.gridCard}
                                             onClick={() => setSelectedListing(item)}
                                             style={{ cursor: 'pointer' }}

@@ -22,7 +22,7 @@ export default function CreateNewListing() {
     const [inventoryItems, setInventoryItems] = useState([]);
     const [loadingInventoryItems, setLoadingInventoryItems] = useState(false);
     const [refreshingInventory, setRefreshingInventory] = useState(false);
-    const [selectedInventoryIds, setSelectedInventoryIds] = useState([]);
+    const [selectedItems, setSelectedItems] = useState([]);
 
     const [verticals, setVerticals] = useState([]);
     const [loadingVerticals, setLoadingVerticals] = useState(true);
@@ -143,7 +143,7 @@ export default function CreateNewListing() {
             loadInventory();
         } else {
             setInventoryItems([]);
-            setSelectedInventoryIds([]);
+            // Do not clear selectedItems, allow persisting across selections
         }
     }, [verticalShort]);
 
@@ -167,7 +167,6 @@ export default function CreateNewListing() {
         } else {
             setLoadingInventoryItems(true);
         }
-        setSelectedInventoryIds([]);
 
         if (!forceRefresh) {
             const cachedInventory = localStorage.getItem("all_inventory_data");
@@ -210,13 +209,30 @@ export default function CreateNewListing() {
         }
     };
 
-    const toggleSelection = (id) => {
+    const toggleSelection = (item) => {
         setSkuId(""); // Clear SKU ID if selection changes
-        setSelectedInventoryIds(prev =>
-            prev.includes(id)
-                ? prev.filter(selectedId => selectedId !== id)
-                : [...prev, id]
+        setSelectedItems(prev =>
+            prev.some(s => s.inventoryId === item.inventoryId)
+                ? prev.filter(s => s.inventoryId !== item.inventoryId)
+                : [...prev, { inventoryId: item.inventoryId, imageUrl: item.imageUrl, vertical: item.vertical }]
         );
+    };
+
+    const isSelectionCombo = () => {
+        if (selectedItems.length <= 1) return false;
+        const prefixes = new Set(selectedItems.map(item => item.inventoryId.split('-')[0]));
+        return prefixes.size > 1;
+    };
+
+    const getEffectiveVerticalParams = () => {
+        if (isSelectionCombo()) {
+            return { verticalShort: "CMB", vertical: "Combo" };
+        } else if (selectedItems.length > 0) {
+            const firstItem = selectedItems[0];
+            const vShort = firstItem.inventoryId.split('-')[0];
+            return { verticalShort: vShort, vertical: firstItem.vertical || vertical };
+        }
+        return { verticalShort, vertical };
     };
 
     // Generate a random ID for SKU
@@ -224,16 +240,20 @@ export default function CreateNewListing() {
         try {
             setIsGenerating(true);
             setMessage({ text: "", type: "" });
-            if (!verticalShort) {
-                setMessage({ text: "Please select a Vertical first.", type: "error" });
+            
+            const params = getEffectiveVerticalParams();
+            const effVerticalShort = params.verticalShort;
+
+            if (!effVerticalShort) {
+                setMessage({ text: "Please select a Vertical first or ensure items are selected.", type: "error" });
                 return;
             }
-            if (selectedInventoryIds.length === 0) {
+            if (selectedItems.length === 0) {
                 setMessage({ text: "Please select at least one inventory item.", type: "error" });
                 return;
             }
 
-            const response = await fetch(`/api/employee/listing/generate-sku?verticalShort=${verticalShort}&itemCount=${selectedInventoryIds.length}`);
+            const response = await fetch(`/api/employee/listing/generate-sku?verticalShort=${effVerticalShort}&itemCount=${selectedItems.length}`);
             const result = await response.json();
 
             if (response.ok && result.success) {
@@ -254,15 +274,18 @@ export default function CreateNewListing() {
         e.preventDefault();
         setMessage({ text: "", type: "" });
 
-        if (!verticalShort) {
-            setMessage({ text: "Please select a Vertical.", type: "error" });
+        const params = getEffectiveVerticalParams();
+        const effVertical = params.vertical;
+
+        if (!effVertical) {
+            setMessage({ text: "Please ensure vertical or items are selected.", type: "error" });
             return;
         }
         if (!marketplace) {
             setMessage({ text: "Please select a Marketplace.", type: "error" });
             return;
         }
-        if (selectedInventoryIds.length === 0) {
+        if (selectedItems.length === 0) {
             setMessage({ text: "Please select at least one inventory item.", type: "error" });
             return;
         }
@@ -279,9 +302,9 @@ export default function CreateNewListing() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     skuId: skuId,
-                    vertical: vertical,
+                    vertical: effVertical,
                     marketplace: marketplace,
-                    inventoryItems: selectedInventoryIds,
+                    inventoryItems: selectedItems.map(item => item.inventoryId),
                 }),
             });
 
@@ -292,7 +315,7 @@ export default function CreateNewListing() {
 
                 // Reset specific form fields
                 setSkuId("");
-                setSelectedInventoryIds([]);
+                setSelectedItems([]);
                 loadData(true); // Force fresh fetch to show the newly created listing
             } else {
                 setMessage({ text: "Failed to create listing: " + (result.error || "Unknown error"), type: "error" });
@@ -396,12 +419,45 @@ export default function CreateNewListing() {
                         </select>
                     </div>
 
+                    {/* Selected Items Strip */}
+                    {selectedItems.length > 0 && (
+                        <div className={styles.inputGroup}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                <label className={styles.label}>
+                                    Selected Items ({selectedItems.length}) {isSelectionCombo() ? "- Combo Mode" : ""}
+                                </label>
+                            </div>
+                            <div className={styles.recentImagesScrollContainer} style={{ background: '#0f172a', padding: '15px', borderRadius: '8px', border: '1px solid #1e293b', minHeight: '80px', display: 'flex', gap: '10px', overflowX: 'auto' }}>
+                                {selectedItems.map(item => (
+                                    <div key={item.inventoryId} className={styles.recentImageThumbWrapper} style={{ position: 'relative', flexShrink: 0, width: '60px' }}>
+                                        <div style={{ position: 'relative', width: '60px', height: '60px', borderRadius: '4px', overflow: 'hidden' }}>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => toggleSelection(item)} 
+                                                style={{ position: 'absolute', top: 0, right: 0, background: 'rgba(239, 68, 68, 0.9)', color: 'white', border: 'none', borderBottomLeftRadius: '6px', width: '20px', height: '20px', fontSize: '14px', lineHeight: '14px', cursor: 'pointer', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                title="Remove item"
+                                            >
+                                                ×
+                                            </button>
+                                            {item.imageUrl ? (
+                                                <Image src={item.imageUrl} alt={item.inventoryId} fill style={{ objectFit: 'cover' }} unoptimized />
+                                            ) : (
+                                                <div className={styles.recentImagePlaceholderSmall} style={{ width: '100%', height: '100%', fontSize: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>No Img</div>
+                                            )}
+                                        </div>
+                                        <div className={styles.recentImageThumbId} style={{ fontSize: '0.6rem', textAlign: 'center', marginTop: '4px', wordBreak: 'break-all' }}>{item.inventoryId}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Scrollable Grid of Existing Inventory */}
                     {verticalShort && (
                         <div className={styles.inputGroup}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <label className={styles.label}>
-                                    Select Inventory Items for Listing ({selectedInventoryIds.length} selected)
+                                    Select Inventory Items to Add
                                 </label>
                                 <button
                                     type="button"
@@ -425,10 +481,10 @@ export default function CreateNewListing() {
                                         {inventoryItems.map((item) => (
                                             <div
                                                 key={item._id}
-                                                className={`${styles.gridItem} ${selectedInventoryIds.includes(item.inventoryId) ? styles.gridItemSelected : ""}`}
-                                                onClick={() => toggleSelection(item.inventoryId)}
+                                                className={`${styles.gridItem} ${selectedItems.some(s => s.inventoryId === item.inventoryId) ? styles.gridItemSelected : ""}`}
+                                                onClick={() => toggleSelection(item)}
                                             >
-                                                {selectedInventoryIds.includes(item.inventoryId) && (
+                                                {selectedItems.some(s => s.inventoryId === item.inventoryId) && (
                                                     <div className={styles.checkmark}>
                                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                                             <polyline points="20 6 9 17 4 12"></polyline>
@@ -484,7 +540,7 @@ export default function CreateNewListing() {
                                 type="button"
                                 onClick={async () => await generateSkuId()}
                                 className={styles.generateBtn}
-                                disabled={isLoading || isGenerating || !verticalShort || selectedInventoryIds.length === 0}
+                                disabled={isLoading || isGenerating || selectedItems.length === 0}
                             >
                                 {isGenerating ? "Generating..." : skuId ? "Regenerate SKU" : "Generate SKU"}
                             </button>
@@ -495,7 +551,7 @@ export default function CreateNewListing() {
                     <button
                         type="submit"
                         className={styles.submitBtn}
-                        disabled={isLoading || !verticalShort || selectedInventoryIds.length === 0 || !skuId || !marketplace}
+                        disabled={isLoading || selectedItems.length === 0 || !skuId || !marketplace}
                     >
                         {isLoading ? "Creating Listing..." : "Create Listing"}
                     </button>
