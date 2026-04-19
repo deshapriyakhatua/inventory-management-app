@@ -6,6 +6,7 @@ import styles from "./page.module.css";
 import Toast from "../../components/Toast/Toast";
 import { fetchVerticalsData } from "../../utils/apiUtils";
 import { useAuth } from "../../components/AuthProvider";
+import RefreshIcon from "@/components/RefreshIcon/RefreshIcon";
 
 export default function AddInventory() {
     const [inventoryId, setInventoryId] = useState("");
@@ -80,9 +81,9 @@ export default function AddInventory() {
         }
     };
 
-    const loadVerticals = async () => {
+    const loadVerticals = async (forceRefresh = false) => {
         setLoadingVerticals(true);
-        const data = await fetchVerticalsData(true);
+        const data = await fetchVerticalsData(forceRefresh);
         setVerticals(data);
         setLoadingVerticals(false);
     };
@@ -214,6 +215,7 @@ export default function AddInventory() {
                 <form onSubmit={handleSubmit} className={styles.form}>
                     <div className={styles.inputGroup}>
                         <label htmlFor="vertical" className={styles.label}>Vertical</label>
+                        <div className={styles.inputWithRefresh}>
                         <select
                             id="vertical"
                             value={verticalShort && vertical ? `${verticalShort} - ${vertical}` : ""}
@@ -237,6 +239,16 @@ export default function AddInventory() {
                                 </option>
                             ))}
                         </select>
+                        <button
+                            type="button"
+                            onClick={() => loadVerticals(true)}
+                            className={styles.refreshBtn}
+                            disabled={loadingVerticals}
+                            title="Refresh"
+                        >
+                            <RefreshIcon />
+                        </button>
+                        </div>
                     </div>
 
                     <div className={styles.inputGroup}>
@@ -316,11 +328,7 @@ export default function AddInventory() {
                             disabled={loadingInventoryItems || refreshingRecentItems}
                             title="Refresh Recent Inventory"
                         >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="23 4 23 10 17 10"></polyline>
-                                <polyline points="1 20 1 14 7 14"></polyline>
-                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                            </svg>
+                            <RefreshIcon />
                         </button>
                     </div>
                     {loadingInventoryItems

@@ -46,6 +46,11 @@
     font-weight: 500;
 }
 
+.inputWithRefresh {
+    display: flex;
+    gap: 8px;
+}
+
 .idRow {
     display: flex;
     gap: 12px;
