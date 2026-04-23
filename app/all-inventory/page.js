@@ -471,7 +471,7 @@ export default function AllInventoryPage() {
                                                     </span>
                                                 </div>
                                                 <p className={styles.itemPrice}>
-                                                    ₹{Math.ceil(item.buyPriceUnit ?? 0)}
+                                                    ₹{Math.ceil((item.totalBuyingPrice / item.initialStock) ?? 0)}
                                                 </p>
                                             </div>
                                         </div>

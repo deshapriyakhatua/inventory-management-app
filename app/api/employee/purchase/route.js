@@ -94,6 +94,19 @@ export async function POST(request) {
       addedBy: session.id
     });
 
+    const purchaseCost = Number(quantity) * Number(price);
+
+    // Update Inventory initialStock and totalBuyingPrice
+    await Inventory.findOneAndUpdate(
+      { inventoryId },
+      { $inc: { 
+          initialStock: Number(quantity), 
+          currentStock: Number(quantity),
+          totalBuyingPrice: purchaseCost
+        } 
+      }
+    );
+
     return NextResponse.json({ success: true, message: "Purchase logged successfully", data: newPurchase }, { status: 201 });
   } catch (error) {
     console.error("Purchase POST Error:", error);
@@ -118,6 +131,20 @@ export async function PUT(request) {
     if (!_id) {
       return NextResponse.json({ error: "Purchase ID is required" }, { status: 400 });
     }
+
+    const existingPurchase = await Purchase.findById(_id);
+    if (!existingPurchase) {
+      return NextResponse.json({ error: "Purchase not found" }, { status: 404 });
+    }
+
+    const oldQuantity = existingPurchase.quantity;
+    const oldPrice = existingPurchase.price;
+    
+    const newQuantity = quantity !== undefined ? Number(quantity) : oldQuantity;
+    const newPrice = price !== undefined ? Number(price) : oldPrice;
+
+    const quantityDifference = newQuantity - oldQuantity;
+    const costDifference = (newQuantity * newPrice) - (oldQuantity * oldPrice);
 
     const updateData = {};
     if (quantity !== undefined) updateData.quantity = Number(quantity);
@@ -144,10 +171,64 @@ export async function PUT(request) {
       return NextResponse.json({ error: "Purchase not found" }, { status: 404 });
     }
 
+    if (quantityDifference !== 0 || costDifference !== 0) {
+      await Inventory.findOneAndUpdate(
+        { inventoryId: existingPurchase.inventoryId },
+        { $inc: { 
+            initialStock: quantityDifference, 
+            currentStock: quantityDifference,
+            totalBuyingPrice: costDifference
+          } 
+        }
+      );
+    }
+
     return NextResponse.json({ success: true, message: "Purchase updated successfully", data: updatedPurchase }, { status: 200 });
 
   } catch (error) {
     console.error("Purchase PUT Error:", error);
     return NextResponse.json({ error: error.message || "Failed to update purchase" }, { status: 500 });
+  }
+}
+
+// DELETE — Delete an existing purchase
+export async function DELETE(request) {
+  try {
+    await connectToDatabase();
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { searchParams } = new URL(request.url);
+    const _id = searchParams.get("id");
+
+    if (!_id) {
+      return NextResponse.json({ error: "Purchase ID is required" }, { status: 400 });
+    }
+
+    const existingPurchase = await Purchase.findById(_id);
+    if (!existingPurchase) {
+      return NextResponse.json({ error: "Purchase not found" }, { status: 404 });
+    }
+
+    await Purchase.findByIdAndDelete(_id);
+
+    const costToRemove = existingPurchase.quantity * existingPurchase.price;
+
+    // Revert Inventory stock and totalBuyingPrice
+    await Inventory.findOneAndUpdate(
+      { inventoryId: existingPurchase.inventoryId },
+      { $inc: { 
+          initialStock: -existingPurchase.quantity, 
+          currentStock: -existingPurchase.quantity,
+          totalBuyingPrice: -costToRemove
+        } 
+      }
+    );
+
+    return NextResponse.json({ success: true, message: "Purchase deleted successfully" }, { status: 200 });
+
+  } catch (error) {
+    console.error("Purchase DELETE Error:", error);
+    return NextResponse.json({ error: error.message || "Failed to delete purchase" }, { status: 500 });
   }
 }
