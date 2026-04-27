@@ -26,6 +26,8 @@ export default function AllInventoryPage() {
     const [selectedVertical, setSelectedVertical] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedItem, setSelectedItem] = useState(null); // For expander modal
+    const [modalSkus, setModalSkus] = useState([]);
+    const [modalSkusLoading, setModalSkusLoading] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [itemToDelete, setItemToDelete] = useState(null);
 
@@ -58,6 +60,24 @@ export default function AllInventoryPage() {
         document.addEventListener('visibilitychange', handleVisibilityChange);
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, []);
+
+    useEffect(() => {
+        if (selectedItem) {
+            setModalSkus([]);
+            setModalSkusLoading(true);
+            fetch(`/api/employee/inventory/skus?inventoryId=${selectedItem.inventoryId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        setModalSkus(data.skus || []);
+                    } else {
+                        console.error("Failed to load SKUs:", data.error);
+                    }
+                })
+                .catch(err => console.error("Error fetching SKUs:", err))
+                .finally(() => setModalSkusLoading(false));
+        }
+    }, [selectedItem]);
 
     // Apply Filters, Sort, and Pagination locally whenever dependencies change
     useEffect(() => {
@@ -471,7 +491,7 @@ export default function AllInventoryPage() {
                                                     </span>
                                                 </div>
                                                 <p className={styles.itemPrice}>
-                                                    ₹{Math.ceil((item.totalBuyingPrice / item.initialStock) ?? 0)}
+                                                    ₹{(item.totalBuyingPrice && item.initialStock) ? Math.ceil((item.totalBuyingPrice / item.initialStock) ?? 0) : 0}
                                                 </p>
                                             </div>
                                         </div>
@@ -684,12 +704,18 @@ export default function AllInventoryPage() {
                             </div>
 
                             {/* SKUs Section */}
-                            {selectedItem.skus && selectedItem.skus.length > 0 && (
+                            {modalSkusLoading ? (
                                 <div className={styles.modalSection}>
                                     <h3 className={styles.sectionTitle}>Associated SKUs</h3>
-                                    <div className={styles.skuGrid}>
-                                        {selectedItem.skus.map((sku, index) => (
-                                            <div key={index} className={`${styles.skuCard} ${sku.status === 'Active' ? styles.activeSku : sku.status === 'Blocked' ? styles.blockedSku : styles.inactiveSku}`}>
+                                    <p style={{ color: '#666', fontSize: '14px', marginTop: '10px' }}>Loading SKUs...</p>
+                                </div>
+                            ) : (
+                                modalSkus && modalSkus.length > 0 && (
+                                    <div className={styles.modalSection}>
+                                        <h3 className={styles.sectionTitle}>Associated SKUs</h3>
+                                        <div className={styles.skuGrid}>
+                                            {modalSkus.map((sku, index) => (
+                                                <div key={index} className={`${styles.skuCard} ${sku.status?.toLowerCase() === 'active' ? styles.activeSku : sku.status?.toLowerCase() === 'blocked' ? styles.blockedSku : styles.inactiveSku}`}>
                                                 <div className={styles.skuInfo}>
                                                     <div className={styles.skuMain}>
                                                         <span className={styles.skuIdLabel}>SKU ID</span>
@@ -706,7 +732,9 @@ export default function AllInventoryPage() {
                                                                 </svg>
                                                             </button>
                                                         </div>
-                                                        <span className={`${styles.statusBadge} ${sku.status === 'Active' ? styles.activeStatus : sku.status === 'Blocked' ? styles.blockedStatus : styles.inactiveStatus}`}>{sku.status}</span>
+                                                        <span className={`${styles.statusBadge} ${sku.status?.toLowerCase() === 'active' ? styles.activeStatus : sku.status?.toLowerCase() === 'blocked' ? styles.blockedStatus : styles.inactiveStatus}`}>
+                                                            {sku.status?.charAt(0).toUpperCase() + sku.status?.slice(1)}
+                                                        </span>
                                                     </div>
                                                     <div className={styles.skuBadges}>
                                                         <span className={styles.marketplaceBadge}>{sku.marketplace}</span>
@@ -760,7 +788,7 @@ export default function AllInventoryPage() {
                                         ))}
                                     </div>
                                 </div>
-                            )}
+                            ))}
                         </div>
                     </div>
                 </div>

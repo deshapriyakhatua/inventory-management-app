@@ -34,6 +34,7 @@ const salesRecordSchema = new mongoose.Schema(
         "DISPATCHED",
         "CANCELLED",
         "CANCELLED_BEFORE_PICKUP",
+        "RETURN_REQUESTED",
         "RETURNED",
         "DELIVERED",
       ],

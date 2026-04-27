@@ -237,7 +237,7 @@ export default function SalesRecordsPage() {
                     </select>
                 );
             }
-            return <span className={`${styles.badge} ${statusClass(displayValue)}`}>{displayValue || "ORDERED"}</span>;
+            return <span className={`${styles.badge} ${statusClass(displayValue)}`}>{displayValue}</span>;
         }
 
         if (key === "timestamp") return <span className={styles.dateText}>{formatDate(displayValue)}</span>;

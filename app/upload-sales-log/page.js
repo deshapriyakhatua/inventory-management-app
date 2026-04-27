@@ -28,8 +28,8 @@ export default function UploadSalesLog() {
                 orderItemId: row['ORDER ITEM ID']?.replace(/^'/, '')?.trim(),
                 sku: row['SKU']?.trim(),
                 quantity: Number(row['Quantity']) || 0,
-                status: undefined,
-                originalStatus: undefined
+                status: row['Order State']?.trim(),
+                originalStatus: row['Order State']?.trim()
             };
         } else if (isCancelledFile) {
             // Smart Status Logic: Logistics Return vs Cancelled

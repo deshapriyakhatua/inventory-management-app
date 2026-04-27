@@ -96,16 +96,7 @@ export async function POST(request) {
 
     const purchaseCost = Number(quantity) * Number(price);
 
-    // Update Inventory initialStock and totalBuyingPrice
-    await Inventory.findOneAndUpdate(
-      { inventoryId },
-      { $inc: { 
-          initialStock: Number(quantity), 
-          currentStock: Number(quantity),
-          totalBuyingPrice: purchaseCost
-        } 
-      }
-    );
+
 
     return NextResponse.json({ success: true, message: "Purchase logged successfully", data: newPurchase }, { status: 201 });
   } catch (error) {
@@ -171,17 +162,7 @@ export async function PUT(request) {
       return NextResponse.json({ error: "Purchase not found" }, { status: 404 });
     }
 
-    if (quantityDifference !== 0 || costDifference !== 0) {
-      await Inventory.findOneAndUpdate(
-        { inventoryId: existingPurchase.inventoryId },
-        { $inc: { 
-            initialStock: quantityDifference, 
-            currentStock: quantityDifference,
-            totalBuyingPrice: costDifference
-          } 
-        }
-      );
-    }
+
 
     return NextResponse.json({ success: true, message: "Purchase updated successfully", data: updatedPurchase }, { status: 200 });
 
@@ -212,18 +193,7 @@ export async function DELETE(request) {
 
     await Purchase.findByIdAndDelete(_id);
 
-    const costToRemove = existingPurchase.quantity * existingPurchase.price;
 
-    // Revert Inventory stock and totalBuyingPrice
-    await Inventory.findOneAndUpdate(
-      { inventoryId: existingPurchase.inventoryId },
-      { $inc: { 
-          initialStock: -existingPurchase.quantity, 
-          currentStock: -existingPurchase.quantity,
-          totalBuyingPrice: -costToRemove
-        } 
-      }
-    );
 
     return NextResponse.json({ success: true, message: "Purchase deleted successfully" }, { status: 200 });
 

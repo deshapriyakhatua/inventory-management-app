@@ -32,7 +32,64 @@ export async function GET(request) {
         delete query.isArchived;
     }
 
-    const items = await Inventory.find(query).sort({ createdAt: -1 });
+    const pipeline = [
+      { $match: query },
+      {
+        $lookup: {
+          from: "purchases", // Note: collection name is lowercase plural
+          let: { invId: "$inventoryId" },
+          pipeline: [
+            { 
+              $match: { 
+                $expr: { 
+                  $and: [
+                    { $eq: ["$inventoryId", "$$invId"] },
+                    { $ne: ["$receivedOn", null] },
+                    { $eq: [{ $ifNull: ["$isArchived", false] }, false] }
+                  ]
+                }
+              }
+            }
+          ],
+          as: "purchases"
+        }
+      },
+      {
+        $addFields: {
+          initialStock: { $sum: "$purchases.quantity" },
+          totalBuyingPrice: {
+            $sum: {
+              $map: {
+                input: "$purchases",
+                as: "p",
+                in: { $multiply: ["$$p.quantity", "$$p.price"] }
+              }
+            }
+          }
+        }
+      },
+      {
+        $addFields: {
+          currentStock: {
+            $add: [
+              "$initialStock",
+              { $ifNull: ["$adjust", 0] },
+              { $ifNull: ["$returned", 0] },
+              { $multiply: [{ $ifNull: ["$netSold", 0] }, -1] },
+              { $multiply: [{ $ifNull: ["$damaged", 0] }, -1] },
+              { $multiply: [{ $ifNull: ["$dispatched", 0] }, -1] },
+              { $multiply: [{ $ifNull: ["$cancelled", 0] }, -1] }
+            ]
+          }
+        }
+      },
+      {
+        $project: { purchases: 0 }
+      },
+      { $sort: { createdAt: -1 } }
+    ];
+
+    const items = await Inventory.aggregate(pipeline);
 
     return NextResponse.json({ 
       success: true, 

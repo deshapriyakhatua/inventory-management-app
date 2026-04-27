@@ -4,6 +4,7 @@ import Inventory from "@/models/Inventory";
 import { UploadImage } from "@/lib/cloudinary";
 import { decrypt } from "@/lib/session";
 import { cookies } from "next/headers";
+import mongoose from "mongoose";
 
 export async function POST(request) {
   try {
@@ -72,12 +73,68 @@ export async function GET() {
       return NextResponse.json({ error: "Invalid session" }, { status: 401 });
     }
 
-    const items = await Inventory.find({ 
-      addedBy: session.id,
-      isArchived: { $ne: true } 
-    })
-      .sort({ createdAt: -1 })
-      .limit(5);
+    const pipeline = [
+      { 
+        $match: { 
+          addedBy: new mongoose.Types.ObjectId(session.id),
+          isArchived: { $ne: true } 
+        } 
+      },
+      {
+        $lookup: {
+          from: "purchases",
+          let: { invId: "$inventoryId" },
+          pipeline: [
+            { 
+              $match: { 
+                $expr: { 
+                  $and: [
+                    { $eq: ["$inventoryId", "$$invId"] },
+                    { $ne: ["$receivedOn", null] },
+                    { $eq: [{ $ifNull: ["$isArchived", false] }, false] }
+                  ]
+                }
+              }
+            }
+          ],
+          as: "purchases"
+        }
+      },
+      {
+        $addFields: {
+          initialStock: { $sum: "$purchases.quantity" },
+          totalBuyingPrice: {
+            $sum: {
+              $map: {
+                input: "$purchases",
+                as: "p",
+                in: { $multiply: ["$$p.quantity", "$$p.price"] }
+              }
+            }
+          }
+        }
+      },
+      {
+        $addFields: {
+          currentStock: {
+            $add: [
+              "$initialStock",
+              { $ifNull: ["$adjust", 0] },
+              { $ifNull: ["$returned", 0] },
+              { $multiply: [{ $ifNull: ["$netSold", 0] }, -1] },
+              { $multiply: [{ $ifNull: ["$damaged", 0] }, -1] },
+              { $multiply: [{ $ifNull: ["$dispatched", 0] }, -1] },
+              { $multiply: [{ $ifNull: ["$cancelled", 0] }, -1] }
+            ]
+          }
+        }
+      },
+      { $project: { purchases: 0 } },
+      { $sort: { createdAt: -1 } },
+      { $limit: 5 }
+    ];
+
+    const items = await Inventory.aggregate(pipeline);
 
     return NextResponse.json({ 
       status: 200,
