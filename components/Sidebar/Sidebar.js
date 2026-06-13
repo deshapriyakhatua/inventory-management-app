@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useAuth } from "../AuthProvider";
 
 const Sidebar = () => {
-    const [isExpanded, setIsExpanded] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(true);
     const pathname = usePathname();
     const router = useRouter();
     const { user } = useAuth();
@@ -36,6 +36,7 @@ const Sidebar = () => {
     };
 
     const navItems = [
+        { type: "category", title: "Inventory" },
         {
             title: "Add Inventory",
             path: "/add-inventory",
@@ -57,18 +58,30 @@ const Sidebar = () => {
                 </svg>
             )
         },
+        { type: "category", title: "Listings" },
         {
-            title: "Map Sources",
-            path: "/map-sources",
+            title: "Add Listing",
+            path: "/add-listing",
             icon: (
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="18" cy="18" r="3"></circle>
-                    <circle cx="6" cy="6" r="3"></circle>
-                    <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
-                    <line x1="6" y1="9" x2="6" y2="21"></line>
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                    <line x1="9" y1="15" x2="15" y2="15"></line>
                 </svg>
             )
         },
+        {
+            title: "All Listings",
+            path: "/all-listings",
+            icon: (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 11 12 14 22 4"></polyline>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                </svg>
+            )
+        },
+        { type: "category", title: "Purchases" },
         {
             title: "Add Purchase",
             path: "/add-purchase",
@@ -95,28 +108,7 @@ const Sidebar = () => {
                 </svg>
             )
         },
-        {
-            title: "Add Listing",
-            path: "/add-listing",
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="12" y1="18" x2="12" y2="12"></line>
-                    <line x1="9" y1="15" x2="15" y2="15"></line>
-                </svg>
-            )
-        },
-        {
-            title: "All Listings",
-            path: "/all-listings",
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="9 11 12 14 22 4"></polyline>
-                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-                </svg>
-            )
-        },
+        { type: "category", title: "Sales Log" },
         {
             title: "Add Sales/Returns",
             path: "/add-sales-log",
@@ -152,6 +144,7 @@ const Sidebar = () => {
                 </svg>
             )
         },
+        { type: "category", title: "Sellers" },
         {
             title: "Add Seller",
             path: "/add-seller",
@@ -173,6 +166,19 @@ const Sidebar = () => {
                     <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                 </svg>
             )
+        },
+        { type: "category", title: "Map Inventory" },
+        {
+            title: "Map Sources",
+            path: "/map-sources",
+            icon: (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="18" cy="18" r="3"></circle>
+                    <circle cx="6" cy="6" r="3"></circle>
+                    <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
+                    <line x1="6" y1="9" x2="6" y2="21"></line>
+                </svg>
+            )
         }
     ];
 
@@ -180,6 +186,7 @@ const Sidebar = () => {
     const filteredNavItems = navItems.slice();
     
     if (user?.role === "admin" || user?.role === "superadmin") {
+        filteredNavItems.push({ type: "category", title: "Admin" });
         filteredNavItems.push({
             title: "Add Vertical",
             path: "/admin/add-vertical",
@@ -202,11 +209,23 @@ const Sidebar = () => {
                         <line x1="3" y1="18" x2="21" y2="18"></line>
                     </svg>
                 </button>
-                {isExpanded && <Link href="/" className={styles.logoText}>Inventory App</Link>}
+                {isExpanded && <Link href="/" className={styles.logoText}>CRAZYKUDI</Link>}
             </div>
 
             <nav className={styles.navMenu}>
-                {filteredNavItems.map((item) => {
+                {filteredNavItems.map((item, index) => {
+                    if (item.type === "category") {
+                        return (
+                            <div key={`category-${index}`} className={styles.categoryHeader}>
+                                {isExpanded ? (
+                                    <span className={styles.categoryTitle}>{item.title}</span>
+                                ) : (
+                                    <div className={styles.categoryDivider} />
+                                )}
+                            </div>
+                        );
+                    }
+
                     const isActive = pathname === item.path;
                     return (
                         <Link 
