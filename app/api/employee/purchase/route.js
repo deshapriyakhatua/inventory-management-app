@@ -3,8 +3,10 @@ import connectToDatabase from "@/lib/mongoose";
 import Purchase from "@/models/Purchase";
 import Seller from "@/models/Seller";
 import Inventory from "@/models/Inventory";
+import User from "@/models/User";
 import { decrypt } from "@/lib/session";
 import { cookies } from "next/headers";
+import bcrypt from "bcrypt";
 
 async function getSession() {
   const cookieStore = await cookies();
@@ -24,9 +26,10 @@ export async function GET(request) {
     const sellerId = searchParams.get("sellerId");
     const fetchHistory = searchParams.get("history") === "true";
 
-    // Requesting full purchase history
+    // Requesting full purchase history (active or archived)
     if (fetchHistory) {
-      const purchases = await Purchase.find({ isArchived: false })
+      const fetchArchived = searchParams.get("archived") === "true";
+      const purchases = await Purchase.find({ isArchived: fetchArchived ? true : { $ne: true } })
         .populate("sellerId", "businessName")
         .sort({ orderedOn: -1, createdAt: -1 });
         
@@ -172,7 +175,38 @@ export async function PUT(request) {
   }
 }
 
-// DELETE — Delete an existing purchase
+// PATCH — Archive or Restore a purchase (soft delete/undelete)
+export async function PATCH(request) {
+  try {
+    await connectToDatabase();
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { _id, action } = await request.json();
+    if (!_id) return NextResponse.json({ error: "Purchase ID is required" }, { status: 400 });
+
+    const isArchiving = action !== "restore";
+
+    const purchase = await Purchase.findByIdAndUpdate(
+      _id,
+      { $set: { isArchived: isArchiving } },
+      { new: true }
+    ).populate("sellerId", "businessName");
+
+    if (!purchase) return NextResponse.json({ error: "Purchase not found" }, { status: 404 });
+
+    return NextResponse.json({ 
+      success: true, 
+      message: isArchiving ? "Purchase archived" : "Purchase restored",
+      data: purchase
+    }, { status: 200 });
+  } catch (error) {
+    console.error("Purchase PATCH Error:", error);
+    return NextResponse.json({ error: error.message || "Failed to update archive status" }, { status: 500 });
+  }
+}
+
+// DELETE — Permanently delete after PIN verification
 export async function DELETE(request) {
   try {
     await connectToDatabase();
@@ -181,22 +215,24 @@ export async function DELETE(request) {
 
     const { searchParams } = new URL(request.url);
     const _id = searchParams.get("id");
+    const pin = searchParams.get("pin");
 
-    if (!_id) {
-      return NextResponse.json({ error: "Purchase ID is required" }, { status: 400 });
-    }
+    if (!_id) return NextResponse.json({ error: "Purchase ID is required" }, { status: 400 });
+    if (!pin) return NextResponse.json({ error: "PIN is required to permanently delete" }, { status: 400 });
 
-    const existingPurchase = await Purchase.findById(_id);
-    if (!existingPurchase) {
-      return NextResponse.json({ error: "Purchase not found" }, { status: 404 });
-    }
+    // Verify PIN against the session user
+    const user = await User.findById(session.id).select("pin password");
+    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+    const pinMatch = await bcrypt.compare(pin, user.pin || user.password || "");
+    if (!pinMatch) return NextResponse.json({ error: "Incorrect PIN" }, { status: 403 });
+
+    const existing = await Purchase.findById(_id);
+    if (!existing) return NextResponse.json({ error: "Purchase not found" }, { status: 404 });
 
     await Purchase.findByIdAndDelete(_id);
 
-
-
-    return NextResponse.json({ success: true, message: "Purchase deleted successfully" }, { status: 200 });
-
+    return NextResponse.json({ success: true, message: "Purchase permanently deleted" }, { status: 200 });
   } catch (error) {
     console.error("Purchase DELETE Error:", error);
     return NextResponse.json({ error: error.message || "Failed to delete purchase" }, { status: 500 });
