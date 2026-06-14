@@ -53,6 +53,42 @@ function DetailRow({ icon, label, value, onCopy }) {
   );
 }
 
+/* ── Form Helpers ────────────────────────────────────── */
+function Field({ label, name, type = "text", placeholder = "", value, onChange, disabled }) {
+  return (
+    <div className={styles.fieldGroup}>
+      <label htmlFor={name} className={styles.label}>{label}</label>
+      <input
+        id={name}
+        name={name}
+        type={type}
+        value={value || ""}
+        onChange={onChange}
+        placeholder={placeholder || label}
+        className={styles.input}
+        disabled={disabled}
+      />
+    </div>
+  );
+}
+
+function TextArea({ label, name, placeholder = "", value, onChange, disabled }) {
+  return (
+    <div className={styles.fieldGroup}>
+      <label htmlFor={name} className={styles.label}>{label}</label>
+      <textarea
+        id={name}
+        name={name}
+        value={value || ""}
+        onChange={onChange}
+        placeholder={placeholder || label}
+        className={styles.textarea}
+        disabled={disabled}
+        rows={3}
+      />
+    </div>
+  );
+}
 /* ── Main Page ───────────────────────────────────────── */
 export default function AllSellersPage() {
   const { user } = useAuth();
@@ -82,6 +118,11 @@ export default function AllSellersPage() {
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [sellerToRestore, setSellerToRestore] = useState(null);
   const [restoreLoading, setRestoreLoading] = useState(false);
+
+  // Edit states
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editFormData, setEditFormData] = useState({});
+  const [editLoading, setEditLoading] = useState(false);
 
   /* ── Fetch ── */
   const fetchSellers = async (force = false, fetchArchived = showArchived) => {
@@ -181,6 +222,44 @@ export default function AllSellersPage() {
       setRestoreLoading(false);
       setShowRestoreConfirm(false);
       setSellerToRestore(null);
+    }
+  };
+
+  /* ── Edit ── */
+  const handleEditChange = (e) => {
+    setEditFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const submitEdit = async (e) => {
+    e.preventDefault();
+    if (!editFormData.businessName?.trim()) {
+      setMsg({ text: "Business Name is required.", type: "error" });
+      return;
+    }
+
+    setEditLoading(true);
+    try {
+      const res = await fetch("/api/employee/seller", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editFormData),
+      });
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setMsg({ text: "Seller updated successfully.", type: "success" });
+        // Update local arrays
+        setAllSellers(prev => prev.map(s => s._id === editFormData._id ? result.data : s));
+        if (selectedSeller?._id === editFormData._id) {
+          setSelectedSeller(result.data);
+        }
+        setShowEditModal(false);
+      } else {
+        setMsg({ text: result.error || "Failed to update seller.", type: "error" });
+      }
+    } catch {
+      setMsg({ text: "Network error while updating seller.", type: "error" });
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -491,15 +570,31 @@ export default function AllSellersPage() {
                   </button>
                 ) : (
                   !selectedSeller.isArchived && (
-                    <button
-                      className={styles.modalDeleteBtn}
-                      onClick={() => { setSellerToDelete(selectedSeller._id); setShowDeleteConfirm(true); }}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                      </svg>
-                      Archive Seller
-                    </button>
+                    <>
+                      <button
+                        className={styles.modalEditBtn}
+                        onClick={() => {
+                          setEditFormData(selectedSeller);
+                          setShowEditModal(true);
+                          setSelectedSeller(null);
+                        }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        Edit Seller
+                      </button>
+                      <button
+                        className={styles.modalDeleteBtn}
+                        onClick={() => { setSellerToDelete(selectedSeller._id); setShowDeleteConfirm(true); }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                        Archive Seller
+                      </button>
+                    </>
                   )
                 )}
               </div>
@@ -547,6 +642,123 @@ export default function AllSellersPage() {
               <button className={styles.confirmRestoreBtn} onClick={confirmRestore} disabled={restoreLoading}>
                 {restoreLoading ? "Restoring..." : "Confirm Restore"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Seller Modal ── */}
+      {showEditModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowEditModal(false)}>
+          <div className={`${styles.modal} ${styles.editModal}`} onClick={(e) => e.stopPropagation()}>
+            <button className={styles.closeBtn} onClick={() => setShowEditModal(false)}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+            <div className={styles.modalScroll}>
+              <h2 className={styles.modalTitle} style={{ marginBottom: "1.5rem" }}>Edit Seller Details</h2>
+              <form onSubmit={submitEdit} className={styles.editForm}>
+                
+                {/* ── Section: Basic Info ── */}
+                <div className={styles.section}>
+                  <div className={styles.sectionHeader}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="3" width="20" height="14" rx="2" />
+                      <path d="M8 21h8M12 17v4" />
+                    </svg>
+                    <h3 className={styles.sectionTitle}>Business Information</h3>
+                  </div>
+                  <div className={styles.grid2}>
+                    <Field label="Business Name *" name="businessName" placeholder="e.g., ABC Traders" value={editFormData.businessName} onChange={handleEditChange} disabled={editLoading} />
+                    <Field label="GST No" name="gstNo" placeholder="e.g., 27ABCDE1234F1Z5" value={editFormData.gstNo} onChange={handleEditChange} disabled={editLoading} />
+                    <Field label="Contact Person" name="contactPerson" placeholder="e.g., Ramesh Kumar" value={editFormData.contactPerson} onChange={handleEditChange} disabled={editLoading} />
+                    <Field label="Email" name="email" type="email" placeholder="e.g., seller@example.com" value={editFormData.email} onChange={handleEditChange} disabled={editLoading} />
+                    <Field label="Shipping Provider" name="shippingProvider" placeholder="e.g., Delhivery" value={editFormData.shippingProvider} onChange={handleEditChange} disabled={editLoading} />
+                  </div>
+                </div>
+
+                {/* ── Section: Contact ── */}
+                <div className={styles.section}>
+                  <div className={styles.sectionHeader}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12 19.79 19.79 0 0 1 1.07 3.4 2 2 0 0 1 3 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16z" />
+                    </svg>
+                    <h3 className={styles.sectionTitle}>Contact Numbers</h3>
+                  </div>
+                  <div className={styles.grid2}>
+                    <Field label="Phone No" name="phoneNo" placeholder="+91 98765 43210" value={editFormData.phoneNo} onChange={handleEditChange} disabled={editLoading} />
+                    <Field label="WhatsApp No" name="whatsAppNo" placeholder="+91 98765 43210" value={editFormData.whatsAppNo} onChange={handleEditChange} disabled={editLoading} />
+                    <Field label="Alt Phone No" name="altPhoneNo" placeholder="+91 98765 00000" value={editFormData.altPhoneNo} onChange={handleEditChange} disabled={editLoading} />
+                    <Field label="Alt WhatsApp No" name="altWhatsAppNo" placeholder="+91 98765 00000" value={editFormData.altWhatsAppNo} onChange={handleEditChange} disabled={editLoading} />
+                  </div>
+                </div>
+
+                {/* ── Section: Address ── */}
+                <div className={styles.section}>
+                  <div className={styles.sectionHeader}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                    <h3 className={styles.sectionTitle}>Address</h3>
+                  </div>
+                  <div className={styles.grid1}>
+                    <TextArea label="Address" name="address" placeholder="Street, Area, City" value={editFormData.address} onChange={handleEditChange} disabled={editLoading} />
+                  </div>
+                  <div className={styles.grid3}>
+                    <Field label="Country" name="country" placeholder="e.g., India" value={editFormData.country} onChange={handleEditChange} disabled={editLoading} />
+                    <Field label="State" name="state" placeholder="e.g., Maharashtra" value={editFormData.state} onChange={handleEditChange} disabled={editLoading} />
+                    <Field label="Pin Code" name="pinCode" placeholder="e.g., 400001" value={editFormData.pinCode} onChange={handleEditChange} disabled={editLoading} />
+                  </div>
+                </div>
+
+                {/* ── Section: Primary Bank ── */}
+                <div className={styles.section}>
+                  <div className={styles.sectionHeader}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+                      <line x1="1" y1="10" x2="23" y2="10" />
+                    </svg>
+                    <h3 className={styles.sectionTitle}>Primary Banking Details</h3>
+                  </div>
+                  <div className={styles.grid2}>
+                    <Field label="Bank Name" name="bankName" placeholder="e.g., HDFC Bank" value={editFormData.bankName} onChange={handleEditChange} disabled={editLoading} />
+                    <Field label="Account No" name="accountNo" placeholder="e.g., 1234567890" value={editFormData.accountNo} onChange={handleEditChange} disabled={editLoading} />
+                    <Field label="IFSC Code" name="ifscCode" placeholder="e.g., HDFC0001234" value={editFormData.ifscCode} onChange={handleEditChange} disabled={editLoading} />
+                    <Field label="Branch" name="branch" placeholder="e.g., Andheri West" value={editFormData.branch} onChange={handleEditChange} disabled={editLoading} />
+                    <Field label="Account Type" name="accountType" placeholder="e.g., Current, Savings" value={editFormData.accountType} onChange={handleEditChange} disabled={editLoading} />
+                    <Field label="UPI ID" name="upiId" placeholder="e.g., seller@upi" value={editFormData.upiId} onChange={handleEditChange} disabled={editLoading} />
+                  </div>
+                </div>
+
+                {/* ── Section: Alternate Bank ── */}
+                <div className={styles.section}>
+                  <div className={styles.sectionHeader}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+                      <line x1="1" y1="10" x2="23" y2="10" />
+                    </svg>
+                    <h3 className={styles.sectionTitle}>Alternate Banking Details</h3>
+                    <span className={styles.optionalBadge}>Optional</span>
+                  </div>
+                  <div className={styles.grid2}>
+                    <Field label="Alt Bank Name" name="altBankName" placeholder="e.g., SBI" value={editFormData.altBankName} onChange={handleEditChange} disabled={editLoading} />
+                    <Field label="Alt Account No" name="altAccountNo" placeholder="e.g., 00112233" value={editFormData.altAccountNo} onChange={handleEditChange} disabled={editLoading} />
+                    <Field label="Alt IFSC Code" name="altIfscCode" placeholder="e.g., SBIN0001234" value={editFormData.altIfscCode} onChange={handleEditChange} disabled={editLoading} />
+                    <Field label="Alt Branch" name="altBranch" placeholder="e.g., Bandra" value={editFormData.altBranch} onChange={handleEditChange} disabled={editLoading} />
+                    <Field label="Alt Account Type" name="altAccountType" placeholder="e.g., Current" value={editFormData.altAccountType} onChange={handleEditChange} disabled={editLoading} />
+                    <Field label="Alt UPI ID" name="altUpiId" placeholder="e.g., alt@upi" value={editFormData.altUpiId} onChange={handleEditChange} disabled={editLoading} />
+                  </div>
+                </div>
+
+                <div className={styles.modalActions}>
+                  <button type="button" className={styles.cancelBtn} onClick={() => setShowEditModal(false)} disabled={editLoading}>Cancel</button>
+                  <button type="submit" className={styles.saveBtn} disabled={editLoading}>
+                    {editLoading ? "Saving..." : "Save Changes"}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

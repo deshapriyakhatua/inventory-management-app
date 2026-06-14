@@ -158,3 +158,47 @@ export async function PATCH(request) {
     );
   }
 }
+
+// PUT — Update an existing seller
+export async function PUT(request) {
+  try {
+    await connectToDatabase();
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { _id, ...updateFields } = body;
+
+    if (!_id) {
+      return NextResponse.json({ error: "Seller ID is required" }, { status: 400 });
+    }
+
+    // Optional: Basic validation on required fields
+    if (updateFields.businessName !== undefined && !updateFields.businessName.trim()) {
+      return NextResponse.json({ error: "Business Name cannot be empty" }, { status: 400 });
+    }
+
+    const updatedSeller = await Seller.findByIdAndUpdate(
+      _id,
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedSeller) {
+      return NextResponse.json({ error: "Seller not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(
+      { success: true, message: "Seller updated successfully", data: updatedSeller },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Update Seller API Error:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to update seller" },
+      { status: 500 }
+    );
+  }
+}
