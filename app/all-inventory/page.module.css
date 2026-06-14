@@ -1046,3 +1046,29 @@
     max-width: 80px;
 }
 
+.hideCardBtn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+    background-color: rgba(15, 23, 42, 0.7);
+    color: #cbd5e1;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition: all 0.2s ease;
+}
+
+.hideCardBtn:hover {
+    background-color: #3b82f6;
+    color: white;
+    transform: scale(1.1);
+}
+
+

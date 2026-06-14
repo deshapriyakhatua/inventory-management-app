@@ -37,6 +37,9 @@ export default function AllInventoryPage() {
     const [itemToRestore, setItemToRestore] = useState(null);
     const [restoreButtonLoading, setRestoreButtonLoading] = useState(false);
 
+    const [hiddenIds, setHiddenIds] = useState([]);
+    const [showHidden, setShowHidden] = useState(false);
+
     const STALE_THRESHOLD_MS = 60 * 1000; // 1 minute
     // Ref to track current showArchived value inside the stale event listener closure
     const showArchivedRef = React.useRef(showArchived);
@@ -45,6 +48,15 @@ export default function AllInventoryPage() {
     useEffect(() => {
         loadInitialData();
         fetchInventory(false); // Try loading from local storage first
+
+        const stored = localStorage.getItem("hidden_inventory_ids");
+        if (stored) {
+            try {
+                setHiddenIds(JSON.parse(stored));
+            } catch (e) {
+                console.error("Failed to parse hidden inventory IDs", e);
+            }
+        }
 
         // Auto-refresh when tab regains focus and data is stale
         const handleVisibilityChange = () => {
@@ -82,10 +94,17 @@ export default function AllInventoryPage() {
     // Apply Filters, Sort, and Pagination locally whenever dependencies change
     useEffect(() => {
         processLocalData();
-    }, [allInventoryData, currentPage, sortOrder, selectedVertical, searchQuery, pageSize]);
+    }, [allInventoryData, currentPage, sortOrder, selectedVertical, searchQuery, pageSize, hiddenIds, showHidden]);
 
     const processLocalData = () => {
         let filtered = [...allInventoryData];
+
+        // Filter hidden items
+        if (showHidden) {
+            filtered = filtered.filter(item => hiddenIds.includes(item._id));
+        } else {
+            filtered = filtered.filter(item => !hiddenIds.includes(item._id));
+        }
 
         // 1. Filter by vertical
         if (selectedVertical) {
@@ -213,6 +232,25 @@ export default function AllInventoryPage() {
             setShowRestoreConfirm(false);
             setItemToRestore(null);
         }
+    };
+
+    const toggleHideItem = (id, e) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        setHiddenIds((prev) => {
+            let updated;
+            if (prev.includes(id)) {
+                updated = prev.filter((i) => i !== id);
+                setMessage({ text: "Inventory item unhidden.", type: "success" });
+            } else {
+                updated = [...prev, id];
+                setMessage({ text: "Inventory item hidden from view.", type: "success" });
+            }
+            localStorage.setItem("hidden_inventory_ids", JSON.stringify(updated));
+            return updated;
+        });
     };
 
     const copyToClipboard = async (text, label) => {
@@ -371,6 +409,30 @@ export default function AllInventoryPage() {
                             Refresh
                         </button>
 
+                        <button
+                            className={`${styles.refreshBtn} ${showHidden ? styles.activeView : ''}`}
+                            onClick={() => {
+                                const newHiddenState = !showHidden;
+                                setShowHidden(newHiddenState);
+                                setCurrentPage(1);
+                            }}
+                            title={showHidden ? "Hide Hidden Inventory" : "Show Hidden Inventory"}
+                            style={showHidden ? { backgroundColor: 'var(--accent-color, #3b82f6)', color: 'white', borderColor: 'var(--accent-color, #3b82f6)' } : {}}
+                        >
+                            {showHidden ? (
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            ) : (
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                </svg>
+                            )}
+                            {showHidden ? "Hide Hidden" : "Show Hidden"}
+                        </button>
+
                         {(user?.role === 'admin' || user?.role === 'superadmin') && (
                             <button
                                 className={`${styles.refreshBtn} ${showArchived ? styles.activeView : ''}`}
@@ -404,7 +466,7 @@ export default function AllInventoryPage() {
                 </div>
             ) : inventory.length === 0 ? (
                 <div className={styles.emptyState} style={{ flex: 1 }}>
-                    <p>No inventory items found.</p>
+                    <p>{showHidden ? "No hidden inventory items found." : "No inventory items found."}</p>
                 </div>
             ) : (
                 <div className={styles.contentArea}>
@@ -412,8 +474,13 @@ export default function AllInventoryPage() {
                         <div className={styles.gridContainer}>
                                 {inventory.map((item) => {
                                     const canArchive = user?.role === 'admin' || user?.role === 'superadmin' || item.addedBy === user?.id;
+                                    const isHidden = hiddenIds.includes(item._id);
                                     return (
-                                    <div key={item._id} className={styles.gridCard}>
+                                    <div 
+                                        key={item._id} 
+                                        className={styles.gridCard}
+                                        style={isHidden ? { opacity: 0.75, borderStyle: 'dashed', borderColor: '#3b82f6' } : {}}
+                                    >
                                         {item.isArchived ? (
                                             <button
                                                 type="button"
@@ -448,6 +515,26 @@ export default function AllInventoryPage() {
                                                 }
                                             </button>
                                         ) : null}
+
+                                        <button
+                                            type="button"
+                                            onClick={(e) => toggleHideItem(item._id, e)}
+                                            className={styles.hideCardBtn}
+                                            title={isHidden ? "Unhide Inventory" : "Hide Inventory"}
+                                        >
+                                            {isHidden ? (
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                    <circle cx="12" cy="12" r="3"></circle>
+                                                </svg>
+                                            ) : (
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                                </svg>
+                                            )}
+                                        </button>
+
                                         <div className={styles.imageContainer}>
                                             {item.imageUrl ? (
                                                 <SmoothImage
@@ -484,11 +571,18 @@ export default function AllInventoryPage() {
                                                 })}
                                             </p>
                                             <div className={styles.stockAndPriceContainer}>
-                                                <div className={styles.stockBadge}>
-                                                    <span className={styles.stockLabel}>Stock:</span>
-                                                    <span className={`${styles.stockValue} ${item.currentStock <= 10 ? styles.lowStock : ''}`}>
-                                                        {item.currentStock ?? 0}
-                                                    </span>
+                                                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                                    <div className={styles.stockBadge}>
+                                                        <span className={styles.stockLabel}>Stock:</span>
+                                                        <span className={`${styles.stockValue} ${item.currentStock <= 10 ? styles.lowStock : ''}`}>
+                                                            {item.currentStock ?? 0}
+                                                        </span>
+                                                    </div>
+                                                    {isHidden && (
+                                                        <div className={styles.stockBadge} style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: 'rgba(59, 130, 246, 0.4)' }}>
+                                                            <span className={styles.stockLabel} style={{ color: '#60a5fa', fontWeight: '700' }}>HIDDEN</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <p className={styles.itemPrice}>
                                                     ₹{(item.totalBuyingPrice && item.initialStock) ? Math.ceil((item.totalBuyingPrice / item.initialStock) ?? 0) : 0}
