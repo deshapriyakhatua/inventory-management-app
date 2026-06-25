@@ -20,11 +20,34 @@
     gap: 1rem;
 }
 
+.headerLeft {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
 .title {
     font-size: 1.2rem;
     color: #f1f5f9;
     font-weight: 600;
     margin: 0;
+}
+
+.viewToggleBtn {
+    background: transparent;
+    border: 1px dashed #475569;
+    color: #94a3b8;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.viewToggleBtn:hover {
+    border-color: #3b82f6;
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
 }
 
 /* ── Filters Row ── */
@@ -96,6 +119,18 @@
     background-color: #0f172a;
 }
 
+.actionsBtn {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+    color: #60a5fa;
+    font-weight: 500;
+}
+
+.actionsBtn:hover {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: #60a5fa;
+}
+
 .dropdownMenu {
     position: absolute;
     top: calc(100% + 5px);
@@ -129,6 +164,30 @@
 .dropdownItem:hover {
     background: #334155;
     color: #f1f5f9;
+}
+
+.dropdownActionItem {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    color: #e2e8f0;
+    transition: background 0.1s ease;
+}
+
+.dropdownActionItem:hover {
+    background: #334155;
+}
+
+.dangerItem {
+    color: #ef4444;
+}
+
+.dangerItem:hover {
+    background: rgba(239, 68, 68, 0.1);
 }
 
 .dropdownCheckbox {
@@ -277,10 +336,28 @@
     border-bottom: 1px solid #334155;
     color: #cbd5e1;
     font-size: 0.95rem;
+    transition: background 0.2s ease;
 }
 
 .table tbody tr:hover td {
     background-color: rgba(255, 255, 255, 0.03);
+}
+
+.table tbody tr.rowSelected td {
+    background-color: rgba(59, 130, 246, 0.08);
+}
+
+.checkboxCell {
+    width: 40px;
+    text-align: center !important;
+}
+
+.rowCheckbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #3b82f6;
+    margin: 0;
 }
 
 .highlightText {

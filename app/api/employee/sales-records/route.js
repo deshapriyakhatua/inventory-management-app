@@ -137,11 +137,12 @@ export async function GET(request) {
     const month = searchParams.get("month") || "";
     const year = searchParams.get("year") || "";
     const salesChannel = searchParams.get("salesChannel") || "";
+    const isArchived = searchParams.get("isArchived") === "true";
     const sortBy = searchParams.get("sortBy") || "createdAt";
     const sortOrder = searchParams.get("sortOrder") === "asc" ? 1 : -1;
 
     // Build filter
-    const filter = {};
+    const filter = { isArchived };
     if (month) filter.month = parseInt(month, 10);
     if (year) filter.year = parseInt(year, 10);
     if (salesChannel) filter.salesChannel = salesChannel;
@@ -186,6 +187,53 @@ export async function GET(request) {
     console.error("Sales Records GET error:", error);
     return NextResponse.json(
       { error: "Failed to fetch sales records" },
+      { status: 500 }
+    );
+  }
+}
+
+// ─── PUT — Bulk actions (Archive, Restore, Delete) ───────────────────────────
+export async function PUT(request) {
+  try {
+    await connectToDatabase();
+    const user = await getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { action, recordIds } = body;
+
+    if (!["archive", "restore", "delete"].includes(action)) {
+      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    }
+    if (!Array.isArray(recordIds) || recordIds.length === 0) {
+      return NextResponse.json({ error: "recordIds array is required" }, { status: 400 });
+    }
+
+    let result;
+    if (action === "archive") {
+      result = await SalesRecord.updateMany(
+        { _id: { $in: recordIds } },
+        { $set: { isArchived: true } }
+      );
+    } else if (action === "restore") {
+      result = await SalesRecord.updateMany(
+        { _id: { $in: recordIds } },
+        { $set: { isArchived: false } }
+      );
+    } else if (action === "delete") {
+      result = await SalesRecord.deleteMany({ _id: { $in: recordIds } });
+    }
+
+    return NextResponse.json({
+      success: true,
+      modifiedCount: result.modifiedCount || result.deletedCount || 0,
+    });
+  } catch (error) {
+    console.error("Sales Records PUT error:", error);
+    return NextResponse.json(
+      { error: "Failed to perform bulk action" },
       { status: 500 }
     );
   }

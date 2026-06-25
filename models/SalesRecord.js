@@ -57,6 +57,10 @@ const salesRecordSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    isArchived: {
+      type: Boolean,
+      default: false,
+    },
     uploadedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

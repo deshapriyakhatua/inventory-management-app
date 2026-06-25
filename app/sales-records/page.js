@@ -40,12 +40,14 @@ export default function SalesRecordsPage() {
 
     // Core data
     const [allRecords, setAllRecords] = useState([]);
+    const [selectedRecordIds, setSelectedRecordIds] = useState(new Set());
 
     // Filtering & Sorting State (drive server-side fetch)
     const [searchQuery, setSearchQuery] = useState("");
     const [monthFilter, setMonthFilter] = useState("");
     const [yearFilter, setYearFilter] = useState("");
     const [channelFilter, setChannelFilter] = useState("");
+    const [viewArchived, setViewArchived] = useState(false);
     
     const [sortBy, setSortBy] = useState("timestamp");
     const [sortOrder, setSortOrder] = useState("desc");
@@ -57,6 +59,7 @@ export default function SalesRecordsPage() {
         return initial;
     });
     const [isColMenuOpen, setIsColMenuOpen] = useState(false);
+    const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
 
     // Server-side Pagination State
     const [currentPage, setCurrentPage] = useState(1);
@@ -69,11 +72,13 @@ export default function SalesRecordsPage() {
     const [debouncedSearch, setDebouncedSearch] = useState("");
 
     const colMenuRef = useRef(null);
+    const actionMenuRef = useRef(null);
 
-    // Click outside to close column menu
+    // Click outside to close menus
     useEffect(() => {
         function handleClickOutside(event) {
             if (colMenuRef.current && !colMenuRef.current.contains(event.target)) setIsColMenuOpen(false);
+            if (actionMenuRef.current && !actionMenuRef.current.contains(event.target)) setIsActionMenuOpen(false);
         }
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -89,10 +94,11 @@ export default function SalesRecordsPage() {
         return () => clearTimeout(searchTimerRef.current);
     }, [searchQuery]);
 
-    // Reset to page 1 when filters/sort change
+    // Reset to page 1 and clear selection when filters/sort/view change
     useEffect(() => {
         setCurrentPage(1);
-    }, [monthFilter, yearFilter, channelFilter, sortBy, sortOrder, pageSize]);
+        setSelectedRecordIds(new Set());
+    }, [monthFilter, yearFilter, channelFilter, sortBy, sortOrder, pageSize, viewArchived]);
 
     // ── Server-Side Fetch ──────────────────────────────────────────────────
     const fetchSalesRecords = useCallback(async (opts = {}) => {
@@ -106,6 +112,7 @@ export default function SalesRecordsPage() {
             pageSize: String(opts.pageSize ?? pageSize),
             sortBy,
             sortOrder,
+            isArchived: String(viewArchived)
         });
 
         if (debouncedSearch) params.set("search", debouncedSearch);
@@ -131,7 +138,7 @@ export default function SalesRecordsPage() {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [currentPage, pageSize, sortBy, sortOrder, debouncedSearch, monthFilter, yearFilter, channelFilter]);
+    }, [currentPage, pageSize, sortBy, sortOrder, debouncedSearch, monthFilter, yearFilter, channelFilter, viewArchived]);
 
     // Re-fetch whenever page/sort/filter/search changes
     useEffect(() => {
@@ -145,6 +152,52 @@ export default function SalesRecordsPage() {
 
     const toggleColumn = (key) => {
         setVisibleColumns(prev => ({ ...prev, [key]: !prev[key] }));
+    };
+
+    const toggleRowSelection = (id) => {
+        const newSet = new Set(selectedRecordIds);
+        if (newSet.has(id)) newSet.delete(id);
+        else newSet.add(id);
+        setSelectedRecordIds(newSet);
+    };
+
+    const toggleAllSelection = () => {
+        if (selectedRecordIds.size === allRecords.length && allRecords.length > 0) {
+            setSelectedRecordIds(new Set());
+        } else {
+            setSelectedRecordIds(new Set(allRecords.map(r => r._id)));
+        }
+    };
+
+    const handleBulkAction = async (action) => {
+        if (selectedRecordIds.size === 0) return;
+        setIsActionMenuOpen(false);
+        
+        if (action === "delete" && !confirm("Are you sure you want to permanently delete the selected records? This action cannot be undone.")) {
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const res = await fetch("/api/employee/sales-records", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action, recordIds: Array.from(selectedRecordIds) })
+            });
+            const response = await res.json();
+
+            if (res.ok && response.success) {
+                setMessage({ text: `Successfully processed ${response.modifiedCount} records.`, type: "success" });
+                setSelectedRecordIds(new Set());
+                fetchSalesRecords(); // Refresh the table
+            } else {
+                setMessage({ text: response.error || `Failed to ${action} records.`, type: "error" });
+                setLoading(false);
+            }
+        } catch {
+            setMessage({ text: `Network error during ${action} action.`, type: "error" });
+            setLoading(false);
+        }
     };
 
     // ── Render Helpers ──────────────────────────────────────────────────
@@ -193,9 +246,45 @@ export default function SalesRecordsPage() {
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <h1 className={styles.title}>Monthly Sales Records</h1>
+                <div className={styles.headerLeft}>
+                    <h1 className={styles.title}>{viewArchived ? "Archived Sales Records" : "Monthly Sales Records"}</h1>
+                    <button className={styles.viewToggleBtn} onClick={() => setViewArchived(!viewArchived)}>
+                        {viewArchived ? "View Active Records" : "View Archived"}
+                    </button>
+                </div>
 
                 <div className={styles.filtersRow}>
+                    {/* Bulk Actions Dropdown */}
+                    {selectedRecordIds.size > 0 && (
+                        <div className={styles.dropdownContainer} ref={actionMenuRef}>
+                            <button className={`${styles.dropdownBtn} ${styles.actionsBtn}`} onClick={() => setIsActionMenuOpen(!isActionMenuOpen)}>
+                                Actions ({selectedRecordIds.size})
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </button>
+                            {isActionMenuOpen && (
+                                <div className={styles.dropdownMenu}>
+                                    {!viewArchived ? (
+                                        <div className={styles.dropdownActionItem} onClick={() => handleBulkAction("archive")}>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+                                            Archive Selected
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className={styles.dropdownActionItem} onClick={() => handleBulkAction("restore")}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 9 9 3 15 9"></polyline><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+                                                Restore Selected
+                                            </div>
+                                            <div className={`${styles.dropdownActionItem} ${styles.dangerItem}`} onClick={() => handleBulkAction("delete")}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                                Permanently Delete
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* Search */}
                     <div className={styles.searchWrapper}>
                         <svg className={styles.searchIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -287,6 +376,14 @@ export default function SalesRecordsPage() {
                             <table className={styles.table}>
                                 <thead>
                                     <tr>
+                                        <th className={styles.checkboxCell}>
+                                            <input 
+                                                type="checkbox" 
+                                                className={styles.rowCheckbox}
+                                                checked={selectedRecordIds.size === allRecords.length && allRecords.length > 0}
+                                                onChange={toggleAllSelection}
+                                            />
+                                        </th>
                                         {ALL_COLUMNS.filter(c => visibleColumns[c.key]).map(c => (
                                             <th key={`th-${c.key}`}>
                                                 <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => { if (sortBy === c.key) setSortOrder(sortOrder === "asc" ? "desc" : "asc"); else { setSortBy(c.key); setSortOrder("desc"); } }}>
@@ -302,15 +399,26 @@ export default function SalesRecordsPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {allRecords.map((rec, index) => (
-                                        <tr key={`row-${rec.skuId}-${rec.month}-${rec.year}-${index}`}>
-                                            {ALL_COLUMNS.filter(c => visibleColumns[c.key]).map(c => (
-                                                <td key={`td-${c.key}-${index}`}>
-                                                    {renderCellContent(c.key, rec)}
+                                    {allRecords.map((rec, index) => {
+                                        const isSelected = selectedRecordIds.has(rec._id);
+                                        return (
+                                            <tr key={`row-${rec._id}-${index}`} className={isSelected ? styles.rowSelected : ""}>
+                                                <td className={styles.checkboxCell}>
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className={styles.rowCheckbox}
+                                                        checked={isSelected}
+                                                        onChange={() => toggleRowSelection(rec._id)}
+                                                    />
                                                 </td>
-                                            ))}
-                                        </tr>
-                                    ))}
+                                                {ALL_COLUMNS.filter(c => visibleColumns[c.key]).map(c => (
+                                                    <td key={`td-${c.key}-${index}`}>
+                                                        {renderCellContent(c.key, rec)}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         ) : (
