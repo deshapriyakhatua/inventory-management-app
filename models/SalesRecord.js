@@ -2,47 +2,60 @@ import mongoose from "mongoose";
 
 const salesRecordSchema = new mongoose.Schema(
   {
-    orderId: {
-      type: String,
-      required: true,
-      index: true,
-    },
-    lineId: {
-      type: String,
-      required: true,
-      index: true,
-    },
     skuId: {
       type: String,
       required: true,
       index: true,
     },
-    marketplace: {
-      type: String,
-      required: true,
-      default: "Flipkart",
-    },
-    quantity: {
+    month: {
       type: Number,
       required: true,
-      min: 0,
+      min: 1,
+      max: 12,
     },
-    status: {
+    year: {
+      type: Number,
+      required: true,
+    },
+    salesChannel: {
       type: String,
-      enum: [
-        "ORDERED",
-        "DISPATCHED",
-        "CANCELLED",
-        "CANCELLED_BEFORE_PICKUP",
-        "RETURN_REQUESTED",
-        "RETURNED",
-        "DELIVERED",
-      ],
       default: null,
     },
-    orderedOn: {
-      type: String, // keep as string to preserve original CSV date format
-      default: null,
+    grossUnits: {
+      type: Number,
+      default: 0,
+    },
+    logisticsReturns: {
+      type: Number,
+      default: 0,
+    },
+    customerReturns: {
+      type: Number,
+      default: 0,
+    },
+    cancellations: {
+      type: Number,
+      default: 0,
+    },
+    netUnits: {
+      type: Number,
+      default: 0,
+    },
+    netSales: {
+      type: Number,
+      default: 0,
+    },
+    totalExpenses: {
+      type: Number,
+      default: 0,
+    },
+    otherBenefits: {
+      type: Number,
+      default: 0,
+    },
+    projectedBankSettlement: {
+      type: Number,
+      default: 0,
     },
     uploadedBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -53,8 +66,8 @@ const salesRecordSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Prevent duplicate order line entries
-salesRecordSchema.index({ orderId: 1, lineId: 1 }, { unique: true });
+// Prevent duplicate monthly entries per SKU
+salesRecordSchema.index({ skuId: 1, month: 1, year: 1 }, { unique: true });
 
 export default mongoose.models.SalesRecord ||
   mongoose.model("SalesRecord", salesRecordSchema);

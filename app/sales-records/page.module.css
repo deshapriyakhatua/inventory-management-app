@@ -96,15 +96,6 @@
     background-color: #0f172a;
 }
 
-.badgeCount {
-    background: #3b82f6;
-    color: white;
-    font-size: 0.7rem;
-    font-weight: 700;
-    padding: 1px 6px;
-    border-radius: 999px;
-}
-
 .dropdownMenu {
     position: absolute;
     top: calc(100% + 5px);
@@ -147,13 +138,6 @@
     accent-color: #3b82f6;
 }
 
-.dropdownEmpty {
-    color: #64748b;
-    padding: 0.5rem;
-    font-size: 0.85rem;
-    text-align: center;
-}
-
 /* ── Back to selects ── */
 .filterSelect {
     padding: 0.65rem 2.25rem 0.65rem 1rem;
@@ -164,7 +148,7 @@
     color: #e2e8f0;
     transition: all 0.2s ease;
     cursor: pointer;
-    min-width: 150px;
+    min-width: 130px;
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
@@ -184,6 +168,7 @@
     border-color: #3b82f6;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
+
 .refreshBtn {
     background-color: transparent;
     border: 1px solid #334155;
@@ -213,114 +198,6 @@
     animation: spin 1s linear infinite;
 }
 
-/* ── Bulk Edit Styles ── */
-.updateBtn {
-    background: #10b981;
-    color: white;
-    border: none;
-    padding: 0.65rem 1.25rem;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
-}
-
-.updateBtn:hover:not(:disabled) {
-    background: #059669;
-    transform: translateY(-1px);
-    box-shadow: 0 6px 10px -1px rgba(16, 185, 129, 0.3);
-}
-
-.updateBtn:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-}
-
-.miniSpinner {
-    width: 14px;
-    height: 14px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-top: 2px solid white;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-}
-
-.editRecordsBtn {
-    background: #3b82f6;
-    color: white;
-    border: none;
-    padding: 0.65rem 1.25rem;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: all 0.2s ease;
-}
-
-.editRecordsBtn:hover {
-    background: #2563eb;
-    transform: translateY(-1px);
-}
-
-.editControls {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-}
-
-.cancelBtn {
-    background: transparent;
-    border: 1px solid #ef4444;
-    color: #ef4444;
-    padding: 0.65rem 1.25rem;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.cancelBtn:hover:not(:disabled) {
-    background: rgba(239, 68, 68, 0.1);
-}
-
-.cancelBtn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.cellSelect, .cellDateInput {
-    background: #1e293b;
-    border: 1px solid #334155;
-    color: #f1f5f9;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.9rem;
-    width: 100%;
-    min-width: 130px;
-    outline: none;
-    transition: all 0.2s;
-}
-
-.cellSelect:focus, .cellDateInput:focus {
-    border-color: #3b82f6;
-    background: #0f172a;
-}
-
-.editedCell {
-    border-color: #10b981;
-    background: rgba(16, 185, 129, 0.1);
-    box-shadow: 0 0 0 1px #10b981 inset;
-}
-
 @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
@@ -334,6 +211,8 @@
     overflow: hidden; /* Scroll will happen in scrollWrapper */
     border: 1px solid #334155;
     padding: 10px;
+    border-radius: 8px;
+    background-color: #0f172a;
 }
 
 .scrollWrapper {
@@ -345,29 +224,28 @@
 
 /* Custom Scrollbar for premium feel */
 .scrollWrapper::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
 }
 
 .scrollWrapper::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05); /* Very subtle track */
-    border-radius: 10px;
+    background: #1e293b;
+    border-radius: 4px;
 }
 
 .scrollWrapper::-webkit-scrollbar-thumb {
-    background: rgba(59, 130, 246, 0.3); /* Transparent blue thumb */
-    border-radius: 10px;
+    background: #475569;
+    border-radius: 4px;
     transition: background 0.3s ease;
 }
 
 .scrollWrapper::-webkit-scrollbar-thumb:hover {
-    background: rgba(59, 130, 246, 0.6); /* More visible on hover */
+    background: #64748b;
 }
 
 .tableContainer {
     width: 100%;
     border-radius: 8px;
-    border: 1px solid #334155;
     background: #0f172a;
     min-width: max-content;
 }
@@ -375,15 +253,15 @@
 .table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 800px;
+    min-width: 1000px;
 }
 
 .table th {
-    background-color: #0f172a;
+    background-color: #1e293b;
     color: #94a3b8;
     font-weight: 600;
     text-transform: uppercase;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     letter-spacing: 0.05em;
     padding: 1rem;
     text-align: left;
@@ -411,45 +289,18 @@
 }
 
 .skuText {
-    font-family: monospace;
-    color: #3b82f6;
-    background: rgba(59, 130, 246, 0.1);
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.9rem;
-}
-
-.badge {
-    padding: 0.35rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-align: center;
-    display: inline-block;
-}
-
-.badgeBlue {
-    background-color: rgba(59, 130, 246, 0.15);
+    font-family: 'Courier New', monospace;
     color: #93c5fd;
-    border: 1px solid rgba(59, 130, 246, 0.25);
+    background: rgba(59, 130, 246, 0.15);
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
 }
 
-.badgeGreen {
-    background-color: rgba(16, 185, 129, 0.15);
-    color: #34d399;
-    border: 1px solid rgba(16, 185, 129, 0.2);
-}
-
-.badgeRed {
-    background-color: rgba(244, 63, 94, 0.15);
-    color: #fb7185;
-    border: 1px solid rgba(244, 63, 94, 0.2);
-}
-
-.badgeOrange {
-    background-color: rgba(251, 146, 60, 0.15);
-    color: #fb923c;
-    border: 1px solid rgba(251, 146, 60, 0.2);
+.currencyText {
+    color: #10b981;
+    font-weight: 600;
 }
 
 .na {
@@ -459,7 +310,7 @@
 
 .dateText {
     color: #94a3b8;
-    font-size: 0.88rem;
+    font-size: 0.85rem;
     white-space: nowrap;
 }
 
@@ -469,13 +320,15 @@
     justify-content: space-between;
     align-items: center;
     margin-top: .5rem;
-    padding: .2rem 1rem;
-    background-color: #202a36;
+    padding: .5rem 1rem;
+    background-color: #1e293b;
+    border-radius: 8px;
+    border: 1px solid #334155;
 }
 
 .pageInfo {
     color: #94a3b8;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
 }
 
 .paginationLeft {
@@ -534,7 +387,8 @@
     border: 1px solid #334155;
     border-radius: 6px;
     color: #e2e8f0;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -554,7 +408,7 @@
 .pageDisplay {
     color: #e2e8f0;
     font-weight: 500;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
 }
 
 /* Loading State */
@@ -577,11 +431,6 @@
     margin-bottom: 1rem;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
 .emptyState {
     text-align: center;
     padding: 4rem 2rem;
@@ -599,8 +448,9 @@
         width: 100%;
     }
     
-    .filterSelect {
+    .filterSelect, .searchWrapper {
         width: 100%;
+        max-width: 100%;
     }
     
     .pagination {

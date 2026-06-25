@@ -4,14 +4,21 @@ import SalesRecord from "@/models/SalesRecord";
 import { decrypt } from "@/lib/session";
 import { cookies } from "next/headers";
 
-// ─── Auth helper ────────────────────────────────────────────────────────────
+// ─── Auth helper ─────────────────────────────────────────────────────────────
 async function getUser() {
   const session = (await cookies()).get("session")?.value;
   return decrypt(session);
 }
 
-// ─── POST — Bulk upsert sales records ────────────────────────────────────────
-// Body: { marketplace: string, salesItems: [{ orderId, lineId, skuId, quantity, status?, orderedOn? }] }
+// ─── POST — Create/upsert monthly sales records ───────────────────────────────
+// Body:
+//   items: [{ skuId, month, year, salesChannel?, grossUnits, logisticsReturns,
+//             customerReturns, cancellations, netUnits, netSales, totalExpenses,
+//             otherBenefits, projectedBankSettlement }]
+//   forceOverrides: ["skuId_month_year", ...]  — keys to force-upsert even if duplicate
+//
+// Response:
+//   { success, inserted, updated, conflicts: [{ key, existing, incoming }] }
 export async function POST(request) {
   try {
     await connectToDatabase();
@@ -22,80 +29,95 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { marketplace = "Flipkart", salesItems } = body;
+    const { items, forceOverrides = [] } = body;
 
-    if (!Array.isArray(salesItems) || salesItems.length === 0) {
+    if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
-        { error: "salesItems must be a non-empty array" },
+        { error: "items must be a non-empty array" },
         { status: 400 }
       );
     }
 
-    // Validate required fields
-    const invalid = salesItems.filter(
-      (item) => !item.orderId || !item.skuId || item.quantity == null
+    // Validate required fields on each item
+    const invalid = items.filter(
+      (item) => !item.skuId || item.month == null || item.year == null
     );
     if (invalid.length > 0) {
       return NextResponse.json(
-        { error: `${invalid.length} item(s) missing required fields (orderId, skuId, quantity)` },
+        { error: `${invalid.length} item(s) missing required fields (skuId, month, year)` },
         { status: 400 }
       );
     }
 
-    // Build bulk operations
-    // - If record exists: only update status when new status is non-null
-    // - If record doesn't exist: insert with all fields
-    const ops = salesItems.map((item) => {
-      const filter = {
-        orderId: item.orderId,
-        lineId: item.lineId || "",
-      };
+    let inserted = 0;
+    let updated = 0;
+    const conflicts = [];
 
-      const setOnInsert = {
+    for (const item of items) {
+      const key = `${item.skuId}_${item.month}_${item.year}`;
+      const isForced = forceOverrides.includes(key);
+
+      // Check for existing record
+      const existing = await SalesRecord.findOne({
         skuId: item.skuId,
-        marketplace,
-        quantity: item.quantity,
-        orderedOn: item.orderedOn || null,
+        month: item.month,
+        year: item.year,
+      }).lean();
+
+      if (existing && !isForced) {
+        // Conflict: return existing data alongside incoming for comparison
+        conflicts.push({ key, existing, incoming: item });
+        continue;
+      }
+
+      // Upsert the record
+      const payload = {
+        skuId: item.skuId,
+        month: item.month,
+        year: item.year,
+        salesChannel: item.salesChannel ?? null,
+        grossUnits: item.grossUnits ?? 0,
+        logisticsReturns: item.logisticsReturns ?? 0,
+        customerReturns: item.customerReturns ?? 0,
+        cancellations: item.cancellations ?? 0,
+        netUnits: item.netUnits ?? 0,
+        netSales: item.netSales ?? 0,
+        totalExpenses: item.totalExpenses ?? 0,
+        otherBenefits: item.otherBenefits ?? 0,
+        projectedBankSettlement: item.projectedBankSettlement ?? 0,
         uploadedBy: user.id || null,
       };
 
-      // Status update: only set if the incoming status is non-null
-      const setFields = {};
-      if (item.status != null) {
-        setFields.status = item.status;
+      await SalesRecord.findOneAndUpdate(
+        { skuId: item.skuId, month: item.month, year: item.year },
+        payload,
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+
+      if (existing) {
+        updated++;
+      } else {
+        inserted++;
       }
-
-      return {
-        updateOne: {
-          filter,
-          update: {
-            ...(Object.keys(setFields).length > 0 ? { $set: setFields } : {}),
-            $setOnInsert: setOnInsert,
-          },
-          upsert: true,
-        },
-      };
-    });
-
-    const result = await SalesRecord.bulkWrite(ops, { ordered: false });
+    }
 
     return NextResponse.json({
       success: true,
-      inserted: result.upsertedCount,
-      updated: result.modifiedCount,
-      total: salesItems.length,
+      inserted,
+      updated,
+      conflicts,
     });
   } catch (error) {
     console.error("Sales Records POST error:", error);
     return NextResponse.json(
-      { error: "Failed to upload sales records" },
+      { error: "Failed to save sales records" },
       { status: 500 }
     );
   }
 }
 
-// ─── GET — Fetch records with server-side pagination ─────────────────────────
-// Query params: page, pageSize, search, status (comma-sep), sortBy, sortOrder, marketplace
+// ─── GET — Fetch monthly records with server-side pagination ──────────────────
+// Query params: page, pageSize, search (skuId), month, year, salesChannel, sortBy, sortOrder
 export async function GET(request) {
   try {
     await connectToDatabase();
@@ -112,39 +134,32 @@ export async function GET(request) {
       Math.max(1, parseInt(searchParams.get("pageSize") || "500", 10))
     );
     const search = searchParams.get("search") || "";
-    const statusParam = searchParams.get("status") || "";
+    const month = searchParams.get("month") || "";
+    const year = searchParams.get("year") || "";
+    const salesChannel = searchParams.get("salesChannel") || "";
     const sortBy = searchParams.get("sortBy") || "createdAt";
     const sortOrder = searchParams.get("sortOrder") === "asc" ? 1 : -1;
-    const marketplace = searchParams.get("marketplace") || "";
 
     // Build filter
     const filter = {};
-
-    if (marketplace) {
-      filter.marketplace = marketplace;
-    }
-
-    if (statusParam) {
-      const statuses = statusParam.split(",").filter(Boolean);
-      if (statuses.length > 0) filter.status = { $in: statuses };
-    }
-
+    if (month) filter.month = parseInt(month, 10);
+    if (year) filter.year = parseInt(year, 10);
+    if (salesChannel) filter.salesChannel = salesChannel;
     if (search) {
-      filter.$or = [
-        { orderId: { $regex: search, $options: "i" } },
-        { lineId: { $regex: search, $options: "i" } },
-        { skuId: { $regex: search, $options: "i" } },
-      ];
+      filter.skuId = { $regex: search, $options: "i" };
     }
 
-    // Map sortBy aliases
+    // Sort field map
     const sortFieldMap = {
-      timestamp: "createdAt",
-      orderId: "orderId",
-      lineId: "lineId",
       skuId: "skuId",
-      quantity: "quantity",
-      status: "status",
+      month: "month",
+      year: "year",
+      salesChannel: "salesChannel",
+      grossUnits: "grossUnits",
+      netUnits: "netUnits",
+      netSales: "netSales",
+      projectedBankSettlement: "projectedBankSettlement",
+      timestamp: "createdAt",
     };
     const mongoSortField = sortFieldMap[sortBy] || "createdAt";
 
@@ -157,11 +172,7 @@ export async function GET(request) {
       SalesRecord.countDocuments(filter),
     ]);
 
-    // Remap createdAt → timestamp for front-end compatibility
-    const mapped = records.map((r) => ({
-      ...r,
-      timestamp: r.createdAt,
-    }));
+    const mapped = records.map((r) => ({ ...r, timestamp: r.createdAt }));
 
     return NextResponse.json({
       success: true,
@@ -175,58 +186,6 @@ export async function GET(request) {
     console.error("Sales Records GET error:", error);
     return NextResponse.json(
       { error: "Failed to fetch sales records" },
-      { status: 500 }
-    );
-  }
-}
-
-// ─── PUT — Bulk update status of existing records ────────────────────────────
-// Body: { updates: [{ orderId, lineId, status }] }
-export async function PUT(request) {
-  try {
-    await connectToDatabase();
-
-    const user = await getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const body = await request.json();
-    const { updates } = body;
-
-    if (!Array.isArray(updates) || updates.length === 0) {
-      return NextResponse.json(
-        { error: "updates must be a non-empty array" },
-        { status: 400 }
-      );
-    }
-
-    const ops = updates
-      .filter((u) => u.orderId && u.status)
-      .map((u) => ({
-        updateOne: {
-          filter: { orderId: u.orderId, lineId: u.lineId || "" },
-          update: { $set: { status: u.status } },
-        },
-      }));
-
-    if (ops.length === 0) {
-      return NextResponse.json(
-        { error: "No valid updates provided" },
-        { status: 400 }
-      );
-    }
-
-    const result = await SalesRecord.bulkWrite(ops, { ordered: false });
-
-    return NextResponse.json({
-      success: true,
-      modifiedCount: result.modifiedCount,
-    });
-  } catch (error) {
-    console.error("Sales Records PUT error:", error);
-    return NextResponse.json(
-      { error: "Failed to update sales records" },
       { status: 500 }
     );
   }
