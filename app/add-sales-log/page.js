@@ -81,6 +81,10 @@ export default function AddSalesLog() {
   const [showConflictModal, setShowConflictModal] = useState(false);
   const [conflictDecisions, setConflictDecisions] = useState({});
 
+  // File Upload State
+  const fileInputRef = useRef(null);
+  const [isParsingFile, setIsParsingFile] = useState(false);
+
   // ── Debounced SKU search ──────────────────────────────────────────────────
   // pickerSearch (in row state) = immediate input value → smooth typing
   // debouncedPickerSearch = delayed value used for actual list filtering
@@ -130,6 +134,64 @@ export default function AddSalesLog() {
       item.skuId?.toLowerCase().includes(lowerSearch)
     );
   }, [listings, debouncedPickerSearch]);
+
+  // ── File Upload ───────────────────────────────────────────────────────────
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setIsParsingFile(true);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const { parseSKULevelPL } = await import('@/utils/xlsxParser');
+      const parsedData = parseSKULevelPL(arrayBuffer);
+
+      if (!parsedData || parsedData.length === 0) {
+        setMessage({ text: "No valid data found or incorrect format.", type: "error" });
+        return;
+      }
+
+      // Filter out rows without SKU ID
+      const validData = parsedData.filter(item => item.skuId && String(item.skuId).trim() !== "");
+      
+      if (validData.length === 0) {
+          setMessage({ text: "No valid SKU IDs found in the file.", type: "error" });
+          return;
+      }
+
+      const newRows = validData.map(item => ({
+        ...emptyRow(),
+        skuId: String(item.skuId).trim(),
+        salesChannel: "Flipkart",
+        grossUnits: String(item.grossUnits || 0),
+        logisticsReturns: String(item.logisticsReturns || 0),
+        customerReturns: String(item.customerReturns || 0),
+        cancellations: String(item.cancellations || 0),
+        netUnits: String(item.netUnits || 0),
+        netUnitsManual: true, 
+        netSales: String(item.netSales || 0),
+        totalExpenses: String(item.totalExpenses || 0),
+        otherBenefits: String(item.otherBenefits || 0),
+        projectedBankSettlement: String(item.projectedBankSettlement || 0)
+      }));
+
+      setRows(prev => {
+        // If there's only one empty row, replace it
+        if (prev.length === 1 && !prev[0].skuId && prev[0].grossUnits === "") {
+          return newRows;
+        }
+        return [...prev, ...newRows];
+      });
+      
+      setMessage({ text: `Successfully imported ${newRows.length} SKUs from Flipkart report.`, type: "success" });
+    } catch (err) {
+      console.error("File upload error:", err);
+      setMessage({ text: err.message || "Failed to parse Excel file.", type: "error" });
+    } finally {
+      setIsParsingFile(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   // ── Row mutations ─────────────────────────────────────────────────────────
   const addRow = () => setRows((prev) => [...prev, emptyRow()]);
@@ -322,7 +384,24 @@ export default function AddSalesLog() {
     }
   };
 
-  // ─── Render ───────────────────────────────────────────────────────────────
+  // ── Calculate Totals ──────────────────────────────────────────────────────
+  const totals = rows.reduce((acc, row) => {
+    acc.grossUnits += Number(row.grossUnits) || 0;
+    acc.logisticsReturns += Number(row.logisticsReturns) || 0;
+    acc.customerReturns += Number(row.customerReturns) || 0;
+    acc.cancellations += Number(row.cancellations) || 0;
+    acc.netUnits += Number(row.netUnits) || 0;
+    acc.netSales += Number(row.netSales) || 0;
+    acc.totalExpenses += Number(row.totalExpenses) || 0;
+    acc.otherBenefits += Number(row.otherBenefits) || 0;
+    acc.projectedBankSettlement += Number(row.projectedBankSettlement) || 0;
+    return acc;
+  }, {
+    grossUnits: 0, logisticsReturns: 0, customerReturns: 0, cancellations: 0,
+    netUnits: 0, netSales: 0, totalExpenses: 0, otherBenefits: 0, projectedBankSettlement: 0
+  });
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className={styles.container}>
       {/* ── Page Header ── */}
@@ -378,6 +457,41 @@ export default function AddSalesLog() {
               ))}
             </select>
           </div>
+        </div>
+      </div>
+
+      {/* ── Bulk Import Section ── */}
+      <div className={styles.importSection}>
+        <div className={styles.importHeader}>
+            <div className={styles.importTitle}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              Bulk Import Data
+            </div>
+            <p className={styles.importDescription}>Automatically extract SKU metrics from marketplace reports.</p>
+        </div>
+        <div className={styles.importActions}>
+            <input 
+              type="file" 
+              accept=".xlsx" 
+              style={{ display: "none" }} 
+              ref={fileInputRef} 
+              onChange={handleFileUpload} 
+            />
+            <button 
+              className={styles.uploadBtn} 
+              onClick={() => fileInputRef.current?.click()} 
+              type="button"
+              disabled={isParsingFile}
+            >
+              {isParsingFile ? (
+                 <><span className={styles.spinnerSmall}></span> Parsing…</>
+              ) : (
+                 <>
+                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                   Upload Flipkart .xlsx
+                 </>
+              )}
+            </button>
         </div>
       </div>
 
@@ -587,16 +701,67 @@ export default function AddSalesLog() {
             </div>
           );
         })}
+      </div>
 
-        {/* ── Actions Bar ── */}
-        <div className={styles.actionsBar}>
-          <button className={styles.addRowBtn} onClick={addRow} type="button">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            Add Another SKU
-          </button>
+      {/* ── Totals Section ── */}
+      {rows.length > 0 && (
+        <div className={styles.totalsSection}>
+          <div className={styles.totalsHeader}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M2 15h10"></path><path d="M5 12l3 3-3 3"></path></svg>
+            Summary Totals
+          </div>
+          <div className={styles.totalsGrid}>
+            <div className={styles.totalBox}>
+              <span className={styles.totalLabel}>Gross Units</span>
+              <span className={styles.totalValue}>{totals.grossUnits}</span>
+            </div>
+            <div className={styles.totalBox}>
+              <span className={styles.totalLabel}>Log. Returns</span>
+              <span className={styles.totalValue}>{totals.logisticsReturns}</span>
+            </div>
+            <div className={styles.totalBox}>
+              <span className={styles.totalLabel}>Cust. Returns</span>
+              <span className={styles.totalValue}>{totals.customerReturns}</span>
+            </div>
+            <div className={styles.totalBox}>
+              <span className={styles.totalLabel}>Cancellations</span>
+              <span className={styles.totalValue}>{totals.cancellations}</span>
+            </div>
+            <div className={styles.totalBox}>
+              <span className={styles.totalLabel}>Net Units</span>
+              <span className={styles.totalValue}>{totals.netUnits}</span>
+            </div>
+            <div className={styles.totalBox}>
+              <span className={styles.totalLabel}>Net Sales</span>
+              <span className={styles.totalValueCurrency}>₹{totals.netSales.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+            <div className={styles.totalBox}>
+              <span className={styles.totalLabel}>Total Expenses</span>
+              <span className={styles.totalValueCurrency}>₹{totals.totalExpenses.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+            <div className={styles.totalBox}>
+              <span className={styles.totalLabel}>Other Benefits</span>
+              <span className={styles.totalValueCurrency}>₹{totals.otherBenefits.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+            <div className={styles.totalBox}>
+              <span className={styles.totalLabel}>Settlement</span>
+              <span className={styles.totalValueCurrency}>₹{totals.projectedBankSettlement.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Actions Bar ── */}
+      <div className={styles.actionsBar}>
+          <div className={styles.actionsLeft}>
+            <button className={styles.addRowBtn} onClick={addRow} type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add Another SKU
+            </button>
+          </div>
           <div className={styles.actionsMeta}>
             <span className={styles.rowCount}>{rows.length} SKU{rows.length > 1 ? "s" : ""} · {MONTHS[month - 1]} {year}</span>
             <button
@@ -622,7 +787,6 @@ export default function AddSalesLog() {
             </button>
           </div>
         </div>
-      </div>
 
       {/* ── Conflict Compare Modal ── */}
       {showConflictModal && (

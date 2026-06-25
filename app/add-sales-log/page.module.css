@@ -124,6 +124,50 @@
   box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
 }
 
+/* ─── Import Section ──────────────────────────────────────────────────────── */
+.importSection {
+  background: #1e293b;
+  border: 1px dashed #3b82f6;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  background: linear-gradient(145deg, rgba(30, 41, 59, 1) 0%, rgba(15, 23, 42, 0.8) 100%);
+}
+
+.importHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.importTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #38bdf8;
+  letter-spacing: 0.02em;
+}
+
+.importDescription {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.importActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 /* ─── Layout ──────────────────────────────────────────────────────────────── */
 .layout {
   display: flex;
@@ -505,6 +549,65 @@
   padding-left: 1.75rem !important;
 }
 
+/* ─── Totals Section ──────────────────────────────────────────────────────── */
+.totalsSection {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 14px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.totalsHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f8fafc;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #334155;
+}
+
+.totalsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 1rem;
+}
+
+.totalBox {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  background: #0f172a;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #334155;
+}
+
+.totalLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.totalValue {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.totalValueCurrency {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #10b981;
+}
+
 /* ─── Actions Bar ─────────────────────────────────────────────────────────── */
 .actionsBar {
   display: flex;
@@ -738,6 +841,36 @@
 }
 
 /* Decision buttons */
+.uploadBtn {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #ffffff;
+  border: none;
+  padding: 0.65rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.39);
+  transition: all 0.2s ease;
+}
+
+.uploadBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px 0 rgba(16, 185, 129, 0.45);
+  background: linear-gradient(135deg, #047857 0%, #059669 100%);
+}
+
+.uploadBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+  background: #334155;
+  color: #94a3b8;
+}
+
 .decisionGroup {
   display: flex;
   gap: 0.4rem;
