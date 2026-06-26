@@ -242,6 +242,23 @@ export default function SalesRecordsPage() {
         return Array.from({ length: 6 }, (_, i) => currentYear - 4 + i);
     };
 
+    // Calculate Totals for visible rows (allRecords)
+    const totals = allRecords.reduce((acc, row) => {
+        acc.grossUnits += Number(row.grossUnits) || 0;
+        acc.logisticsReturns += Number(row.logisticsReturns) || 0;
+        acc.customerReturns += Number(row.customerReturns) || 0;
+        acc.cancellations += Number(row.cancellations) || 0;
+        acc.netUnits += Number(row.netUnits) || 0;
+        acc.netSales += Number(row.netSales) || 0;
+        acc.totalExpenses += Number(row.totalExpenses) || 0;
+        acc.otherBenefits += Number(row.otherBenefits) || 0;
+        acc.projectedBankSettlement += Number(row.projectedBankSettlement) || 0;
+        return acc;
+    }, {
+        grossUnits: 0, logisticsReturns: 0, customerReturns: 0, cancellations: 0,
+        netUnits: 0, netSales: 0, totalExpenses: 0, otherBenefits: 0, projectedBankSettlement: 0
+    });
+
     // ────────────────────────────────────────────────────────────────────
     return (
         <div className={styles.container}>
@@ -365,6 +382,71 @@ export default function SalesRecordsPage() {
             </div>
 
             <div className={styles.contentArea}>
+                {!loading && allRecords.length > 0 && (
+                    <div className={styles.totalsSection}>
+                        <div className={styles.totalsHeader}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M2 15h10"></path><path d="M5 12l3 3-3 3"></path></svg>
+                            Visible Rows Totals ({allRecords.length})
+                        </div>
+                        <div className={styles.totalsGrid}>
+                            {visibleColumns.grossUnits && (
+                                <div className={styles.totalBox}>
+                                    <span className={styles.totalLabel}>Gross Units</span>
+                                    <span className={styles.totalValue}>{totals.grossUnits}</span>
+                                </div>
+                            )}
+                            {visibleColumns.logisticsReturns && (
+                                <div className={styles.totalBox}>
+                                    <span className={styles.totalLabel}>Log Returns</span>
+                                    <span className={styles.totalValue}>{totals.logisticsReturns}</span>
+                                </div>
+                            )}
+                            {visibleColumns.customerReturns && (
+                                <div className={styles.totalBox}>
+                                    <span className={styles.totalLabel}>Cust Returns</span>
+                                    <span className={styles.totalValue}>{totals.customerReturns}</span>
+                                </div>
+                            )}
+                            {visibleColumns.cancellations && (
+                                <div className={styles.totalBox}>
+                                    <span className={styles.totalLabel}>Cancellations</span>
+                                    <span className={styles.totalValue}>{totals.cancellations}</span>
+                                </div>
+                            )}
+                            {visibleColumns.netUnits && (
+                                <div className={styles.totalBox}>
+                                    <span className={styles.totalLabel}>Net Units</span>
+                                    <span className={styles.totalValue}>{totals.netUnits}</span>
+                                </div>
+                            )}
+                            {visibleColumns.netSales && (
+                                <div className={styles.totalBox}>
+                                    <span className={styles.totalLabel}>Net Sales</span>
+                                    <span className={styles.totalValueCurrency}>{formatCurrency(totals.netSales)}</span>
+                                </div>
+                            )}
+                            {visibleColumns.totalExpenses && (
+                                <div className={styles.totalBox}>
+                                    <span className={styles.totalLabel}>Expenses</span>
+                                    <span className={styles.totalValueCurrency}>{formatCurrency(totals.totalExpenses)}</span>
+                                </div>
+                            )}
+                            {visibleColumns.otherBenefits && (
+                                <div className={styles.totalBox}>
+                                    <span className={styles.totalLabel}>Benefits</span>
+                                    <span className={styles.totalValueCurrency}>{formatCurrency(totals.otherBenefits)}</span>
+                                </div>
+                            )}
+                            {visibleColumns.projectedBankSettlement && (
+                                <div className={styles.totalBox}>
+                                    <span className={styles.totalLabel}>Settlement</span>
+                                    <span className={styles.totalValueCurrency}>{formatCurrency(totals.projectedBankSettlement)}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 <div className={styles.scrollWrapper}>
                     <div className={styles.tableContainer}>
                         {loading ? (

@@ -162,7 +162,7 @@ export default function AddSalesLog() {
       const newRows = validData.map(item => ({
         ...emptyRow(),
         skuId: String(item.skuId).trim(),
-        salesChannel: "Flipkart",
+        salesChannel: item.salesChannel ? String(item.salesChannel).trim() : "",
         grossUnits: String(item.grossUnits || 0),
         logisticsReturns: String(item.logisticsReturns || 0),
         customerReturns: String(item.customerReturns || 0),
@@ -265,11 +265,11 @@ export default function AddSalesLog() {
   };
 
   // ── API call ──────────────────────────────────────────────────────────────
-  const submitToApi = async (items, forceOverrides = []) => {
+  const submitToApi = async (items, forceOverrides = [], forceKeepBoth = []) => {
     const res = await fetch("/api/employee/sales-records", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items, forceOverrides }),
+      body: JSON.stringify({ items, forceOverrides, forceKeepBoth }),
     });
     return res.json();
   };
@@ -352,33 +352,38 @@ export default function AddSalesLog() {
       .filter(([, v]) => v === "override")
       .map(([k]) => k);
 
+    const keepKeys = Object.entries(conflictDecisions)
+      .filter(([, v]) => v === "keep")
+      .map(([k]) => k);
+
     setShowConflictModal(false);
     setConflicts([]);
 
-    if (overrideKeys.length === 0) {
+    const chosenKeys = [...overrideKeys, ...keepKeys];
+    if (chosenKeys.length === 0) {
       setMessage({ text: "All conflicting records were skipped. No changes made.", type: "error" });
       return;
     }
 
-    // Only re-submit the items chosen for override
-    const overrideItems = conflicts
-      .filter((c) => overrideKeys.includes(c.key))
+    // Re-submit the items chosen for override OR keep
+    const resolvedItems = conflicts
+      .filter((c) => chosenKeys.includes(c.key))
       .map((c) => c.incoming);
 
     setIsSubmitting(true);
     try {
-      const res = await submitToApi(overrideItems, overrideKeys);
+      const res = await submitToApi(resolvedItems, overrideKeys, keepKeys);
       if (res.success) {
         setMessage({
-          text: `✓ Overrode ${res.updated} record(s) for ${MONTHS[month - 1]} ${year}.`,
+          text: `✓ Processed duplicate records: saved ${res.inserted} and updated ${res.updated} for ${MONTHS[month - 1]} ${year}.`,
           type: "success",
         });
         setRows([emptyRow()]);
       } else {
-        setMessage({ text: res.error || "Failed to override records.", type: "error" });
+        setMessage({ text: res.error || "Failed to resolve duplicate records.", type: "error" });
       }
     } catch {
-      setMessage({ text: "Network error during override.", type: "error" });
+      setMessage({ text: "Network error during conflict resolution.", type: "error" });
     } finally {
       setIsSubmitting(false);
     }
@@ -816,17 +821,17 @@ export default function AddSalesLog() {
               </button>
             </div>
             <p className={styles.modalSubtitle}>
-              {conflicts.length} record(s) already exist for {MONTHS[month - 1]} {year}. Compare old vs. new data and choose to <strong>Override</strong> or <strong>Skip</strong>.
+              {conflicts.length} record(s) already exist for {MONTHS[month - 1]} {year}. Compare old vs. new data and choose to <strong>Override</strong>, <strong>Keep Both</strong>, or <strong>Skip</strong>.
             </p>
 
             {/* Conflict list */}
             <div className={styles.conflictList}>
-              {conflicts.map((conflict) => (
-                <div key={conflict.key} className={styles.conflictItem}>
-                  <div className={styles.conflictItemHeader}>
-                    <div className={styles.conflictItemLeft}>
-                      <span className={styles.conflictSkuId}>{conflict.incoming.skuId}</span>
-                      <span className={styles.conflictPeriod}>
+              {conflicts.map((conflict, indx) => (
+                  <div key={`${conflict.key}-conflict-item-${indx}`} className={styles.conflictItem}>
+                    <div className={styles.conflictItemHeader}>
+                      <div className={styles.conflictItemLeft}>
+                        <span className={styles.conflictSkuId}>{conflict.incoming.skuId} ({conflict.incoming.salesChannel || '—'})</span>
+                        <span className={styles.conflictPeriod}>
                         {MONTHS[(conflict.existing.month ?? month) - 1]} {conflict.existing.year ?? year}
                       </span>
                     </div>
@@ -838,6 +843,14 @@ export default function AddSalesLog() {
                         }
                       >
                         Override
+                      </button>
+                      <button
+                        className={`${styles.decisionBtn} ${styles.keepBtn} ${conflictDecisions[conflict.key] === "keep" ? styles.decisionActive : ""}`}
+                        onClick={() =>
+                          setConflictDecisions((prev) => ({ ...prev, [conflict.key]: "keep" }))
+                        }
+                      >
+                        Keep Both
                       </button>
                       <button
                         className={`${styles.decisionBtn} ${styles.skipBtn} ${conflictDecisions[conflict.key] === "skip" ? styles.decisionActive : ""}`}
@@ -878,6 +891,7 @@ export default function AddSalesLog() {
             <div className={styles.modalFooter}>
               <div className={styles.modalFooterInfo}>
                 {Object.values(conflictDecisions).filter((v) => v === "override").length} override ·{" "}
+                {Object.values(conflictDecisions).filter((v) => v === "keep").length} keep both ·{" "}
                 {Object.values(conflictDecisions).filter((v) => v === "skip").length} skip
               </div>
               <div className={styles.modalFooterActions}>

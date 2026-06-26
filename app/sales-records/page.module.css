@@ -535,3 +535,68 @@
         gap: 1rem;
     }
 }
+
+/* ── Totals Section ── */
+.totalsSection {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    flex-shrink: 0;
+}
+
+.totalsHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #f8fafc;
+    margin-bottom: 0.6rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid #334155;
+}
+
+.totalsHeader svg {
+    color: #3b82f6;
+}
+
+.totalsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 0.5rem;
+}
+
+.totalBox {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    background: #0f172a;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid #334155;
+}
+
+.totalLabel {
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+.totalValue {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #e2e8f0;
+}
+
+.totalValueCurrency {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #10b981;
+}
+

@@ -70,8 +70,8 @@ const salesRecordSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Prevent duplicate monthly entries per SKU
-salesRecordSchema.index({ skuId: 1, month: 1, year: 1 }, { unique: true });
+// Index monthly entries per SKU for fast lookup (no longer unique to allow keeping both data)
+salesRecordSchema.index({ skuId: 1, month: 1, year: 1 });
 
 export default mongoose.models.SalesRecord ||
   mongoose.model("SalesRecord", salesRecordSchema);

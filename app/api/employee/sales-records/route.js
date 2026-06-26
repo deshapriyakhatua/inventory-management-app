@@ -29,7 +29,7 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { items, forceOverrides = [] } = body;
+    const { items, forceOverrides = [], forceKeepBoth = [] } = body;
 
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
@@ -54,23 +54,25 @@ export async function POST(request) {
     const conflicts = [];
 
     for (const item of items) {
-      const key = `${item.skuId}_${item.month}_${item.year}`;
+      const key = `${item.skuId}_${item.salesChannel ?? ''}_${item.month}_${item.year}`;
       const isForced = forceOverrides.includes(key);
+      const isKeepBoth = forceKeepBoth.includes(key);
 
       // Check for existing record
       const existing = await SalesRecord.findOne({
         skuId: item.skuId,
         month: item.month,
         year: item.year,
+        salesChannel: item.salesChannel ?? null,
       }).lean();
 
-      if (existing && !isForced) {
+      if (existing && !isForced && !isKeepBoth) {
         // Conflict: return existing data alongside incoming for comparison
         conflicts.push({ key, existing, incoming: item });
         continue;
       }
 
-      // Upsert the record
+      // Prepare payload
       const payload = {
         skuId: item.skuId,
         month: item.month,
@@ -88,16 +90,22 @@ export async function POST(request) {
         uploadedBy: user.id || null,
       };
 
-      await SalesRecord.findOneAndUpdate(
-        { skuId: item.skuId, month: item.month, year: item.year },
-        payload,
-        { upsert: true, new: true, setDefaultsOnInsert: true }
-      );
-
-      if (existing) {
-        updated++;
-      } else {
+      if (isKeepBoth) {
+        // Keep both: insert a brand new record
+        await SalesRecord.create(payload);
         inserted++;
+      } else {
+        // Override or first time insert: upsert
+        await SalesRecord.findOneAndUpdate(
+          { skuId: item.skuId, month: item.month, year: item.year, salesChannel: item.salesChannel ?? null },
+          payload,
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+        if (existing) {
+          updated++;
+        } else {
+          inserted++;
+        }
       }
     }
 
