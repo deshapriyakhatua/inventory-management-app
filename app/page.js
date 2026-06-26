@@ -86,8 +86,8 @@ const NAV_CARDS = [
                 <line x1="6" y1="20" x2="6" y2="14" />
             </svg>
         ),
-        label: "Sales Analytics",
-        desc: "Charts & insights on sales",
+        label: "Sales Data",
+        desc: "Browse monthly sales records",
         color: "#f97316",
     },
 ];
