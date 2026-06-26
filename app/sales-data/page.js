@@ -218,21 +218,9 @@ export default function SalesDataPage() {
                         value={dateRange}
                         onChange={(e) => setDateRange(e.target.value)}
                     >
-                        <option value="7">Last 7 Days</option>
-                        <option value="30">Last 30 Days</option>
-                        <option value="90">Last 90 Days</option>
+                        <option value="180">Last 6 Months</option>
+                        <option value="365">Last 12 Months</option>
                         <option value="all">All Time</option>
-                    </select>
-
-                    <select 
-                        className={styles.filterSelect}
-                        value={selectedVertical}
-                        onChange={(e) => setSelectedVertical(e.target.value)}
-                    >
-                        <option value="All">All Verticals</option>
-                        <option value="ER">ER</option>
-                        <option value="NW">NW</option>
-                        <option value="PT">PT</option>
                     </select>
 
                     <select 
@@ -362,6 +350,46 @@ export default function SalesDataPage() {
                                 <Legend verticalAlign="bottom" height={36}/>
                             </PieChart>
                         </ResponsiveContainer>
+                    </div>
+                </div>
+            </div>
+
+            <div className={styles.recordsSection}>
+                <h2 className={styles.chartHeader}>Recent Sales Records</h2>
+                <div className={styles.scrollWrapper}>
+                    <div className={styles.tableContainer}>
+                        <table className={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Platform</th>
+                                    <th>Vertical</th>
+                                    <th>Quantity</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredRawData.length > 0 ? (
+                                    filteredRawData.slice(0, 100).map((item, index) => (
+                                        <tr key={`record-${index}`}>
+                                            <td>{item.date ? new Date(item.date).toLocaleDateString() : (item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "—")}</td>
+                                            <td>
+                                                <span className={`${styles.typeBadge} ${item.type === 'Sale' ? styles.typeSale : styles.typeReturn}`}>
+                                                    {item.type || "Unknown"}
+                                                </span>
+                                            </td>
+                                            <td>{item.platform || "—"}</td>
+                                            <td>{item.vertical || "—"}</td>
+                                            <td>{Math.abs(Number(item.quantity)) || 0}</td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="5" style={{ textAlign: "center", padding: "2rem", color: "#94a3b8" }}>No records found for current filters</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
