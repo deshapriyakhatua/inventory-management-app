@@ -114,6 +114,40 @@ export async function GET() {
           }
         }
       },
+      // --- Dynamic netSold Calculation ---
+      {
+        $lookup: {
+          from: "listings",
+          localField: "inventoryId",
+          foreignField: "inventoryItems",
+          as: "matchedListings"
+        }
+      },
+      {
+        $addFields: {
+          relatedSkuIds: {
+            $reduce: {
+              input: "$matchedListings.skuId",
+              initialValue: [],
+              in: { $setUnion: ["$$value", ["$$this"]] }
+            }
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: "salesrecords",
+          localField: "relatedSkuIds",
+          foreignField: "skuId",
+          as: "matchedSales"
+        }
+      },
+      {
+        $addFields: {
+          dynamicNetSold: { $sum: "$matchedSales.netUnits" }
+        }
+      },
+      // -----------------------------------
       {
         $addFields: {
           currentStock: {
@@ -121,24 +155,49 @@ export async function GET() {
               "$initialStock",
               { $ifNull: ["$adjust", 0] },
               { $ifNull: ["$returned", 0] },
-              { $multiply: [{ $ifNull: ["$netSold", 0] }, -1] },
+              { $multiply: [{ $ifNull: ["$dynamicNetSold", 0] }, -1] },
               { $multiply: [{ $ifNull: ["$damaged", 0] }, -1] },
               { $multiply: [{ $ifNull: ["$dispatched", 0] }, -1] },
               { $multiply: [{ $ifNull: ["$cancelled", 0] }, -1] }
             ]
-          }
+          },
+          netSold: "$dynamicNetSold" // Ensure the frontend sees the dynamic value
         }
       },
-      { $project: { purchases: 0 } },
+      {
+        $project: {
+          matchedListings: 0,
+          relatedSkuIds: 0,
+          matchedSales: 0,
+          dynamicNetSold: 0
+        }
+      },
       { $sort: { createdAt: -1 } },
       { $limit: 5 }
     ];
 
     const items = await Inventory.aggregate(pipeline);
 
+    // Apply FIFO calculation post-aggregation
+    const { calculateFIFO } = await import("@/utils/fifoCalculator");
+    
+    const processedItems = items.map(item => {
+      const consumedUnits = Math.max(0, (item.initialStock || 0) - (item.currentStock || 0));
+
+      const fifoData = calculateFIFO(item.purchases, consumedUnits);
+
+      const { purchases, ...rest } = item;
+      return {
+        ...rest,
+        totalBuyingPrice: fifoData.totalPurchaseCost,
+        remainingInventoryValue: fifoData.remainingInventoryValue,
+        fifoUnitCost: fifoData.fifoUnitCost,
+      };
+    });
+
     return NextResponse.json({ 
       status: 200,
-      data: items 
+      data: processedItems 
     }, { status: 200 });
 
   } catch (error) {

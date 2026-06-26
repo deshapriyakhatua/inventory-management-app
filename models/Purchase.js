@@ -14,16 +14,19 @@ const purchaseSchema = new mongoose.Schema({
     type: String, // String instead of ObjectId since our Inventory model uses `inventoryId` as a unique primary String identifier
     required: true,
   },
+  //total quantity of the product purchased
   quantity: {
     type: Number,
     required: true,
     min: 1,
   },
+  //price per unit excluding shipping and tax
   price: {
     type: Number,
     required: true,
     min: 0,
   },
+  //total shipping fee for all units of the product
   shippingFee: {
     type: Number,
     default: 0,
@@ -39,6 +42,7 @@ const purchaseSchema = new mongoose.Schema({
   invoiceNo: {
     type: String,
   },
+  //tax percentage on total purchase amount
   taxPercentage: {
     type: Number,
     default: 0,
