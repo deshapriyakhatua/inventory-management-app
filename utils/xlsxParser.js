@@ -33,15 +33,15 @@ export function parseSKULevelPL(fileBuffer) {
   const colIndexMap = {
     skuId: getColIndex('D'),                  // Seller SKU
     salesChannel: getColIndex('F'),           // Channel of sale (Flipkart/Shopsy)
-    grossUnits: getColIndex('K'),             // Standard layout metrics
-    logisticsReturns: getColIndex('M'),       // Note: Double check if these letters map exactly 
-    customerReturns: getColIndex('N'),        // to your specific Orders P&L sheet columns.
-    cancellations: getColIndex('O'),          
-    netUnits: getColIndex('P'),               
+    grossUnits: getColIndex('J'),             // Standard layout metrics
+    logisticsReturns: getColIndex('L'),       // Note: Double check if these letters map exactly 
+    customerReturns: getColIndex('M'),        // to your specific Orders P&L sheet columns.
+    cancellations: getColIndex('N'),          
+    netUnits: getColIndex('O'),               
     netSales: getColIndex('V'),               
-    totalExpenses: getColIndex('Z'),          
-    otherBenefits: getColIndex('AS'),         
-    projectedBankSettlement: getColIndex('AV') 
+    totalExpenses: getColIndex('AB'),          
+    otherBenefits: getColIndex('AU'),         
+    projectedBankSettlement: getColIndex('AX') 
   };
 
   // Safe numerical extractor helper
