@@ -16,7 +16,6 @@ export default function CreateNewListing() {
     const [message, setMessage] = useState({ text: "", type: "" });
     const [isGenerating, setIsGenerating] = useState(false);
     const { user } = useAuth();
-    const [isMigrating, setIsMigrating] = useState(false);
 
     // Inventory Grid specific state
     const [inventoryItems, setInventoryItems] = useState([]);
@@ -68,35 +67,6 @@ export default function CreateNewListing() {
         } finally {
             setLoadingRecentListings(false);
             setRefreshingRecentListings(false);
-        }
-    };
-
-    const handleMigrate = async () => {
-        const pin = prompt("Enter your 4-digit PIN to authorize migration from Google Apps Script:");
-        if (!pin) return;
-
-        try {
-            setIsMigrating(true);
-            setMessage({ text: "Migrating data... Please wait.", type: "info" });
-            
-            const response = await fetch("/api/employee/listing/migrate", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ pin }),
-            });
-            
-            const result = await response.json();
-            if (response.ok && result.success) {
-                setMessage({ text: result.message, type: "success" });
-                loadData(true);
-            } else {
-                setMessage({ text: result.error || "Migration failed.", type: "error" });
-            }
-        } catch (error) {
-            console.error("Migration Error:", error);
-            setMessage({ text: "Migration failed due to network error.", type: "error" });
-        } finally {
-            setIsMigrating(false);
         }
     };
 
@@ -333,38 +303,6 @@ export default function CreateNewListing() {
             <div className={styles.card}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h1 className={styles.title} style={{ marginBottom: 0 }}>Create New Listing</h1>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                        {(user?.role === "admin" || user?.role === "superadmin") && (
-                            <button
-                                type="button"
-                                className={`${styles.refreshBtn} ${isMigrating ? styles.spinning : ''}`}
-                                onClick={handleMigrate}
-                                disabled={isMigrating}
-                                title="Import Data from Google Apps Script"
-                                style={{ color: '#38bdf8' }}
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
-                                Import Legacy
-                            </button>
-                        )}
-                        <button
-                            type="button"
-                            className={`${styles.refreshBtn} ${refreshingRecentListings ? styles.spinning : ''}`}
-                            onClick={() => loadData(true)}
-                            disabled={loadingRecentListings || refreshingRecentListings}
-                            title="Refresh Recent Listings"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="23 4 23 10 17 10"></polyline>
-                                <polyline points="1 20 1 14 7 14"></polyline>
-                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                            </svg>
-                        </button>
-                    </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className={styles.form}>
@@ -372,29 +310,46 @@ export default function CreateNewListing() {
                     {/* Vertical Section */}
                     <div className={styles.inputGroup}>
                         <label htmlFor="vertical" className={styles.label}>Select Vertical Type</label>
-                        <select
-                            id="vertical"
-                            value={verticalShort && vertical ? `${verticalShort} - ${vertical}` : ""}
-                            onChange={(e) => {
-                                const val = e.target.value;
-                                if (val) {
-                                    setVertical(val.split(' - ')[1]);
-                                    setVerticalShort(val.split(' - ')[0]);
-                                } else {
-                                    setVertical("");
-                                    setVerticalShort("");
-                                }
-                            }}
-                            className={styles.input}
-                            disabled={isLoading || loadingVerticals}
-                        >
-                            <option value="">Select a vertical</option>
-                            {verticals.map((v) => (
-                                <option key={v.verticalName} value={`${v.verticalShort} - ${v.verticalName}`}>
-                                    {`${v.verticalShort} - ${v.verticalName}`}
-                                </option>
-                            ))}
-                        </select>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <select
+                                id="vertical"
+                                value={verticalShort && vertical ? `${verticalShort} - ${vertical}` : ""}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val) {
+                                        setVertical(val.split(' - ')[1]);
+                                        setVerticalShort(val.split(' - ')[0]);
+                                    } else {
+                                        setVertical("");
+                                        setVerticalShort("");
+                                    }
+                                }}
+                                className={styles.input}
+                                disabled={isLoading || loadingVerticals}
+                                style={{ flex: 1 }}
+                            >
+                                <option value="">Select a vertical</option>
+                                {verticals.map((v) => (
+                                    <option key={v.verticalName} value={`${v.verticalShort} - ${v.verticalName}`}>
+                                        {`${v.verticalShort} - ${v.verticalName}`}
+                                    </option>
+                                ))}
+                            </select>
+                            <button
+                                type="button"
+                                className={`${styles.refreshBtn} ${loadingVerticals ? styles.spinning : ''}`}
+                                onClick={loadVerticals}
+                                disabled={loadingVerticals}
+                                title="Refresh Verticals"
+                                style={{ flexShrink: 0 }}
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="23 4 23 10 17 10"></polyline>
+                                    <polyline points="1 20 1 14 7 14"></polyline>
+                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
 
                     {/* Marketplace Section */}
@@ -569,6 +524,19 @@ export default function CreateNewListing() {
                 <div className={styles.recentSection}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                         <h2 className={styles.recentTitle} style={{ marginBottom: 0 }}>Recently Added (Last {recentListings.length})</h2>
+                        <button
+                            type="button"
+                            className={`${styles.refreshBtn} ${refreshingRecentListings ? styles.spinning : ''}`}
+                            onClick={() => loadData(true)}
+                            disabled={loadingRecentListings || refreshingRecentListings}
+                            title="Refresh Recent Listings"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <polyline points="1 20 1 14 7 14"></polyline>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                        </button>
                     </div>
                     {loadingRecentListings
                         ? <div className={styles.recentGrid}>

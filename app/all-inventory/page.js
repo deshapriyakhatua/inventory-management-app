@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import styles from "./page.module.css";
 import Toast from "../../components/Toast/Toast";
@@ -32,13 +33,28 @@ export default function AllInventoryPage() {
     const [itemToDelete, setItemToDelete] = useState(null);
 
     const { user } = useAuth();
-    const [showArchived, setShowArchived] = useState(false);
+    const searchParams = useSearchParams();
+    const router = useRouter();
+
+    const [showArchived, setShowArchived] = useState(() => searchParams.get('archived') === 'true');
     const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
     const [itemToRestore, setItemToRestore] = useState(null);
     const [restoreButtonLoading, setRestoreButtonLoading] = useState(false);
 
-    const [hiddenIds, setHiddenIds] = useState([]);
-    const [showHidden, setShowHidden] = useState(false);
+    // Edit Modal State
+    const [editingItem, setEditingItem] = useState(null);
+    const [editForm, setEditForm] = useState({
+        inventoryId: "",
+        vertical: "",
+        image: null,
+        imagePreview: "",
+    });
+    const [editSaving, setEditSaving] = useState(false);
+
+    // Permanent Delete State
+    const [showPermDeleteConfirm, setShowPermDeleteConfirm] = useState(false);
+    const [itemToPermDelete, setItemToPermDelete] = useState(null);
+    const [permDeleteLoading, setPermDeleteLoading] = useState(false);
 
     const STALE_THRESHOLD_MS = 60 * 1000; // 1 minute
     // Ref to track current showArchived value inside the stale event listener closure
@@ -47,16 +63,8 @@ export default function AllInventoryPage() {
 
     useEffect(() => {
         loadInitialData();
-        fetchInventory(false); // Try loading from local storage first
-
-        const stored = localStorage.getItem("hidden_inventory_ids");
-        if (stored) {
-            try {
-                setHiddenIds(JSON.parse(stored));
-            } catch (e) {
-                console.error("Failed to parse hidden inventory IDs", e);
-            }
-        }
+        const initialArchived = searchParams.get('archived') === 'true';
+        fetchInventory(false, initialArchived); // Try loading from local storage first (or fetch archived if param set)
 
         // Auto-refresh when tab regains focus and data is stale
         const handleVisibilityChange = () => {
@@ -94,17 +102,15 @@ export default function AllInventoryPage() {
     // Apply Filters, Sort, and Pagination locally whenever dependencies change
     useEffect(() => {
         processLocalData();
-    }, [allInventoryData, currentPage, sortOrder, selectedVertical, searchQuery, pageSize, hiddenIds, showHidden]);
+    }, [allInventoryData, currentPage, sortOrder, selectedVertical, searchQuery, pageSize, showArchived]);
 
     const processLocalData = () => {
         let filtered = [...allInventoryData];
 
-        // Filter hidden items
-        if (showHidden) {
-            filtered = filtered.filter(item => hiddenIds.includes(item._id));
-        } else {
-            filtered = filtered.filter(item => !hiddenIds.includes(item._id));
-        }
+        // 0. Filter by archived state — only show what belongs to current view
+        filtered = filtered.filter(item =>
+            showArchived ? item.isArchived === true : !item.isArchived
+        );
 
         // 1. Filter by vertical
         if (selectedVertical) {
@@ -234,23 +240,107 @@ export default function AllInventoryPage() {
         }
     };
 
-    const toggleHideItem = (id, e) => {
-        if (e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        setHiddenIds((prev) => {
-            let updated;
-            if (prev.includes(id)) {
-                updated = prev.filter((i) => i !== id);
-                setMessage({ text: "Inventory item unhidden.", type: "success" });
+    const handlePermanentDelete = (id) => {
+        setItemToPermDelete(id);
+        setShowPermDeleteConfirm(true);
+    };
+
+    const confirmPermanentDelete = async () => {
+        if (!itemToPermDelete) return;
+        setPermDeleteLoading(true);
+        try {
+            const res = await fetch(`/api/employee/inventory/add?id=${itemToPermDelete}&permanent=true`, {
+                method: "DELETE",
+            });
+            const result = await res.json();
+            if (res.ok && result.success) {
+                setMessage({ text: "Inventory item permanently deleted.", type: "success" });
+                const updatedData = allInventoryData.filter(item => item._id !== itemToPermDelete);
+                setAllInventoryData(updatedData);
+                localStorage.setItem("all_inventory_data", JSON.stringify(updatedData));
             } else {
-                updated = [...prev, id];
-                setMessage({ text: "Inventory item hidden from view.", type: "success" });
+                setMessage({ text: result.error || "Failed to permanently delete item.", type: "error" });
             }
-            localStorage.setItem("hidden_inventory_ids", JSON.stringify(updated));
-            return updated;
+        } catch (error) {
+            console.error("Permanent Delete Error:", error);
+            setMessage({ text: "Network error. Please try again.", type: "error" });
+        } finally {
+            setPermDeleteLoading(false);
+            setShowPermDeleteConfirm(false);
+            setItemToPermDelete(null);
+        }
+    };
+
+    const openEditModal = (item) => {
+        setEditingItem(item);
+        setEditForm({
+            inventoryId: item.inventoryId || "",
+            vertical: item.vertical || "",
+            image: null,
+            imagePreview: item.imageUrl || "",
         });
+    };
+
+    const closeEditModal = () => {
+        setEditingItem(null);
+        setEditForm({ inventoryId: "", vertical: "", image: null, imagePreview: "" });
+    };
+
+    const handleEditFormChange = (e) => {
+        const { name, value, files } = e.target;
+        if (name === "image" && files && files[0]) {
+            const file = files[0];
+            setEditForm(prev => ({
+                ...prev,
+                image: file,
+                imagePreview: URL.createObjectURL(file)
+            }));
+        } else {
+            setEditForm(prev => ({ ...prev, [name]: value }));
+        }
+    };
+
+    const handleSaveEdit = async (e) => {
+        e.preventDefault();
+        if (!editingItem) return;
+        if (!editForm.inventoryId.trim()) {
+            setMessage({ text: "Inventory ID is required.", type: "error" });
+            return;
+        }
+        if (!editForm.vertical.trim()) {
+            setMessage({ text: "Vertical is required.", type: "error" });
+            return;
+        }
+
+        setEditSaving(true);
+        try {
+            const formData = new FormData();
+            formData.append("id", editingItem._id);
+            formData.append("inventoryId", editForm.inventoryId.trim());
+            formData.append("vertical", editForm.vertical.trim());
+            if (editForm.image) {
+                formData.append("image", editForm.image);
+            }
+
+            const res = await fetch("/api/employee/inventory/add", {
+                method: "PUT",
+                body: formData,
+            });
+
+            const result = await res.json();
+            if (res.ok && result.success) {
+                setMessage({ text: "Inventory item updated successfully.", type: "success" });
+                fetchInventory(true, showArchived);
+                closeEditModal();
+            } else {
+                setMessage({ text: result.error || "Failed to update inventory item.", type: "error" });
+            }
+        } catch (error) {
+            console.error("Save Edit Error:", error);
+            setMessage({ text: "Network error while saving inventory item.", type: "error" });
+        } finally {
+            setEditSaving(false);
+        }
     };
 
     const copyToClipboard = async (text, label) => {
@@ -274,7 +364,7 @@ export default function AllInventoryPage() {
     };
 
     const fetchInventory = async (forceRefresh = false, fetchArchived = false) => {
-        // Check local storage if not forcing refresh and not pulling archived state
+        // Check local storage if not forcing refresh and not fetching archived data
         if (!forceRefresh && !fetchArchived) {
             const cachedData = localStorage.getItem("all_inventory_data");
             if (cachedData) {
@@ -388,9 +478,8 @@ export default function AllInventoryPage() {
                             title="Reset Filters"
                         >
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="1 4 1 10 7 10"></polyline>
-                                <polyline points="23 20 23 14 17 14"></polyline>
-                                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                                <polyline points="3 3 3 8 8 8"></polyline>
                             </svg>
                             Reset
                         </button>
@@ -409,30 +498,6 @@ export default function AllInventoryPage() {
                             Refresh
                         </button>
 
-                        <button
-                            className={`${styles.refreshBtn} ${showHidden ? styles.activeView : ''}`}
-                            onClick={() => {
-                                const newHiddenState = !showHidden;
-                                setShowHidden(newHiddenState);
-                                setCurrentPage(1);
-                            }}
-                            title={showHidden ? "Hide Hidden Inventory" : "Show Hidden Inventory"}
-                            style={showHidden ? { backgroundColor: 'var(--accent-color, #3b82f6)', color: 'white', borderColor: 'var(--accent-color, #3b82f6)' } : {}}
-                        >
-                            {showHidden ? (
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                </svg>
-                            ) : (
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                                    <line x1="1" y1="1" x2="23" y2="23"></line>
-                                </svg>
-                            )}
-                            {showHidden ? "Hide Hidden" : "Show Hidden"}
-                        </button>
-
                         {(user?.role === 'admin' || user?.role === 'superadmin') && (
                             <button
                                 className={`${styles.refreshBtn} ${showArchived ? styles.activeView : ''}`}
@@ -440,6 +505,14 @@ export default function AllInventoryPage() {
                                     const newArchivedState = !showArchived;
                                     setShowArchived(newArchivedState);
                                     setCurrentPage(1);
+                                    // Sync URL
+                                    const params = new URLSearchParams(window.location.search);
+                                    if (newArchivedState) {
+                                        params.set('archived', 'true');
+                                    } else {
+                                        params.delete('archived');
+                                    }
+                                    router.replace(`?${params.toString()}`, { scroll: false });
                                     fetchInventory(true, newArchivedState);
                                 }}
                                 title={showArchived ? "Hide Archived" : "Show Archived"}
@@ -466,7 +539,7 @@ export default function AllInventoryPage() {
                 </div>
             ) : inventory.length === 0 ? (
                 <div className={styles.emptyState} style={{ flex: 1 }}>
-                    <p>{showHidden ? "No hidden inventory items found." : "No inventory items found."}</p>
+                    <p>No inventory items found.</p>
                 </div>
             ) : (
                 <div className={styles.contentArea}>
@@ -474,19 +547,16 @@ export default function AllInventoryPage() {
                         <div className={styles.gridContainer}>
                                 {inventory.map((item) => {
                                     const canArchive = user?.role === 'admin' || user?.role === 'superadmin' || item.addedBy === user?.id;
-                                    const isHidden = hiddenIds.includes(item._id);
                                     return (
                                     <div 
                                         key={item._id} 
                                         className={styles.gridCard}
-                                        style={isHidden ? { opacity: 0.75, borderStyle: 'dashed', borderColor: '#3b82f6' } : {}}
                                     >
                                         {item.isArchived ? (
                                             <button
                                                 type="button"
                                                 onClick={() => handleRestore(item._id)}
                                                 className={styles.deleteBtn}
-                                                style={{ color: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)' }}
                                                 title="Restore Inventory"
                                                 disabled={restoreButtonLoading}
                                             >
@@ -516,24 +586,39 @@ export default function AllInventoryPage() {
                                             </button>
                                         ) : null}
 
-                                        <button
-                                            type="button"
-                                            onClick={(e) => toggleHideItem(item._id, e)}
-                                            className={styles.hideCardBtn}
-                                            title={isHidden ? "Unhide Inventory" : "Hide Inventory"}
-                                        >
-                                            {isHidden ? (
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                                    <circle cx="12" cy="12" r="3"></circle>
+                                        {item.isArchived ? (
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handlePermanentDelete(item._id);
+                                                }}
+                                                className={styles.editCardBtn}
+                                                title="Permanently Delete"
+                                            >
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                                    <line x1="14" y1="11" x2="14" y2="17"></line>
                                                 </svg>
-                                            ) : (
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                            </button>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openEditModal(item);
+                                                }}
+                                                className={styles.editCardBtn}
+                                                title="Edit Inventory"
+                                            >
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                                 </svg>
-                                            )}
-                                        </button>
+                                            </button>
+                                        )}
 
                                         <div className={styles.imageContainer}>
                                             {item.imageUrl ? (
@@ -555,9 +640,9 @@ export default function AllInventoryPage() {
                                                     className={styles.smallCopyBtn}
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        copyToClipboard(item.inventoryId, "Inventory ID");
+                                                        copyToClipboard(item.inventoryId, "SKU");
                                                     }}
-                                                    title="Copy ID"
+                                                    title="Copy SKU"
                                                 >
                                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -578,11 +663,6 @@ export default function AllInventoryPage() {
                                                             {item.currentStock ?? 0}
                                                         </span>
                                                     </div>
-                                                    {isHidden && (
-                                                        <div className={styles.stockBadge} style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: 'rgba(59, 130, 246, 0.4)' }}>
-                                                            <span className={styles.stockLabel} style={{ color: '#60a5fa', fontWeight: '700' }}>HIDDEN</span>
-                                                        </div>
-                                                    )}
                                                 </div>
                                                 <p className={styles.itemPrice}>
                                                     ₹{item.fifoUnitCost ?? 0}
@@ -887,6 +967,128 @@ export default function AllInventoryPage() {
                     </div>
                 </div>
             )}
+            {showPermDeleteConfirm && (
+                <div className={styles.confirmOverlay} onClick={() => setShowPermDeleteConfirm(false)}>
+                    <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.confirmHeader}>
+                            <div className={styles.warningIcon}>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                                </svg>
+                            </div>
+                            <h3 className={styles.confirmTitle}>Permanently Delete</h3>
+                        </div>
+                        <p className={styles.confirmMessage}>
+                            This will <strong>permanently delete</strong> this inventory item and cannot be undone. Are you sure?
+                        </p>
+                        <div className={styles.confirmActions}>
+                            <button
+                                className={styles.cancelBtn}
+                                onClick={() => setShowPermDeleteConfirm(false)}
+                                disabled={permDeleteLoading}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className={styles.confirmDeleteBtn}
+                                onClick={confirmPermanentDelete}
+                                disabled={permDeleteLoading}
+                                style={{ backgroundColor: '#f43f5e' }}
+                            >
+                                {permDeleteLoading ? "Deleting..." : "Delete Forever"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {editingItem && (
+                <div className={styles.confirmOverlay} onClick={closeEditModal}>
+                    <div className={styles.confirmModal} style={{ maxWidth: '500px' }} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.confirmHeader}>
+                            <div style={{ color: '#3b82f6', background: 'rgba(59, 130, 246, 0.1)', padding: '8px', borderRadius: '50%', display: 'flex' }}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                </svg>
+                            </div>
+                            <h3 className={styles.confirmTitle}>Edit Inventory Item</h3>
+                        </div>
+
+                        <form onSubmit={handleSaveEdit} className={styles.editModalForm}>
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>Inventory ID / SKU</label>
+                                <input
+                                    type="text"
+                                    name="inventoryId"
+                                    value={editForm.inventoryId}
+                                    onChange={handleEditFormChange}
+                                    className={styles.formInput}
+                                    required
+                                />
+                            </div>
+
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>Vertical</label>
+                                <select
+                                    name="vertical"
+                                    value={editForm.vertical}
+                                    onChange={handleEditFormChange}
+                                    className={styles.formSelect}
+                                    required
+                                >
+                                    <option value="">Select Vertical</option>
+                                    {verticals.map(v => (
+                                        <option key={v.verticalShort} value={v.verticalName}>{v.verticalName}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>Inventory Image</label>
+                                <div className={styles.imagePreviewWrapper}>
+                                    {editForm.imagePreview && (
+                                        <img
+                                            src={editForm.imagePreview}
+                                            alt="Preview"
+                                            className={styles.imagePreview}
+                                        />
+                                    )}
+                                    <input
+                                        type="file"
+                                        name="image"
+                                        accept="image/*"
+                                        onChange={handleEditFormChange}
+                                        className={styles.fileInput}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className={styles.editModalFooter}>
+                                <button
+                                    type="button"
+                                    className={styles.cancelBtn}
+                                    onClick={closeEditModal}
+                                    disabled={editSaving}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className={styles.saveBtn}
+                                    disabled={editSaving}
+                                >
+                                    {editSaving ? "Saving..." : "Save Changes"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+

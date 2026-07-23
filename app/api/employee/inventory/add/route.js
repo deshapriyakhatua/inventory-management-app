@@ -223,38 +223,46 @@ export async function DELETE(request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id"); // This could be _id or inventoryId
+    const id = searchParams.get("id");
+    const permanent = searchParams.get("permanent") === "true";
 
     if (!id) {
       return NextResponse.json({ error: "Inventory ID is required" }, { status: 400 });
     }
 
+    // Permanent deletion is admin/superadmin only
+    if (permanent && session.role !== "admin" && session.role !== "superadmin") {
+      return NextResponse.json({ error: "Unauthorized to permanently delete items" }, { status: 403 });
+    }
+
     let query = { $or: [{ _id: id }, { inventoryId: id }] };
-    
+
     // Only employees are restricted to archiving their own items
-    if (session.role !== "admin" && session.role !== "superadmin") {
+    if (!permanent && session.role !== "admin" && session.role !== "superadmin") {
       query.addedBy = session.id;
     }
 
-    // Find the item first to get the publicId for Cloudinary deletion
     const item = await Inventory.findOne(query);
 
     if (!item) {
       return NextResponse.json({ error: "Inventory item not found" }, { status: 404 });
     }
 
-    // Delete from Cloudinary if publicId exists
-    // Normally we should KEEP the image if it's just archived, 
-    // unless the user specifically wants to save storage.
-    // Given the request "mark it archived", I'll KEEP the image.
-    
-    // await DeleteImage(item.imageUrl); // Commenting out Cloudinary deletion
+    if (permanent) {
+      // Hard delete from DB (and optionally Cloudinary)
+      await Inventory.deleteOne({ _id: item._id });
+      return NextResponse.json({
+        success: true,
+        message: "Inventory item permanently deleted"
+      }, { status: 200 });
+    }
 
+    // Soft delete — archive
     await Inventory.updateOne({ _id: item._id }, { isArchived: true });
 
     return NextResponse.json({ 
       success: true, 
-      message: "Inventory item deleted successfully" 
+      message: "Inventory item archived successfully" 
     }, { status: 200 });
 
   } catch (error) {
@@ -264,6 +272,7 @@ export async function DELETE(request) {
     }, { status: 500 });
   }
 }
+
 
 export async function PATCH(request) {
   try {
@@ -311,3 +320,93 @@ export async function PATCH(request) {
     }, { status: 500 });
   }
 }
+
+export async function PUT(request) {
+  try {
+    await connectToDatabase();
+
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get("session")?.value;
+    if (!sessionCookie) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const session = await decrypt(sessionCookie);
+    if (!session) {
+      return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+    }
+
+    const formData = await request.formData();
+    const id = formData.get("id");
+    const inventoryId = formData.get("inventoryId");
+    const vertical = formData.get("vertical");
+    const image = formData.get("image"); // File object or null
+
+    if (!id || !inventoryId || !vertical) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    const existingItem = await Inventory.findById(id);
+    if (!existingItem) {
+      return NextResponse.json({ error: "Inventory item not found" }, { status: 404 });
+    }
+
+    const oldInventoryId = existingItem.inventoryId;
+
+    // Check duplicate if inventoryId changed
+    if (inventoryId !== oldInventoryId) {
+      const duplicate = await Inventory.findOne({ inventoryId, _id: { $ne: id } });
+      if (duplicate) {
+        return NextResponse.json({ error: `Inventory ID "${inventoryId}" already exists.` }, { status: 400 });
+      }
+    }
+
+    const updateFields = {
+      inventoryId,
+      vertical,
+    };
+
+    if (image && typeof image !== 'string' && image.name) {
+      const uploadResult = await UploadImage(image, "inventory");
+      updateFields.imageUrl = uploadResult.secure_url;
+      updateFields.publicId = uploadResult.public_id;
+    }
+
+    // Optional stock adjustment fields if provided
+    if (formData.has("adjust")) updateFields.adjust = Number(formData.get("adjust")) || 0;
+    if (formData.has("damaged")) updateFields.damaged = Number(formData.get("damaged")) || 0;
+    if (formData.has("dispatched")) updateFields.dispatched = Number(formData.get("dispatched")) || 0;
+    if (formData.has("cancelled")) updateFields.cancelled = Number(formData.get("cancelled")) || 0;
+    if (formData.has("returned")) updateFields.returned = Number(formData.get("returned")) || 0;
+
+    const updatedItem = await Inventory.findByIdAndUpdate(id, updateFields, { new: true });
+
+    // If inventoryId changed, update references in Listing and Purchase collections
+    if (inventoryId !== oldInventoryId) {
+      const Listing = (await import("@/models/Listing")).default;
+      const Purchase = (await import("@/models/Purchase")).default;
+
+      await Listing.updateMany(
+        { inventoryItems: oldInventoryId },
+        { $set: { "inventoryItems.$": inventoryId } }
+      );
+
+      await Purchase.updateMany(
+        { inventoryId: oldInventoryId },
+        { $set: { inventoryId: inventoryId } }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Inventory item updated successfully",
+      data: updatedItem,
+    }, { status: 200 });
+
+  } catch (error) {
+    console.error("Update Inventory API Error:", error);
+    return NextResponse.json({
+      error: error.message || "Failed to update inventory item"
+    }, { status: 500 });
+  }
+}
+

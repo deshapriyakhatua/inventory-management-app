@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import styles from "./page.module.css";
 import Toast from "../../components/Toast/Toast";
 
@@ -218,6 +218,39 @@ export default function AddPurchasePage() {
       setSubmitting(false);
     }
   };
+
+  const totals = useMemo(() => {
+    let totalQuantity = 0;
+    let subtotal = 0;
+    let totalShipping = 0;
+    let totalTax = 0;
+
+    items.forEach(item => {
+      const qty = Number(item.quantity || 0);
+      const price = Number(item.price || 0);
+      const ship = Number(item.shippingFee || 0);
+      const taxPct = Number(item.taxPercentage || 0);
+
+      const itemSubtotal = qty * price;
+      const itemTax = (itemSubtotal * taxPct) / 100;
+
+      totalQuantity += qty;
+      subtotal += itemSubtotal;
+      totalShipping += ship;
+      totalTax += itemTax;
+    });
+
+    const grandTotal = subtotal + totalShipping + totalTax;
+
+    return {
+      totalLineItems: items.length,
+      totalQuantity,
+      subtotal,
+      totalShipping,
+      totalTax,
+      grandTotal,
+    };
+  }, [items]);
 
   if (loadingInitial) {
     return (
@@ -512,6 +545,49 @@ export default function AddPurchasePage() {
                 value={formReceivedOn}
                 onChange={e => setFormReceivedOn(e.target.value)}
               />
+            </div>
+          </div>
+
+          {/* ── PURCHASE TOTALS SUMMARY ────────────────────────── */}
+          <div className={styles.totalsSummaryCard}>
+            <div className={styles.totalsSummaryHeader}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+              <span>Purchase Summary &amp; Totals</span>
+            </div>
+
+            <div className={styles.totalsGrid}>
+              <div className={styles.totalItem}>
+                <span className={styles.totalLabel}>Total Items</span>
+                <span className={styles.totalValue}>{totals.totalLineItems}</span>
+              </div>
+
+              <div className={styles.totalItem}>
+                <span className={styles.totalLabel}>Total Quantity</span>
+                <span className={styles.totalValue}>{totals.totalQuantity} units</span>
+              </div>
+
+              <div className={styles.totalItem}>
+                <span className={styles.totalLabel}>Subtotal</span>
+                <span className={styles.totalValue}>₹{totals.subtotal.toFixed(2)}</span>
+              </div>
+
+              <div className={styles.totalItem}>
+                <span className={styles.totalLabel}>Total Shipping</span>
+                <span className={styles.totalValue}>₹{totals.totalShipping.toFixed(2)}</span>
+              </div>
+
+              <div className={styles.totalItem}>
+                <span className={styles.totalLabel}>Total Tax</span>
+                <span className={styles.totalValue}>₹{totals.totalTax.toFixed(2)}</span>
+              </div>
+
+              <div className={`${styles.totalItem} ${styles.grandTotalItem}`}>
+                <span className={styles.grandTotalLabel}>Grand Total</span>
+                <span className={styles.grandTotalValue}>₹{totals.grandTotal.toFixed(2)}</span>
+              </div>
             </div>
           </div>
 

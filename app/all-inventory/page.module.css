@@ -295,6 +295,8 @@
     justify-content: center;
     transition: all 0.2s;
     flex-shrink: 0;
+    position: relative;
+    z-index: 10;
 }
 
 .smallCopyBtn:hover {
@@ -1046,7 +1048,7 @@
     max-width: 80px;
 }
 
-.hideCardBtn {
+.editCardBtn {
     position: absolute;
     top: 8px;
     right: 8px;
@@ -1065,10 +1067,98 @@
     transition: all 0.2s ease;
 }
 
-.hideCardBtn:hover {
+.editCardBtn:hover {
     background-color: #3b82f6;
     color: white;
     transform: scale(1.1);
 }
+
+/* Edit Modal specific styles */
+.editModalForm {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1.5rem 2.5rem 2rem;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.formLabel {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.formInput, .formSelect {
+    background-color: #0f172a;
+    border: 1px solid #334155;
+    color: #f1f5f9;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.formInput:focus, .formSelect:focus {
+    border-color: #3b82f6;
+}
+
+.imagePreviewWrapper {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.25rem;
+}
+
+.imagePreview {
+    width: 70px;
+    height: 70px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid #334155;
+    background-color: #0f172a;
+}
+
+.fileInput {
+    color: #94a3b8;
+    font-size: 0.85rem;
+}
+
+.editModalFooter {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 0.5rem;
+}
+
+.saveBtn {
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    padding: 0.65rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.saveBtn:hover:not(:disabled) {
+    background-color: #2563eb;
+}
+
+.saveBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 
 
