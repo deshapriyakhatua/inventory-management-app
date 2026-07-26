@@ -54,9 +54,6 @@ export default function AddInventory() {
 
             if (response.ok) {
                 const items = result.data || [];
-                localStorage.setItem("recent_inventory_data", JSON.stringify(items));
-                // Invalidate the all-inventory timestamp so it fetches fresh data on next visit
-                localStorage.removeItem("all_inventory_last_fetched");
                 return items;
             } else {
                 console.error("API Error:", result.error);

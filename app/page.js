@@ -130,29 +130,6 @@ export default function DashboardPage() {
         else setLoading(true);
         const pin = sessionStorage.getItem("app_pin");
 
-        // On initial load only: read from cache and return early if all 3 present
-        if (!isRefresh) {
-            const cachedInv = (() => {
-                try { return JSON.parse(localStorage.getItem("all_inventory_data") || "null"); } catch { return null; }
-            })();
-            const cachedList = (() => {
-                try { return JSON.parse(localStorage.getItem("all_listings_data") || "null"); } catch { return null; }
-            })();
-            const cachedSales = (() => {
-                try { return JSON.parse(localStorage.getItem("all_sales_data") || "null"); } catch { return null; }
-            })();
-
-            if (cachedInv) setInventoryData(cachedInv);
-            if (cachedList) setListingsData(Array.isArray(cachedList) ? cachedList : (cachedList.listings || []));
-            if (cachedSales) setSalesData(cachedSales);
-
-            if (cachedInv && cachedList && cachedSales) {
-                setLoading(false);
-                return;
-            }
-        }
-
-        // Full fetch — always runs on manual refresh, runs on initial load only if cache is missing
         try {
             const fetchInv = fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
                 method: "POST",
@@ -161,7 +138,6 @@ export default function DashboardPage() {
             }).then(r => r.json()).then(res => {
                 const items = res.status === 200 ? (res.data || []) : [];
                 setInventoryData(items);
-                localStorage.setItem("all_inventory_data", JSON.stringify(items));
             });
 
             const fetchList = fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
@@ -171,7 +147,6 @@ export default function DashboardPage() {
             }).then(r => r.json()).then(res => {
                 const items = res.status === 200 ? (res.message?.listings || res.data || []) : [];
                 setListingsData(items);
-                localStorage.setItem("all_listings_data", JSON.stringify(items));
             });
 
             const fetchSales = fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
@@ -181,7 +156,6 @@ export default function DashboardPage() {
             }).then(r => r.json()).then(res => {
                 const items = (res.status === 200 && Array.isArray(res.message)) ? res.message : [];
                 setSalesData(items);
-                localStorage.setItem("all_sales_data", JSON.stringify(items));
             });
 
             await Promise.all([fetchInv, fetchList, fetchSales]);

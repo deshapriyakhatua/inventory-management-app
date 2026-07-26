@@ -100,10 +100,6 @@ export default function AddSalesLog() {
   useEffect(() => { loadListings(); }, []);
 
   const loadListings = async () => {
-    const cached = localStorage.getItem("all_listings_data");
-    if (cached) {
-      try { setListings(JSON.parse(cached)); return; } catch (e) { /* ignore */ }
-    }
     setLoadingListings(true);
     try {
       const pin = sessionStorage.getItem("app_pin");
@@ -117,7 +113,6 @@ export default function AddSalesLog() {
           (Array.isArray(res.data) ? res.data : null) ||
           (Array.isArray(res.message) ? res.message : []);
         setListings(Array.isArray(data) ? data : []);
-        localStorage.setItem("all_listings_data", JSON.stringify(data));
       }
     } catch (e) {
       console.error("Failed to load listings", e);

@@ -138,34 +138,12 @@ export default function CreateNewListing() {
             setLoadingInventoryItems(true);
         }
 
-        if (!forceRefresh) {
-            const cachedInventory = localStorage.getItem("all_inventory_data");
-            if (cachedInventory) {
-                try {
-                    const parsed = JSON.parse(cachedInventory);
-                    const verticalInventory = parsed.filter(item => item.vertical === vertical);
-                    
-                    // Sort by newest first
-                    verticalInventory.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-                    
-                    setInventoryItems(verticalInventory.slice(0, 100));
-                    setLoadingInventoryItems(false);
-                    return;
-                } catch (e) {
-                    console.error("Failed to parse cached inventory", e);
-                }
-            }
-        }
-
         try {
             const response = await fetch("/api/employee/inventory");
             const result = await response.json();
 
             if (response.ok) {
                 const fetchedData = result.data || [];
-                // Update cache
-                localStorage.setItem("all_inventory_data", JSON.stringify(fetchedData));
-                
                 const verticalInventory = fetchedData.filter(item => item.vertical === vertical);
                 setInventoryItems(verticalInventory);
             } else {

@@ -215,7 +215,6 @@ export default function AllListingsPage() {
                         : item
                 );
                 setAllListingsData(updated);
-                localStorage.setItem("all_listings_data", JSON.stringify(updated));
                 setEditingListing(null);
             } else {
                 setMessage({ text: result.error || "Failed to update listing.", type: "error" });
@@ -242,7 +241,6 @@ export default function AllListingsPage() {
                 // Update local data
                 const updatedData = allListingsData.filter(item => item.skuId !== skuId);
                 setAllListingsData(updatedData);
-                localStorage.setItem("all_listings_data", JSON.stringify(updatedData));
             } else {
                 setMessage({ text: result.error || "Failed to delete listing.", type: "error" });
             }
@@ -276,21 +274,6 @@ export default function AllListingsPage() {
     };
 
     const fetchListings = async (forceRefresh = false) => {
-        // Check local storage if not forcing refresh
-        if (!forceRefresh) {
-            const cachedData = localStorage.getItem("all_listings_data");
-            if (cachedData) {
-                try {
-                    const parsed = JSON.parse(cachedData);
-                    setAllListingsData(parsed);
-                    setLoading(false);
-                    return;
-                } catch (e) {
-                    console.error("Failed to parse cached listings");
-                }
-            }
-        }
-
         if (forceRefresh) {
             setRefreshing(true);
         } else {
@@ -306,7 +289,6 @@ export default function AllListingsPage() {
             if (response.ok && result.success) {
                 const fetchedData = result.data || [];
                 setAllListingsData(fetchedData);
-                localStorage.setItem("all_listings_data", JSON.stringify(fetchedData));
 
                 if (forceRefresh) {
                     setMessage({ text: "Listings refreshed successfully.", type: "success" });

@@ -64,21 +64,7 @@ export default function AllInventoryPage() {
     useEffect(() => {
         loadInitialData();
         const initialArchived = searchParams.get('archived') === 'true';
-        fetchInventory(false, initialArchived); // Try loading from local storage first (or fetch archived if param set)
-
-        // Auto-refresh when tab regains focus and data is stale
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible') {
-                const lastFetched = localStorage.getItem('all_inventory_last_fetched');
-                const isStale = !lastFetched || (Date.now() - parseInt(lastFetched, 10)) > STALE_THRESHOLD_MS;
-                if (isStale) {
-                    fetchInventory(true, showArchivedRef.current); // Silent refresh, respecting archived state
-                }
-            }
-        };
-
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+        fetchInventory(false, initialArchived);
     }, []);
 
     useEffect(() => {
@@ -190,7 +176,6 @@ export default function AllInventoryPage() {
                 // Update local data
                 const updatedData = allInventoryData.filter(item => item._id !== id);
                 setAllInventoryData(updatedData);
-                localStorage.setItem("all_inventory_data", JSON.stringify(updatedData));
             } else {
                 setMessage({ text: result.error || "Failed to archive inventory.", type: "error" });
             }
@@ -257,7 +242,6 @@ export default function AllInventoryPage() {
                 setMessage({ text: "Inventory item permanently deleted.", type: "success" });
                 const updatedData = allInventoryData.filter(item => item._id !== itemToPermDelete);
                 setAllInventoryData(updatedData);
-                localStorage.setItem("all_inventory_data", JSON.stringify(updatedData));
             } else {
                 setMessage({ text: result.error || "Failed to permanently delete item.", type: "error" });
             }
@@ -364,21 +348,6 @@ export default function AllInventoryPage() {
     };
 
     const fetchInventory = async (forceRefresh = false, fetchArchived = false) => {
-        // Check local storage if not forcing refresh and not fetching archived data
-        if (!forceRefresh && !fetchArchived) {
-            const cachedData = localStorage.getItem("all_inventory_data");
-            if (cachedData) {
-                try {
-                    const parsed = JSON.parse(cachedData);
-                    setAllInventoryData(parsed);
-                    setLoading(false);
-                    return;
-                } catch (e) {
-                    console.error("Failed to parse cached inventory");
-                }
-            }
-        }
-
         if (forceRefresh) {
             setRefreshing(true);
         } else {
@@ -395,12 +364,6 @@ export default function AllInventoryPage() {
             if (response.ok) {
                 const fetchedData = result.data || [];
                 setAllInventoryData(fetchedData);
-                
-                // Only cache standard inventory, not archived views
-                if (!fetchArchived) {
-                    localStorage.setItem("all_inventory_data", JSON.stringify(fetchedData));
-                    localStorage.setItem("all_inventory_last_fetched", Date.now().toString());
-                }
 
                 if (forceRefresh) {
                     setMessage({ text: "Inventory refreshed successfully.", type: "success" });
