@@ -290,61 +290,33 @@ export default function CreateNewListing() {
 
                     {/* Marketplace Section */}
                     <div className={styles.inputGroup}>
-                        <label htmlFor="marketplace" className={styles.label}>Select Marketplace</label>
-                        <select
-                            id="marketplace"
-                            value={marketplace}
-                            onChange={(e) => setMarketplace(e.target.value)}
-                            className={styles.input}
-                            disabled={isLoading}
-                        >
-                            <option value="">Select marketplace</option>
-                            <option value="Flipkart">Flipkart</option>
-                            <option value="Shopsy">Shopsy</option>
-                            <option value="Amazon">Amazon</option>
-                            <option value="Meesho">Meesho</option>
-                            <option value="Myntra">Myntra</option>
-                            <option value="Ajio">Ajio</option>
-                            <option value="Website">Website</option>
-                            <option value="Other">Other</option>
-                        </select>
+                        <label className={styles.label}>Select Marketplace</label>
+                        <div className={styles.marketplaceGrid}>
+                            {['Amazon', 'Flipkart', 'Myntra', 'Meesho', 'Ajio', 'Shopsy', 'Website', 'Other'].map(mp => (
+                                <button
+                                    key={mp}
+                                    type="button"
+                                    className={`${styles.marketplacePill} ${marketplace === mp ? styles.marketplacePillActive : ''}`}
+                                    onClick={() => setMarketplace(mp)}
+                                    disabled={isLoading}
+                                >
+                                    <MarketplaceLogo marketplace={mp} size={20} />
+                                    <span>{mp}</span>
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Vertical Section */}
                     <div className={styles.inputGroup}>
-                        <label htmlFor="vertical" className={styles.label}>Select Vertical Type</label>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                            <select
-                                id="vertical"
-                                value={verticalShort && vertical ? `${verticalShort} - ${vertical}` : ""}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    if (val) {
-                                        setVertical(val.split(' - ')[1]);
-                                        setVerticalShort(val.split(' - ')[0]);
-                                    } else {
-                                        setVertical("");
-                                        setVerticalShort("");
-                                    }
-                                }}
-                                className={styles.input}
-                                disabled={isLoading || loadingVerticals}
-                                style={{ flex: 1 }}
-                            >
-                                <option value="">Select a vertical</option>
-                                {verticals.map((v) => (
-                                    <option key={v.verticalName} value={`${v.verticalShort} - ${v.verticalName}`}>
-                                        {`${v.verticalShort} - ${v.verticalName}`}
-                                    </option>
-                                ))}
-                            </select>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <label className={styles.label}>Select Vertical Type</label>
                             <button
                                 type="button"
                                 className={`${styles.refreshBtn} ${loadingVerticals ? styles.spinning : ''}`}
                                 onClick={loadVerticals}
                                 disabled={loadingVerticals}
                                 title="Refresh Verticals"
-                                style={{ flexShrink: 0 }}
                             >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <polyline points="23 4 23 10 17 10"></polyline>
@@ -353,6 +325,38 @@ export default function CreateNewListing() {
                                 </svg>
                             </button>
                         </div>
+
+                        {loadingVerticals ? (
+                            <p className={styles.loadingText}>Loading verticals...</p>
+                        ) : verticals.length > 0 ? (
+                            <div className={styles.verticalGrid}>
+                                {verticals.map((v) => {
+                                    const isSelected = verticalShort === v.verticalShort && vertical === v.verticalName;
+                                    return (
+                                        <button
+                                            key={v.verticalName}
+                                            type="button"
+                                            className={`${styles.verticalPill} ${isSelected ? styles.verticalPillActive : ''}`}
+                                            onClick={() => {
+                                                if (isSelected) {
+                                                    setVertical("");
+                                                    setVerticalShort("");
+                                                } else {
+                                                    setVertical(v.verticalName);
+                                                    setVerticalShort(v.verticalShort);
+                                                }
+                                            }}
+                                            disabled={isLoading}
+                                        >
+                                            <span className={styles.verticalBadge}>{v.verticalShort}</span>
+                                            <span className={styles.verticalName}>{v.verticalName}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <p className={styles.noItemsText}>No verticals available.</p>
+                        )}
                     </div>
 
                     {/* Selected Items Strip */}

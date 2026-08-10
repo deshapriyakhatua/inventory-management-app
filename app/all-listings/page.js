@@ -879,16 +879,22 @@ export default function AllListingsPage() {
                             {/* Vertical */}
                             <div className={styles.editField}>
                                 <label className={styles.editLabel}>Vertical</label>
-                                <select
-                                    className={styles.editSelect}
-                                    value={editForm.vertical}
-                                    onChange={e => setEditForm(f => ({ ...f, vertical: e.target.value }))}
-                                >
-                                    <option value="">Select vertical...</option>
-                                    {verticals.map(v => (
-                                        <option key={v.verticalShort} value={v.verticalName}>{v.verticalName}</option>
-                                    ))}
-                                </select>
+                                <div className={styles.editVerticalGrid}>
+                                    {verticals.map(v => {
+                                        const isSelected = editForm.vertical === v.verticalName;
+                                        return (
+                                            <button
+                                                key={v.verticalShort || v.verticalName}
+                                                type="button"
+                                                className={`${styles.verticalPill} ${isSelected ? styles.verticalPillActive : ''}`}
+                                                onClick={() => setEditForm(f => ({ ...f, vertical: v.verticalName }))}
+                                            >
+                                                <span className={styles.verticalBadge}>{v.verticalShort}</span>
+                                                <span className={styles.verticalName}>{v.verticalName}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </div>
 
                             {/* Inventory Items */}
