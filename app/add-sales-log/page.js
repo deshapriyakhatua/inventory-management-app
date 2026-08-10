@@ -102,17 +102,10 @@ export default function AddSalesLog() {
   const loadListings = async () => {
     setLoadingListings(true);
     try {
-      const pin = sessionStorage.getItem("app_pin");
-      const res = await fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-        method: "POST",
-        body: JSON.stringify({ pin, action: "getListing", page: 1, pageSize: 50000, sort: "newest_first" }),
-      }).then((r) => r.json());
-      if (res.status === 200) {
-        const data =
-          res.data?.listings || res.message?.listings ||
-          (Array.isArray(res.data) ? res.data : null) ||
-          (Array.isArray(res.message) ? res.message : []);
-        setListings(Array.isArray(data) ? data : []);
+      const res = await fetch("/api/employee/listing").then((r) => r.json());
+      if (res.success || Array.isArray(res.data)) {
+        const data = Array.isArray(res.data) ? res.data : [];
+        setListings(data);
       }
     } catch (e) {
       console.error("Failed to load listings", e);
@@ -733,19 +726,19 @@ export default function AddSalesLog() {
             </div>
             <div className={styles.totalBox}>
               <span className={styles.totalLabel}>Net Sales</span>
-              <span className={styles.totalValueCurrency}>₹{totals.netSales.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span className={styles.totalValueCurrency}>₹{(totals.netSales ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
             <div className={styles.totalBox}>
               <span className={styles.totalLabel}>Total Expenses</span>
-              <span className={styles.totalValueCurrency}>₹{totals.totalExpenses.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span className={styles.totalValueCurrency}>₹{(totals.totalExpenses ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
             <div className={styles.totalBox}>
               <span className={styles.totalLabel}>Other Benefits</span>
-              <span className={styles.totalValueCurrency}>₹{totals.otherBenefits.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span className={styles.totalValueCurrency}>₹{(totals.otherBenefits ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
             <div className={styles.totalBox}>
               <span className={styles.totalLabel}>Settlement</span>
-              <span className={styles.totalValueCurrency}>₹{totals.projectedBankSettlement.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span className={styles.totalValueCurrency}>₹{(totals.projectedBankSettlement ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           </div>
         </div>

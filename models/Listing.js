@@ -26,6 +26,10 @@ const listingSchema = new mongoose.Schema({
     enum: ["active", "inactive", "blocked", "archived"],
     default: "active",
   },
+  styleId: {
+    type: String,
+    default: null,
+  },
   addedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",

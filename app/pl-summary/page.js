@@ -26,8 +26,8 @@ export default function PLSummaryPage() {
     const yearOptions = Array.from({ length: 6 }, (_, i) => now.getFullYear() - 4 + i);
 
     const formatCurrency = (val) => {
-        if (val == null) return "—";
-        return `₹${val.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        if (val == null || isNaN(Number(val))) return "—";
+        return `₹${Number(val).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     };
 
     const getMonthLabel = (m) => MONTHS.find(x => x.value === String(m))?.label || m;

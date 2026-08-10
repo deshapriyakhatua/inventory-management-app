@@ -209,8 +209,8 @@ export default function SalesRecordsView({ title = "Sales Records", archivedTitl
     };
 
     const formatCurrency = (val) => {
-        if (val == null) return "—";
-        return `₹${val.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        if (val == null || isNaN(Number(val))) return "—";
+        return `₹${Number(val).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     };
 
     const renderCellContent = (key, rec) => {

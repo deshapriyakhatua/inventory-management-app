@@ -44,12 +44,18 @@ export default function AllListingsPage() {
     const [deletingListingId, setDeletingListingId] = useState(null);
     const [pageSize, setPageSize] = useState(100);
 
+    // Delete Confirmation Modal State
+    const [deletingListing, setDeletingListing] = useState(null);
+    const [deleteInputText, setDeleteInputText] = useState("");
+
     // Filter/Sort States
     const [sortOrder, setSortOrder] = useState("newest_first");
     const [selectedVertical, setSelectedVertical] = useState("");
     const [selectedMarketplace, setSelectedMarketplace] = useState("");
+    const [selectedStatus, setSelectedStatus] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
     const [inventoryIdQuery, setInventoryIdQuery] = useState("");
+    const [styleIdQuery, setStyleIdQuery] = useState("");
 
     // Detail Modal State
     const [selectedListing, setSelectedListing] = useState(null);
@@ -77,7 +83,7 @@ export default function AllListingsPage() {
     // Apply Filters, Sort, and Pagination locally whenever dependencies change
     useEffect(() => {
         processLocalData();
-    }, [allListingsData, currentPage, sortOrder, selectedVertical, selectedMarketplace, searchQuery, inventoryIdQuery, pageSize]);
+    }, [allListingsData, currentPage, sortOrder, selectedVertical, selectedMarketplace, selectedStatus, searchQuery, inventoryIdQuery, styleIdQuery, pageSize]);
 
     const processLocalData = () => {
         let filtered = [...allListingsData];
@@ -107,6 +113,21 @@ export default function AllListingsPage() {
                 item.inventoryItems?.some(inv =>
                     inv.inventoryId?.toLowerCase().includes(invQuery)
                 )
+            );
+        }
+
+        // 3.5 Filter by Style ID (Myntra)
+        if (styleIdQuery) {
+            const styleQuery = styleIdQuery.toLowerCase();
+            filtered = filtered.filter(item =>
+                item.styleId?.toLowerCase().includes(styleQuery)
+            );
+        }
+
+        // 3.6 Filter by Status
+        if (selectedStatus) {
+            filtered = filtered.filter(item =>
+                item.status?.toLowerCase() === selectedStatus.toLowerCase()
             );
         }
 
@@ -142,8 +163,10 @@ export default function AllListingsPage() {
     const handleReset = () => {
         setSearchQuery("");
         setInventoryIdQuery("");
+        setStyleIdQuery("");
         setSelectedVertical("");
         setSelectedMarketplace("");
+        setSelectedStatus("");
         setSortOrder("newest_first");
         setCurrentPage(1); // Resetting page
     };
@@ -159,6 +182,7 @@ export default function AllListingsPage() {
             vertical: listing.vertical || "",
             marketplace: listing.marketplace || "",
             status: listing.status || "active",
+            styleId: listing.styleId || "",
             inventoryItems: listing.inventoryItems?.map(inv => inv.inventoryId || inv) || [],
         });
         setShowInventoryPicker(false);
@@ -195,23 +219,40 @@ export default function AllListingsPage() {
     };
 
     const handleEditSave = async () => {
+        if (!editForm.vertical) {
+            setMessage({ text: "Please select a vertical.", type: "error" });
+            return;
+        }
+        if (!editForm.marketplace) {
+            setMessage({ text: "Please select a marketplace.", type: "error" });
+            return;
+        }
         setEditSaving(true);
         try {
+            const updatedStyleId = editForm.marketplace === "Myntra" ? (editForm.styleId ? editForm.styleId.trim() : null) : null;
+            const payload = {
+                id: editingListing._id,
+                skuId: editingListing.skuId,
+                ...editForm,
+                styleId: updatedStyleId,
+            };
             const res = await fetch("/api/employee/listing", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    skuId: editingListing.skuId,
-                    ...editForm,
-                }),
+                body: JSON.stringify(payload),
             });
             const result = await res.json();
             if (res.ok && result.success) {
                 setMessage({ text: "Listing updated successfully.", type: "success" });
                 // Update local cache
                 const updated = allListingsData.map(item =>
-                    item.skuId === editingListing.skuId
-                        ? { ...item, ...editForm, inventoryItems: editForm.inventoryItems.map(id => ({ inventoryId: id, imageUrl: item.inventoryItems.find(i => i.inventoryId === id)?.imageUrl || null })) }
+                    (editingListing._id ? item._id === editingListing._id : item.skuId === editingListing.skuId && item.marketplace === editingListing.marketplace)
+                        ? {
+                            ...item,
+                            ...editForm,
+                            styleId: updatedStyleId,
+                            inventoryItems: editForm.inventoryItems.map(id => ({ inventoryId: id, imageUrl: item.inventoryItems.find(i => i.inventoryId === id)?.imageUrl || null }))
+                        }
                         : item
                 );
                 setAllListingsData(updated);
@@ -227,20 +268,36 @@ export default function AllListingsPage() {
         }
     };
 
-    const handleDelete = async (skuId) => {
+    const openDeleteModal = (listing) => {
+        setDeletingListing(listing);
+        setDeleteInputText("");
+    };
+
+    const confirmDelete = async () => {
+        if (!deletingListing) return;
+        const id = deletingListing._id;
+        const skuId = deletingListing.skuId;
+        const marketplace = deletingListing.marketplace;
         setDeletingListingId(skuId);
         setDeleteButtonLoading(true);
 
         try {
-            const response = await fetch(`/api/employee/listing?skuId=${skuId}`, {
+            const deleteUrl = id 
+                ? `/api/employee/listing?id=${id}` 
+                : `/api/employee/listing?skuId=${skuId}&marketplace=${encodeURIComponent(marketplace)}`;
+            const response = await fetch(deleteUrl, {
                 method: "DELETE",
             });
             const result = await response.json();
             if (response.ok && result.success) {
                 setMessage({ text: "Listing deleted successfully.", type: "success" });
                 // Update local data
-                const updatedData = allListingsData.filter(item => item.skuId !== skuId);
+                const updatedData = allListingsData.filter(item => 
+                    id ? item._id !== id : !(item.skuId === skuId && item.marketplace === marketplace)
+                );
                 setAllListingsData(updatedData);
+                setDeletingListing(null);
+                setDeleteInputText("");
             } else {
                 setMessage({ text: result.error || "Failed to delete listing.", type: "error" });
             }
@@ -316,7 +373,8 @@ export default function AllListingsPage() {
                 <h1 className={styles.title}>SKU</h1>
 
                 <div className={styles.controlsRow}>
-                    <div className={styles.filtersGroup}>
+                    {/* Row 1: Search Inputs & Refresh Button */}
+                    <div className={styles.controlsGroup}>
                         <div className={styles.searchBox}>
                             <input
                                 type="text"
@@ -327,7 +385,7 @@ export default function AllListingsPage() {
                                 className={styles.searchInput}
                             />
                             <button className={styles.searchBtn} onClick={handleSearch} title="Search">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <circle cx="11" cy="11" r="8"></circle>
                                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                                 </svg>
@@ -343,13 +401,46 @@ export default function AllListingsPage() {
                                 className={styles.searchInput}
                             />
                             <button className={styles.searchBtn} onClick={() => setCurrentPage(1)} title="Search">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <circle cx="11" cy="11" r="8"></circle>
                                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                                 </svg>
                             </button>
                         </div>
 
+                        <div className={styles.searchBox}>
+                            <input
+                                type="text"
+                                placeholder="Search Style ID..."
+                                value={styleIdQuery}
+                                onChange={(e) => { setStyleIdQuery(e.target.value); setCurrentPage(1); }}
+                                className={styles.searchInput}
+                            />
+                            <button className={styles.searchBtn} onClick={() => setCurrentPage(1)} title="Search Style ID">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <button
+                            className={`${styles.refreshBtn} ${refreshing ? styles.spinning : ''}`}
+                            onClick={handleRefresh}
+                            disabled={refreshing}
+                            title="Refresh Data"
+                        >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <polyline points="1 20 1 14 7 14"></polyline>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                            Refresh
+                        </button>
+                    </div>
+
+                    {/* Row 2: Filter Selects & Reset Button */}
+                    <div className={styles.controlsGroup}>
                         <select
                             className={styles.filterSelect}
                             value={selectedVertical}
@@ -362,6 +453,7 @@ export default function AllListingsPage() {
                             {verticals.map(v => (
                                 <option key={v.verticalShort} value={v.verticalName}>{v.verticalName}</option>
                             ))}
+                            <option key="combo" value="Combo">Combo</option>
                         </select>
 
                         <select
@@ -385,6 +477,21 @@ export default function AllListingsPage() {
 
                         <select
                             className={styles.filterSelect}
+                            value={selectedStatus}
+                            onChange={(e) => {
+                                setSelectedStatus(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                        >
+                            <option value="">All Statuses</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="blocked">Blocked</option>
+                            <option value="archived">Archived</option>
+                        </select>
+
+                        <select
+                            className={styles.filterSelect}
                             value={sortOrder}
                             onChange={(e) => {
                                 setSortOrder(e.target.value);
@@ -400,30 +507,13 @@ export default function AllListingsPage() {
                             onClick={handleReset}
                             title="Reset Filters"
                         >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="1 4 1 10 7 10"></polyline>
-                                <polyline points="23 20 23 14 17 14"></polyline>
-                                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 7v6h6"></path>
+                                <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
                             </svg>
                             Reset
                         </button>
-
-                        <button
-                            className={`${styles.refreshBtn} ${refreshing ? styles.spinning : ''}`}
-                            onClick={handleRefresh}
-                            disabled={refreshing}
-                            title="Refresh Data"
-                        >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="23 4 23 10 17 10"></polyline>
-                                <polyline points="1 20 1 14 7 14"></polyline>
-                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                            </svg>
-                            Refresh
-                        </button>
                     </div>
-
-
                 </div>
             </div>
 
@@ -455,11 +545,11 @@ export default function AllListingsPage() {
                                                 type="button"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    handleDelete(item.skuId);
+                                                    openDeleteModal(item);
                                                 }}
                                                 className={styles.deleteBtn}
                                                 title="Delete Listing"
-                                                disabled={deleteButtonLoading}
+                                                disabled={deleteButtonLoading && deletingListingId === item.skuId}
                                             >
                                                 {deleteButtonLoading && deletingListingId === item.skuId
                                                     ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -650,13 +740,19 @@ export default function AllListingsPage() {
                                             <span className={styles.metaValue}>{selectedListing.marketplace || 'Direct'}</span>
                                         </div>
                                     </div>
+                                    {selectedListing.styleId && (
+                                        <div className={styles.metaItem}>
+                                            <span className={styles.metaLabel}>Style ID</span>
+                                            <span className={styles.metaValue}>{selectedListing.styleId}</span>
+                                        </div>
+                                    )}
                                     <div className={styles.metaItem}>
                                         <span className={styles.metaLabel}>Date Created</span>
                                         <span className={styles.metaValue}>
-                                            {new Date(selectedListing.createdAt).toLocaleString('en-US', {
+                                            {selectedListing?.createdAt ? new Date(selectedListing.createdAt).toLocaleString('en-US', {
                                                 month: 'long', day: 'numeric', year: 'numeric',
                                                 hour: '2-digit', minute: '2-digit'
-                                            })}
+                                            }) : '—'}
                                         </span>
                                     </div>
                                     <div className={styles.metaItem}>
@@ -765,6 +861,20 @@ export default function AllListingsPage() {
                                     ))}
                                 </div>
                             </div>
+
+                            {/* Style ID (Myntra) */}
+                            {editForm.marketplace === "Myntra" && (
+                                <div className={styles.editField}>
+                                    <label className={styles.editLabel}>Style ID (Myntra)</label>
+                                    <input
+                                        type="text"
+                                        className={styles.editInput}
+                                        value={editForm.styleId || ""}
+                                        onChange={e => setEditForm(f => ({ ...f, styleId: e.target.value }))}
+                                        placeholder="e.g., 29481052"
+                                    />
+                                </div>
+                            )}
 
                             {/* Vertical */}
                             <div className={styles.editField}>
@@ -910,6 +1020,71 @@ export default function AllListingsPage() {
                             </span>
                             <button className={styles.saveBtn} onClick={() => setShowInventoryPicker(false)}>
                                 Done
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {deletingListing && (
+                <div className={styles.modalOverlay} onClick={() => setDeletingListing(null)}>
+                    <div className={styles.deleteConfirmModalContent} onClick={e => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <h2 style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                                Confirm Deletion
+                            </h2>
+                            <button className={styles.closeBtn} onClick={() => setDeletingListing(null)}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div className={styles.deleteModalBody}>
+                            <p style={{ margin: 0, color: '#e2e8f0', fontSize: '0.95rem', lineHeight: '1.5' }}>
+                                Are you sure you want to delete listing <strong style={{ color: '#f8fafc', wordBreak: 'break-all' }}>{deletingListing.skuId}</strong>? This action cannot be undone.
+                            </p>
+                            <div className={styles.deleteInputGroup}>
+                                <label className={styles.deleteInputLabel}>
+                                    To confirm, type <span className={styles.deleteHighlight}>delete</span> below:
+                                </label>
+                                <input
+                                    type="text"
+                                    className={styles.deleteInput}
+                                    placeholder="Type 'delete' to confirm"
+                                    value={deleteInputText}
+                                    onChange={(e) => setDeleteInputText(e.target.value)}
+                                    autoFocus
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && deleteInputText.trim().toLowerCase() === 'delete' && !deleteButtonLoading) {
+                                            confirmDelete();
+                                        }
+                                    }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className={styles.editModalFooter}>
+                            <button
+                                className={styles.cancelBtn}
+                                onClick={() => setDeletingListing(null)}
+                                disabled={deleteButtonLoading}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className={styles.deleteConfirmBtn}
+                                onClick={confirmDelete}
+                                disabled={deleteInputText.trim().toLowerCase() !== "delete" || deleteButtonLoading}
+                            >
+                                {deleteButtonLoading ? "Deleting..." : "Delete Listing"}
                             </button>
                         </div>
                     </div>

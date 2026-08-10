@@ -801,10 +801,10 @@ export default function AllInventoryPage() {
                                     </div>
                                     <p className={styles.modalVertical}>{selectedItem.vertical}</p>
                                     <p className={styles.modalDate}>
-                                        Added on {new Date(selectedItem.createdAt).toLocaleString('en-IN', {
+                                        {selectedItem?.createdAt ? `Added on ${new Date(selectedItem.createdAt).toLocaleString('en-IN', {
                                             month: 'long', day: 'numeric', year: 'numeric',
                                             hour: '2-digit', minute: '2-digit'
-                                        })}
+                                        })}` : ''}
                                     </p>
                                 </div>
                             </div>

@@ -16,7 +16,7 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { skuId, vertical, marketplace, inventoryItems, status } = body;
+    const { skuId, vertical, marketplace, inventoryItems, status, styleId } = body;
 
     if (!skuId || !vertical || !marketplace || !inventoryItems) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -35,6 +35,7 @@ export async function POST(request) {
       itemCount: inventoryItems.length,
       inventoryItems,
       status: status || "active",
+      styleId: styleId || null,
       addedBy: user.id,
     });
 
@@ -104,13 +105,22 @@ export async function DELETE(request) {
         }
 
         const { searchParams } = new URL(request.url);
+        const id = searchParams.get("id");
         const skuId = searchParams.get("skuId");
+        const marketplace = searchParams.get("marketplace");
 
-        if (!skuId) {
-            return NextResponse.json({ error: "SKU ID is required" }, { status: 400 });
+        let filter = {};
+        if (id) {
+            filter = { _id: id };
+        } else if (skuId && marketplace) {
+            filter = { skuId, marketplace };
+        } else if (skuId) {
+            filter = { skuId };
+        } else {
+            return NextResponse.json({ error: "ID or SKU ID is required" }, { status: 400 });
         }
 
-        const deleted = await Listing.findOneAndDelete({ skuId });
+        const deleted = await Listing.findOneAndDelete(filter);
         if (!deleted) {
             return NextResponse.json({ error: "Listing not found" }, { status: 404 });
         }
@@ -133,25 +143,35 @@ export async function PUT(request) {
         }
 
         const body = await request.json();
-        const { skuId, vertical, marketplace, status, inventoryItems } = body;
+        const { id, _id, skuId, vertical, marketplace, status, inventoryItems, styleId } = body;
 
-        if (!skuId) {
-            return NextResponse.json({ error: "SKU ID is required" }, { status: 400 });
+        const targetId = id || _id;
+
+        let filter = {};
+        if (targetId) {
+            filter = { _id: targetId };
+        } else if (skuId && marketplace) {
+            filter = { skuId, marketplace };
+        } else if (skuId) {
+            filter = { skuId };
+        } else {
+            return NextResponse.json({ error: "ID or SKU ID is required" }, { status: 400 });
         }
 
         const updateData = {};
-        if (vertical !== undefined)        updateData.vertical = vertical;
-        if (marketplace !== undefined)     updateData.marketplace = marketplace;
+        if (vertical)                      updateData.vertical = vertical;
+        if (marketplace)                   updateData.marketplace = marketplace;
         if (status !== undefined)          updateData.status = status;
+        if (styleId !== undefined)         updateData.styleId = styleId;
         if (inventoryItems !== undefined) {
             updateData.inventoryItems = inventoryItems;
             updateData.itemCount = inventoryItems.length;
         }
 
         const updated = await Listing.findOneAndUpdate(
-            { skuId },
+            filter,
             { $set: updateData },
-            { new: true, runValidators: true }
+            { returnDocument: 'after', runValidators: true }
         );
 
         if (!updated) {
@@ -161,6 +181,6 @@ export async function PUT(request) {
         return NextResponse.json({ success: true, data: updated });
     } catch (error) {
         console.error("Update Listing API Error:", error);
-        return NextResponse.json({ error: "Failed to update listing" }, { status: 500 });
+        return NextResponse.json({ error: error.message || "Failed to update listing" }, { status: 500 });
     }
 }

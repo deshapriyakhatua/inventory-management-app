@@ -12,6 +12,7 @@ export default function CreateNewListing() {
     const [vertical, setVertical] = useState("");
     const [marketplace, setMarketplace] = useState("");
     const [skuId, setSkuId] = useState("");
+    const [styleId, setStyleId] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState({ text: "", type: "" });
     const [isGenerating, setIsGenerating] = useState(false);
@@ -253,6 +254,7 @@ export default function CreateNewListing() {
                     vertical: effVertical,
                     marketplace: marketplace,
                     inventoryItems: selectedItems.map(item => item.inventoryId),
+                    styleId: marketplace === "Myntra" ? styleId.trim() : undefined,
                 }),
             });
 
@@ -263,6 +265,7 @@ export default function CreateNewListing() {
 
                 // Reset specific form fields
                 setSkuId("");
+                setStyleId("");
                 setSelectedItems([]);
                 loadData(true); // Force fresh fetch to show the newly created listing
             } else {
@@ -284,6 +287,28 @@ export default function CreateNewListing() {
                 </div>
 
                 <form onSubmit={handleSubmit} className={styles.form}>
+
+                    {/* Marketplace Section */}
+                    <div className={styles.inputGroup}>
+                        <label htmlFor="marketplace" className={styles.label}>Select Marketplace</label>
+                        <select
+                            id="marketplace"
+                            value={marketplace}
+                            onChange={(e) => setMarketplace(e.target.value)}
+                            className={styles.input}
+                            disabled={isLoading}
+                        >
+                            <option value="">Select marketplace</option>
+                            <option value="Flipkart">Flipkart</option>
+                            <option value="Shopsy">Shopsy</option>
+                            <option value="Amazon">Amazon</option>
+                            <option value="Meesho">Meesho</option>
+                            <option value="Myntra">Myntra</option>
+                            <option value="Ajio">Ajio</option>
+                            <option value="Website">Website</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
 
                     {/* Vertical Section */}
                     <div className={styles.inputGroup}>
@@ -328,28 +353,6 @@ export default function CreateNewListing() {
                                 </svg>
                             </button>
                         </div>
-                    </div>
-
-                    {/* Marketplace Section */}
-                    <div className={styles.inputGroup}>
-                        <label htmlFor="marketplace" className={styles.label}>Select Marketplace</label>
-                        <select
-                            id="marketplace"
-                            value={marketplace}
-                            onChange={(e) => setMarketplace(e.target.value)}
-                            className={styles.input}
-                            disabled={isLoading}
-                        >
-                            <option value="">Select marketplace</option>
-                            <option value="Flipkart">Flipkart</option>
-                            <option value="Shopsy">Shopsy</option>
-                            <option value="Amazon">Amazon</option>
-                            <option value="Meesho">Meesho</option>
-                            <option value="Myntra">Myntra</option>
-                            <option value="Ajio">Ajio</option>
-                            <option value="Website">Website</option>
-                            <option value="Other">Other</option>
-                        </select>
                     </div>
 
                     {/* Selected Items Strip */}
@@ -453,6 +456,22 @@ export default function CreateNewListing() {
                                     <p className={styles.noItemsText}>No inventory found for this vertical.</p>
                                 )}
                             </div>
+                        </div>
+                    )}
+
+                    {/* Style ID Section (Myntra) */}
+                    {marketplace === "Myntra" && (
+                        <div className={styles.inputGroup}>
+                            <label htmlFor="styleId" className={styles.label}>Style ID (Myntra)</label>
+                            <input
+                                type="text"
+                                id="styleId"
+                                value={styleId}
+                                onChange={(e) => setStyleId(e.target.value)}
+                                placeholder="e.g., 29481052"
+                                className={styles.input}
+                                disabled={isLoading}
+                            />
                         </div>
                     )}
 

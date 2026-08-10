@@ -128,35 +128,42 @@ export default function DashboardPage() {
     const loadAllData = async (isRefresh = false) => {
         if (isRefresh) setRefreshing(true);
         else setLoading(true);
-        const pin = sessionStorage.getItem("app_pin");
 
         try {
-            const fetchInv = fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify({ pin, action: "getInventory", page: 1, pageSize: 50000, sort: "newest_first" }),
-            }).then(r => r.json()).then(res => {
-                const items = res.status === 200 ? (res.data || []) : [];
-                setInventoryData(items);
-            });
+            const fetchInv = fetch("/api/employee/inventory")
+                .then(r => r.json())
+                .then(res => {
+                    const items = Array.isArray(res?.data) ? res.data : [];
+                    setInventoryData(items);
+                })
+                .catch(e => {
+                    console.error("Dashboard fetch inventory error:", e);
+                    setInventoryData([]);
+                });
 
-            const fetchList = fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify({ pin, action: "getListing", page: 1, pageSize: 50000, sort: "newest_first" }),
-            }).then(r => r.json()).then(res => {
-                const items = res.status === 200 ? (res.message?.listings || res.data || []) : [];
-                setListingsData(items);
-            });
+            const fetchList = fetch("/api/employee/listing")
+                .then(r => r.json())
+                .then(res => {
+                    const items = Array.isArray(res?.data) ? res.data : [];
+                    setListingsData(items);
+                })
+                .catch(e => {
+                    console.error("Dashboard fetch listings error:", e);
+                    setListingsData([]);
+                });
 
-            const fetchSales = fetch(process.env.NEXT_PUBLIC_SCRIPT_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify({ pin, action: "getFilteredSalesLog", startDate: "", endDate: new Date().toISOString().split("T")[0] }),
-            }).then(r => r.json()).then(res => {
-                const items = (res.status === 200 && Array.isArray(res.message)) ? res.message : [];
-                setSalesData(items);
-            });
+            const fetchSales = fetch("/api/employee/sales-records?pageSize=5000")
+                .then(r => r.json())
+                .then(res => {
+                    const items = Array.isArray(res?.records)
+                        ? res.records
+                        : (Array.isArray(res?.data) ? res.data : []);
+                    setSalesData(items);
+                })
+                .catch(e => {
+                    console.error("Dashboard fetch sales error:", e);
+                    setSalesData([]);
+                });
 
             await Promise.all([fetchInv, fetchList, fetchSales]);
         } catch (e) {
@@ -167,6 +174,20 @@ export default function DashboardPage() {
         }
     };
 
+    // Safe data arrays
+    const safeInventoryData = Array.isArray(inventoryData) ? inventoryData : [];
+    const safeListingsData = Array.isArray(listingsData) ? listingsData : [];
+    const safeSalesData = Array.isArray(salesData) ? salesData : [];
+
+    // Map skuId to vertical from listings
+    const skuVerticalMap = useMemo(() => {
+        const map = {};
+        safeListingsData.forEach(l => {
+            if (l.skuId && l.vertical) map[l.skuId] = l.vertical;
+        });
+        return map;
+    }, [safeListingsData]);
+
     // ─── KPI Computations ───────────────────────────────────────────────────
     const cutoff = useMemo(() => {
         if (salesRange === "all") return null;
@@ -176,33 +197,58 @@ export default function DashboardPage() {
     }, [salesRange]);
 
     const filteredSales = useMemo(() =>
-        salesData.filter(item => {
+        safeSalesData.filter(item => {
+            if (!item) return false;
             if (!cutoff) return true;
-            return new Date(item.date || item.createdAt) >= cutoff;
-        }), [salesData, cutoff]);
+            const itemDate = item.createdAt
+                ? new Date(item.createdAt)
+                : (item.year && item.month ? new Date(item.year, item.month - 1, 15) : new Date(item.date || 0));
+            return itemDate >= cutoff;
+        }), [safeSalesData, cutoff]);
 
-    const totalSalesUnits = useMemo(() =>
-        filteredSales.filter(i => i.type === "Sale").reduce((a, c) => a + Math.abs(Number(c.quantity) || 0), 0),
-        [filteredSales]);
+    const { totalSalesUnits, totalReturnsUnits, netSalesAmount } = useMemo(() => {
+        let sales = 0;
+        let returns = 0;
+        let amount = 0;
+        filteredSales.forEach(i => {
+            if (!i) return;
+            if (i.grossUnits != null || i.netUnits != null) {
+                const sUnits = Number(i.grossUnits) || 0;
+                const rUnits = (Number(i.logisticsReturns) || 0) + (Number(i.customerReturns) || 0);
+                sales += sUnits;
+                returns += rUnits;
+                amount += Number(i.netSales) || 0;
+            } else {
+                const qty = Math.abs(Number(i.quantity) || 0);
+                if (i.type === "Sale") sales += qty;
+                else if (i.type === "Return") returns += qty;
+            }
+        });
+        return { totalSalesUnits: sales, totalReturnsUnits: returns, netSalesAmount: amount };
+    }, [filteredSales]);
 
-    const totalReturnsUnits = useMemo(() =>
-        filteredSales.filter(i => i.type === "Return").reduce((a, c) => a + Math.abs(Number(c.quantity) || 0), 0),
-        [filteredSales]);
-
-    const netSales = totalSalesUnits - totalReturnsUnits;
-    const returnRate = totalSalesUnits ? ((totalReturnsUnits / totalSalesUnits) * 100).toFixed(1) : "0.0";
+    const netSales = netSalesAmount || (totalSalesUnits - totalReturnsUnits);
+    const returnRate = totalSalesUnits ? (((totalReturnsUnits || 0) / totalSalesUnits) * 100).toFixed(1) : "0.0";
 
     // ─── Chart: Sales Trend ──────────────────────────────────────────────────
     const trendData = useMemo(() => {
         const map = {};
         filteredSales.forEach(item => {
-            const d = new Date(item.date || item.createdAt);
-            if (isNaN(d)) return;
+            if (!item) return;
+            const d = item.createdAt
+                ? new Date(item.createdAt)
+                : (item.year && item.month ? new Date(item.year, item.month - 1, 15) : new Date(item.date));
+            if (isNaN(d.getTime())) return;
             const key = d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
             if (!map[key]) map[key] = { date: key, sales: 0, returns: 0, sortKey: d.toISOString() };
-            const qty = Math.abs(Number(item.quantity) || 0);
-            if (item.type === "Sale") map[key].sales += qty;
-            else if (item.type === "Return") map[key].returns += qty;
+            if (item.grossUnits != null || item.netUnits != null) {
+                map[key].sales += Number(item.grossUnits) || 0;
+                map[key].returns += (Number(item.logisticsReturns) || 0) + (Number(item.customerReturns) || 0);
+            } else {
+                const qty = Math.abs(Number(item.quantity) || 0);
+                if (item.type === "Sale") map[key].sales += qty;
+                else if (item.type === "Return") map[key].returns += qty;
+            }
         });
         return Object.values(map).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
     }, [filteredSales]);
@@ -211,11 +257,17 @@ export default function DashboardPage() {
     const platformData = useMemo(() => {
         const map = {};
         filteredSales.forEach(item => {
-            const p = item.platform || "Other";
+            if (!item) return;
+            const p = item.salesChannel || item.platform || "Other";
             if (!map[p]) map[p] = { name: p, sales: 0, returns: 0 };
-            const qty = Math.abs(Number(item.quantity) || 0);
-            if (item.type === "Sale") map[p].sales += qty;
-            else if (item.type === "Return") map[p].returns += qty;
+            if (item.grossUnits != null || item.netUnits != null) {
+                map[p].sales += Number(item.grossUnits) || 0;
+                map[p].returns += (Number(item.logisticsReturns) || 0) + (Number(item.customerReturns) || 0);
+            } else {
+                const qty = Math.abs(Number(item.quantity) || 0);
+                if (item.type === "Sale") map[p].sales += qty;
+                else if (item.type === "Return") map[p].returns += qty;
+            }
         });
         return Object.values(map).sort((a, b) => b.sales - a.sales);
     }, [filteredSales]);
@@ -223,33 +275,42 @@ export default function DashboardPage() {
     // ─── Chart: Vertical Pie ─────────────────────────────────────────────────
     const verticalData = useMemo(() => {
         const map = {};
-        filteredSales.filter(i => i.type === "Sale").forEach(item => {
-            const v = item.vertical || "Unknown";
-            map[v] = (map[v] || 0) + Math.abs(Number(item.quantity) || 0);
+        filteredSales.forEach(item => {
+            if (!item) return;
+            const v = item.vertical || skuVerticalMap[item.skuId] || "Unknown";
+            const qty = item.grossUnits != null ? (Number(item.grossUnits) || 0) : (item.type === "Sale" ? Math.abs(Number(item.quantity) || 0) : 0);
+            if (qty > 0) {
+                map[v] = (map[v] || 0) + qty;
+            }
         });
         return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-    }, [filteredSales]);
+    }, [filteredSales, skuVerticalMap]);
 
     // ─── Inventory by Vertical ───────────────────────────────────────────────
     const inventoryByVertical = useMemo(() => {
         const map = {};
-        inventoryData.forEach(item => {
+        safeInventoryData.forEach(item => {
+            if (!item) return;
             const v = item.vertical || item.verticalName || "Unknown";
             map[v] = (map[v] || 0) + 1;
         });
         return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-    }, [inventoryData]);
+    }, [safeInventoryData]);
 
     // ─── Recent Sales Activity ────────────────────────────────────────────────
     const recentActivity = useMemo(() =>
         [...filteredSales]
-            .sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt))
+            .sort((a, b) => {
+                const dA = a.createdAt ? new Date(a.createdAt) : new Date(a.year || 0, (a.month || 1) - 1, 15);
+                const dB = b.createdAt ? new Date(b.createdAt) : new Date(b.year || 0, (b.month || 1) - 1, 15);
+                return dB - dA;
+            })
             .slice(0, 8),
         [filteredSales]);
 
     // Totals for top KPI strip
-    const totalInventory = inventoryData.length;
-    const totalListings = listingsData.length;
+    const totalInventory = safeInventoryData.length;
+    const totalListings = safeListingsData.length;
 
     if (loading) {
         return (
@@ -300,7 +361,7 @@ export default function DashboardPage() {
                     </div>
                     <div className={styles.kpiBody}>
                         <span className={styles.kpiLabel}>Total Inventory</span>
-                        <span className={styles.kpiValue}>{totalInventory.toLocaleString()}</span>
+                        <span className={styles.kpiValue}>{(totalInventory ?? 0).toLocaleString()}</span>
                         <span className={styles.kpiSub}>Items in stock</span>
                     </div>
                 </div>
@@ -313,7 +374,7 @@ export default function DashboardPage() {
                     </div>
                     <div className={styles.kpiBody}>
                         <span className={styles.kpiLabel}>Total Listings</span>
-                        <span className={styles.kpiValue}>{totalListings.toLocaleString()}</span>
+                        <span className={styles.kpiValue}>{(totalListings ?? 0).toLocaleString()}</span>
                         <span className={styles.kpiSub}>Active marketplace SKUs</span>
                     </div>
                 </div>
@@ -325,7 +386,7 @@ export default function DashboardPage() {
                     </div>
                     <div className={styles.kpiBody}>
                         <span className={styles.kpiLabel}>Total Sales</span>
-                        <span className={styles.kpiValue}>{totalSalesUnits.toLocaleString()}</span>
+                        <span className={styles.kpiValue}>{(totalSalesUnits ?? 0).toLocaleString()}</span>
                         <span className={styles.kpiSub}>Units sold ({salesRange === "all" ? "all time" : `last ${salesRange}d`})</span>
                     </div>
                 </div>
@@ -337,7 +398,7 @@ export default function DashboardPage() {
                     </div>
                     <div className={styles.kpiBody}>
                         <span className={styles.kpiLabel}>Net Sales</span>
-                        <span className={styles.kpiValue}>{netSales.toLocaleString()}</span>
+                        <span className={styles.kpiValue}>{(netSales ?? 0).toLocaleString()}</span>
                         <span className={styles.kpiSub}>After {totalReturnsUnits} returns</span>
                     </div>
                 </div>
@@ -460,20 +521,23 @@ export default function DashboardPage() {
                     {recentActivity.length > 0 ? (
                         <div className={styles.activityList}>
                             {recentActivity.map((item, idx) => {
-                                const isSale = item.type === "Sale";
-                                const date = new Date(item.date || item.createdAt);
-                                const dateStr = isNaN(date) ? "—" : date.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+                                const isSale = item.grossUnits != null ? (item.grossUnits >= 0) : (item.type === "Sale");
+                                const qty = item.grossUnits != null ? (item.netUnits ?? item.grossUnits ?? 0) : Math.abs(Number(item.quantity) || 0);
+                                const platform = item.salesChannel || item.platform || "—";
+                                const date = item.createdAt ? new Date(item.createdAt) : (item.year && item.month ? new Date(item.year, item.month - 1, 15) : new Date(item.date));
+                                const dateStr = isNaN(date.getTime()) ? "—" : date.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+                                const activityLabel = item.type || (item.grossUnits != null ? "Sales Record" : "Sale");
                                 return (
                                     <div key={idx} className={styles.activityItem}>
                                         <span className={`${styles.activityDot} ${isSale ? styles.dotSale : styles.dotReturn}`} />
                                         <div className={styles.activityContent}>
                                             <span className={styles.activitySku}>{item.skuId || "—"}</span>
                                             <span className={styles.activityMeta}>
-                                                {isSale ? "+" : "-"}{Math.abs(Number(item.quantity) || 0)} unit{Math.abs(Number(item.quantity) || 0) !== 1 ? "s" : ""} · {item.platform || "—"} · {dateStr}
+                                                {isSale ? "+" : "-"}{qty} unit{qty !== 1 ? "s" : ""} · {platform} · {dateStr}
                                             </span>
                                         </div>
                                         <span className={`${styles.activityBadge} ${isSale ? styles.badgeSale : styles.badgeReturn}`}>
-                                            {item.type}
+                                            {activityLabel}
                                         </span>
                                     </div>
                                 );

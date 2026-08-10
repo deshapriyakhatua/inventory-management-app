@@ -398,14 +398,14 @@ export default function AddInventory() {
                                             </button>
                                         </div>
                                         <p className={styles.recentDate}>
-                                            {new Date(item.createdAt).toLocaleString('en-IN', {
+                                            {item?.createdAt ? new Date(item.createdAt).toLocaleString('en-IN', {
                                                 day: 'numeric',
                                                 month: 'short',
                                                 year: 'numeric',
                                                 hour: '2-digit',
                                                 minute: '2-digit',
                                                 hour12: true
-                                            })}
+                                            }) : ''}
                                         </p>
                                     </div>
                                 </div>
