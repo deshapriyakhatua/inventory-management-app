@@ -216,7 +216,7 @@ export default function AllListingsPage() {
                     : [...f.inventoryItems, inventoryId],
             };
         });
-    };
+    };  
 
     const handleEditSave = async () => {
         if (!editForm.vertical) {
