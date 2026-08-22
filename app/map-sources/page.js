@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
 import Toast from "../../components/Toast/Toast";
+import { parseSearchQuery, matchesSearchTerms } from "../../utils/searchUtils";
 
 export default function MapSourcesPage() {
   const [loading, setLoading] = useState(true);
@@ -54,8 +55,8 @@ export default function MapSourcesPage() {
       setFilteredInventories(inventories);
       return;
     }
-    const q = searchQuery.toLowerCase();
-    const filtered = inventories.filter(inv => inv.inventoryId.toLowerCase().includes(q));
+    const { includeTerms, excludeTerms } = parseSearchQuery(searchQuery);
+    const filtered = inventories.filter(inv => matchesSearchTerms(inv.inventoryId, includeTerms, excludeTerms));
     setFilteredInventories(filtered);
   }, [searchQuery, inventories]);
 

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import styles from "./page.module.css";
 import Toast from "../../components/Toast/Toast";
+import { parseSearchQuery, matchesArraySearchTerms } from "../../utils/searchUtils";
 
 export default function PurchaseHistoryPage() {
   const [loading, setLoading] = useState(true);
@@ -305,13 +306,16 @@ export default function PurchaseHistoryPage() {
 
     // Filter by search query
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      filtered = filtered.filter(p =>
-        p.inventoryId?.toLowerCase().includes(q) ||
-        p.invoiceNo?.toLowerCase().includes(q) ||
-        p.sellerId?.businessName?.toLowerCase().includes(q) ||
-        p.sellerProductId?.toLowerCase().includes(q)
-      );
+      const { includeTerms, excludeTerms } = parseSearchQuery(searchQuery);
+      filtered = filtered.filter(p => {
+        const searchableFields = [
+          p.inventoryId,
+          p.invoiceNo,
+          p.sellerId?.businessName,
+          p.sellerProductId
+        ].filter(Boolean);
+        return matchesArraySearchTerms(searchableFields, includeTerms, excludeTerms);
+      });
     }
 
     // Filter by status

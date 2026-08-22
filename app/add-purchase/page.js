@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import styles from "./page.module.css";
 import Toast from "../../components/Toast/Toast";
+import { parseSearchQuery, matchesSearchTerms } from "../../utils/searchUtils";
 
 const EMPTY_ITEM = () => ({
   id: crypto.randomUUID(),
@@ -147,9 +148,11 @@ export default function AddPurchasePage() {
     closeInventoryPicker();
   };
 
-  const filteredInventory = allInventory.filter(inv =>
-    !inventorySearch || inv.inventoryId.toLowerCase().includes(inventorySearch.toLowerCase())
-  );
+  const filteredInventory = allInventory.filter(inv => {
+    if (!inventorySearch) return true;
+    const { includeTerms, excludeTerms } = parseSearchQuery(inventorySearch);
+    return matchesSearchTerms(inv.inventoryId, includeTerms, excludeTerms);
+  });
   // ────────────────────────────────────────────────────────────────
 
   const handleReset = () => {

@@ -7,6 +7,7 @@ import Toast from "../../components/Toast/Toast";
 import { fetchVerticalsData } from "../../utils/apiUtils";
 import MarketplaceLogo from "../../components/MarketplaceLogo/MarketplaceLogo";
 import * as XLSX from "xlsx";
+import { parseSearchQuery, matchesSearchTerms, matchesArraySearchTerms } from "../../utils/searchUtils";
 
 const STATUS_COLORS = {
     active: { dot: '#22c55e', label: '#22c55e' },   // green
@@ -101,27 +102,26 @@ export default function AllListingsPage() {
 
         // 2. Filter by Search Query (SKU ID)
         if (searchQuery) {
-            const query = searchQuery.toLowerCase();
+            const { includeTerms, excludeTerms } = parseSearchQuery(searchQuery);
             filtered = filtered.filter(item =>
-                item.skuId.toLowerCase().includes(query)
+                matchesSearchTerms(item.skuId, includeTerms, excludeTerms)
             );
         }
 
         // 3. Filter by Inventory ID
         if (inventoryIdQuery) {
-            const invQuery = inventoryIdQuery.toLowerCase();
-            filtered = filtered.filter(item =>
-                item.inventoryItems?.some(inv =>
-                    inv.inventoryId?.toLowerCase().includes(invQuery)
-                )
-            );
+            const { includeTerms, excludeTerms } = parseSearchQuery(inventoryIdQuery);
+            filtered = filtered.filter(item => {
+                const invIds = item.inventoryItems?.map(inv => inv.inventoryId).filter(Boolean) || [];
+                return matchesArraySearchTerms(invIds, includeTerms, excludeTerms);
+            });
         }
 
         // 3.5 Filter by Style ID (Myntra)
         if (styleIdQuery) {
-            const styleQuery = styleIdQuery.toLowerCase();
+            const { includeTerms, excludeTerms } = parseSearchQuery(styleIdQuery);
             filtered = filtered.filter(item =>
-                item.styleId?.toLowerCase().includes(styleQuery)
+                matchesSearchTerms(item.styleId, includeTerms, excludeTerms)
             );
         }
 
@@ -147,7 +147,7 @@ export default function AllListingsPage() {
         return filtered;
     };
 
-    const processLocalData = () => {
+    const processLocalData = () => { 
         const filtered = getFilteredListings();
 
         // 5. Update Total Items (for Pagination math)
@@ -1042,9 +1042,11 @@ export default function AllListingsPage() {
                                         <p>Loading inventory...</p>
                                     </div>
                                 ) : (() => {
-                                    const filtered = inventoryPickerItems.filter(inv =>
-                                        !inventoryPickerSearch || inv.inventoryId?.toUpperCase().includes(inventoryPickerSearch)
-                                    );
+                                    const filtered = inventoryPickerItems.filter(inv => {
+                                        if (!inventoryPickerSearch) return true;
+                                        const { includeTerms, excludeTerms } = parseSearchQuery(inventoryPickerSearch);
+                                        return matchesSearchTerms(inv.inventoryId, includeTerms, excludeTerms);
+                                    });
                                     return filtered.length === 0 ? (
                                         <p className={styles.inventoryPickerEmpty}>No inventory items found.</p>
                                     ) : filtered.map(inv => {

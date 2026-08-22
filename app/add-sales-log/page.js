@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import styles from "./page.module.css";
 import Toast from "../../components/Toast/Toast";
+import { parseSearchQuery, matchesSearchTerms } from "../../utils/searchUtils";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const MONTHS = [
@@ -117,9 +118,9 @@ export default function AddSalesLog() {
   // ── Memoized Filtered Listings ────────────────────────────────────────────
   const globalFilteredListings = React.useMemo(() => {
     if (!debouncedPickerSearch) return listings;
-    const lowerSearch = debouncedPickerSearch.toLowerCase();
+    const { includeTerms, excludeTerms } = parseSearchQuery(debouncedPickerSearch);
     return listings.filter((item) =>
-      item.skuId?.toLowerCase().includes(lowerSearch)
+      matchesSearchTerms(item.skuId, includeTerms, excludeTerms)
     );
   }, [listings, debouncedPickerSearch]);
 

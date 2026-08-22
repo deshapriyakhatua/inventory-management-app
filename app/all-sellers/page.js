@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import styles from "./page.module.css";
 import Toast from "../../components/Toast/Toast";
 import { useAuth } from "../../components/AuthProvider";
+import { parseSearchQuery, matchesArraySearchTerms } from "../../utils/searchUtils";
 
 /* ── Helper ──────────────────────────────────────────── */
 function copy(text, setMsg) {
@@ -152,15 +153,11 @@ export default function AllSellersPage() {
   useEffect(() => {
     let filtered = [...allSellers];
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (s) =>
-          s.businessName?.toLowerCase().includes(q) ||
-          s.contactPerson?.toLowerCase().includes(q) ||
-          s.gstNo?.toLowerCase().includes(q) ||
-          s.email?.toLowerCase().includes(q) ||
-          s.phoneNo?.toLowerCase().includes(q)
-      );
+      const { includeTerms, excludeTerms } = parseSearchQuery(searchQuery);
+      filtered = filtered.filter((s) => {
+        const fields = [s.businessName, s.contactPerson, s.gstNo, s.email, s.phoneNo].filter(Boolean);
+        return matchesArraySearchTerms(fields, includeTerms, excludeTerms);
+      });
     }
     setTotalItems(filtered.length);
     const start = (currentPage - 1) * pageSize;

@@ -8,6 +8,7 @@ import Toast from "../../components/Toast/Toast";
 import SmoothImage from "../../components/SmoothImage/SmoothImage";
 import { fetchVerticalsData } from "../../utils/apiUtils";
 import { useAuth } from "../../components/AuthProvider";
+import { parseSearchQuery, matchesSearchTerms } from "../../utils/searchUtils";
 
 export default function AllInventoryPage() {
     const [allInventoryData, setAllInventoryData] = useState([]); // All data from API/Local Storage
@@ -105,9 +106,9 @@ export default function AllInventoryPage() {
 
         // 2. Filter by Search Query
         if (searchQuery) {
-            const query = searchQuery.toLowerCase();
+            const { includeTerms, excludeTerms } = parseSearchQuery(searchQuery);
             filtered = filtered.filter(item =>
-                item.inventoryId.toLowerCase().includes(query)
+                matchesSearchTerms(item.inventoryId, includeTerms, excludeTerms)
             );
         }
 

@@ -3,6 +3,9 @@ import connectToDatabase from "@/lib/mongoose";
 import SalesRecord from "@/models/SalesRecord";
 import { decrypt } from "@/lib/session";
 import { cookies } from "next/headers";
+import { parseSearchQuery } from "@/utils/searchUtils";
+
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // ─── Auth helper ─────────────────────────────────────────────────────────────
 async function getUser() {
@@ -155,7 +158,28 @@ export async function GET(request) {
     if (year) filter.year = parseInt(year, 10);
     if (salesChannel) filter.salesChannel = salesChannel;
     if (search) {
-      filter.skuId = { $regex: search, $options: "i" };
+      const { includeTerms, excludeTerms } = parseSearchQuery(search);
+      const andConditions = [];
+
+      if (includeTerms.length === 1) {
+        andConditions.push({ skuId: { $regex: escapeRegex(includeTerms[0]), $options: "i" } });
+      } else if (includeTerms.length > 1) {
+        andConditions.push({
+          $or: includeTerms.map(t => ({ skuId: { $regex: escapeRegex(t), $options: "i" } }))
+        });
+      }
+
+      if (excludeTerms.length > 0) {
+        for (const t of excludeTerms) {
+          andConditions.push({ skuId: { $not: { $regex: escapeRegex(t), $options: "i" } } });
+        }
+      }
+
+      if (andConditions.length === 1) {
+        Object.assign(filter, andConditions[0]);
+      } else if (andConditions.length > 1) {
+        filter.$and = andConditions;
+      }
     }
 
     // Sort field map
