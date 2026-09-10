@@ -11,7 +11,9 @@
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.9.0",
+    "html2canvas": "^1.4.1",
     "jose": "^6.2.2",
+    "jspdf": "^4.2.1",
     "mongoose": "^9.3.3",
     "next": "16.1.6",
     "papaparse": "^5.5.3",

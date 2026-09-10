@@ -1,0 +1,279 @@
+.pdfWrapper {
+  display: flex;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 20px;
+  border-radius: 16px;
+  overflow-x: auto;
+}
+
+.pdfPreviewCard {
+  background: #ffffff !important;
+  color: #000000 !important;
+  width: 800px;
+  min-height: 1100px;
+  padding: 48px 52px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.4;
+  box-sizing: border-box;
+}
+
+.sampleInvoiceHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+}
+
+.sellerCompanyTitle {
+  font-size: 32px;
+  font-weight: 900;
+  color: #000000;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.sellerCompanyAddress {
+  font-size: 13px;
+  color: #1f2937;
+  line-height: 1.4;
+}
+
+.invoiceTitleRight {
+  text-align: right;
+}
+
+.invoiceWordTitle {
+  font-size: 26px;
+  font-weight: 500;
+  color: #000000;
+  letter-spacing: 0.5px;
+  margin-bottom: 24px;
+}
+
+.metaTableRight {
+  border-collapse: collapse;
+  text-align: right;
+  font-size: 13px;
+}
+
+.metaTableRight td {
+  padding: 2px 0 2px 16px;
+}
+
+.metaLabel {
+  color: #000000;
+  font-weight: 600;
+}
+
+.metaValue {
+  color: #000000;
+  font-weight: 700;
+}
+
+/* Customer Section */
+.issuedToSection {
+  margin-bottom: 28px;
+}
+
+.issuedToTitle {
+  font-size: 14px;
+  font-weight: 800;
+  color: #000000;
+  margin-bottom: 4px;
+}
+
+.customerName {
+  font-size: 13px;
+  font-weight: 700;
+  color: #000000;
+  margin-bottom: 2px;
+}
+
+.customerAddress {
+  font-size: 13px;
+  color: #1f2937;
+  max-width: 480px;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.customerGstState {
+  font-size: 13px;
+  color: #000000;
+  line-height: 1.4;
+}
+
+/* Main Items Table */
+.sampleTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+
+.sampleTable th {
+  border-top: 1.5px solid #000000;
+  border-bottom: 1.5px solid #000000;
+  padding: 8px 6px;
+  font-weight: 700;
+  color: #000000;
+  text-align: left;
+}
+
+.sampleTable th.alignRight,
+.sampleTable td.alignRight {
+  text-align: right;
+}
+
+.sampleTable th.alignCenter,
+.sampleTable td.alignCenter {
+  text-align: center;
+}
+
+.sampleTable td {
+  padding: 7px 6px;
+  color: #000000;
+}
+
+.sampleTable tr.rowZebra {
+  background-color: #f8fafc;
+}
+
+.sampleTable tr.totalRowTd td {
+  border-top: 1.5px solid #000000;
+  border-bottom: 1.5px solid #000000;
+  font-weight: 800;
+}
+
+/* Bottom Split: Notes & Payment Info on Left | Totals & QR on Right */
+.sampleBottomGrid {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-top: 10px;
+  gap: 30px;
+}
+
+.leftNotesPaymentCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.rightTotalsQrCol {
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 24px;
+}
+
+.notesBox {
+  font-size: 11px;
+  color: #000000;
+  line-height: 1.4;
+}
+
+.notesTitle {
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.paymentInfoBox {
+  font-size: 12px;
+  color: #000000;
+  line-height: 1.5;
+}
+
+.paymentInfoTitle {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+/* Totals List */
+.totalsList {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: #000000;
+  text-align: right;
+}
+
+.totalRowItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.grandTotalRowItem {
+  font-size: 24px;
+  font-weight: 800;
+  color: #000000;
+  margin: 4px 0;
+}
+
+.balanceRowItem {
+  font-weight: 800;
+  font-size: 14px;
+}
+
+/* Scan & Pay Card */
+.qrCard {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px 16px;
+  text-align: center;
+  background: #fafafa;
+  width: 140px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.qrTitle {
+  font-size: 10px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.qrImage {
+  width: 110px;
+  height: 110px;
+  object-fit: contain;
+}
+
+.qrPoweredBy {
+  font-size: 9px;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
+/* Print CSS */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .pdfWrapper, .pdfPreviewCard, .pdfPreviewCard * {
+    visibility: visible;
+  }
+  .pdfWrapper {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: #ffffff !important;
+  }
+  .pdfPreviewCard {
+    width: 100% !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+}
