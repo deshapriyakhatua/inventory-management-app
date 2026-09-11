@@ -46,3 +46,18 @@ a {
     color-scheme: dark;
   }
 }
+
+@media print {
+  html,
+  body,
+  body > div,
+  main {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    display: block !important;
+  }
+}

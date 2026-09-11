@@ -259,7 +259,8 @@
   body * {
     visibility: hidden;
   }
-  .pdfWrapper, .pdfPreviewCard, .pdfPreviewCard * {
+  .pdfWrapper,
+  .pdfWrapper * {
     visibility: visible;
   }
   .pdfWrapper {
@@ -270,10 +271,31 @@
     margin: 0;
     padding: 0;
     background: #ffffff !important;
+    overflow: visible !important;
+    height: auto !important;
   }
   .pdfPreviewCard {
     width: 100% !important;
+    min-height: 0 !important;
     box-shadow: none !important;
     padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+  .sampleTable {
+    page-break-inside: auto;
+  }
+  .sampleTable tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .sampleTable thead {
+    display: table-header-group;
+  }
+  .sampleBottomGrid {
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 }
