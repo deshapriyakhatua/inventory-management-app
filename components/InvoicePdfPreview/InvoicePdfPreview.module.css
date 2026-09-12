@@ -7,6 +7,11 @@
   overflow-x: auto;
 }
 
+.pdfPreviewCard,
+.pdfPreviewCard * {
+  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
 .pdfPreviewCard {
   background: #ffffff !important;
   color: #000000 !important;
@@ -14,7 +19,7 @@
   min-height: 1100px;
   padding: 48px 52px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.4;
   box-sizing: border-box;
 }
@@ -74,6 +79,7 @@
 
 /* Customer Section */
 .issuedToSection {
+  width: 100%;
   margin-bottom: 28px;
 }
 
@@ -94,7 +100,8 @@
 .customerAddress {
   font-size: 13px;
   color: #1f2937;
-  max-width: 480px;
+  width: 100%;
+  max-width: 100%;
   line-height: 1.4;
   margin-bottom: 8px;
 }
@@ -147,8 +154,9 @@
   font-weight: 800;
 }
 
-/* Bottom Split: Notes & Payment Info on Left | Totals & QR on Right */
-.sampleBottomGrid {
+/* Bottom Split: Notes & Payment Info on Left | Totals on Right */
+.sampleBottomGrid,
+.sampleTotalsGrid {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -163,12 +171,19 @@
   gap: 24px;
 }
 
-.rightTotalsQrCol {
+.rightTotalsQrCol,
+.rightTotalsCol {
   width: 320px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 24px;
+}
+
+/* Independent Scan & Pay QR Section */
+.sampleQrGrid {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
 }
 
 .notesBox {
@@ -256,6 +271,11 @@
 
 /* Print CSS */
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 15mm 12mm 15mm;
+  }
+
   body * {
     visibility: hidden;
   }
@@ -294,7 +314,10 @@
   .sampleTable thead {
     display: table-header-group;
   }
-  .sampleBottomGrid {
+  .sampleBottomGrid,
+  .sampleTotalsGrid,
+  .sampleQrGrid,
+  .qrCard {
     page-break-inside: avoid;
     break-inside: avoid;
   }

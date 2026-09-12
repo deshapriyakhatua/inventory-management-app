@@ -48,6 +48,7 @@ export async function POST(request) {
     const {
       businessName,
       address,
+      state,
       gstNo,
       bankName,
       accountNo,
@@ -64,6 +65,7 @@ export async function POST(request) {
 
     if (businessName !== undefined) settings.businessName = businessName;
     if (address !== undefined) settings.address = address;
+    if (state !== undefined) settings.state = state;
     if (gstNo !== undefined) settings.gstNo = gstNo;
     if (bankName !== undefined) settings.bankName = bankName;
     if (accountNo !== undefined) settings.accountNo = accountNo;

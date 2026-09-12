@@ -25,6 +25,7 @@ const b2bInvoiceSchema = new mongoose.Schema(
         type: String,
         default: "75/2 Ground Floor, B.T. Road, Kolkata - 90, West Bengal",
       },
+      state: { type: String, default: "19-West Bengal" },
       gstNo: { type: String, default: "19JHWPK2955Q1ZW" },
       contactPerson: { type: String, default: "" },
       phoneNo: { type: String, default: "" },

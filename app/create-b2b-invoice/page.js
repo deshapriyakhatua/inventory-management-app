@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import RefreshIcon from "@/components/RefreshIcon/RefreshIcon";
 import { GST_STATES } from "@/utils/gstStates";
 import InvoicePdfPreview from "@/components/InvoicePdfPreview/InvoicePdfPreview";
+import { downloadInvoicePdf } from "@/utils/generatePdf";
 
 function formatDateGB(dateStr) {
   if (!dateStr) return "";
@@ -46,7 +47,11 @@ export default function CreateB2BInvoicePage() {
 
   const openMultiSelectModal = () => {
     setIsMultiSelectOpen(true);
-    setSelectedInvIds([]);
+    // Pre-populate selectedInvIds with all items currently present in lineItems
+    const existingIds = lineItems
+      .map((item) => item.inventoryId)
+      .filter((id) => Boolean(id) && String(id).trim() !== "");
+    setSelectedInvIds(Array.from(new Set(existingIds)));
     setMultiSelectSearch("");
     setTimeout(() => {
       if (multiSearchRef.current) {
@@ -77,24 +82,49 @@ export default function CreateB2BInvoicePage() {
   };
 
   const handleAddSelectedItems = () => {
-    if (selectedInvIds.length === 0) return;
-    const newRows = selectedInvIds.map((invId) => ({
-      inventoryId: invId,
-      description: invId,
-      hsnCode: "7117",
-      quantity: 1,
-      unitPrice: 0,
-      gstRate: 3,
-    }));
-
-    setLineItems((prev) => {
-      if (prev.length === 1 && !prev[0].inventoryId && !prev[0].description) {
-        return newRows;
+    // Map of currently existing items keyed by inventoryId to preserve their details (qty, price, gstRate, etc.)
+    const existingMap = new Map();
+    lineItems.forEach((item) => {
+      if (item.inventoryId) {
+        existingMap.set(item.inventoryId, item);
       }
-      return [...prev, ...newRows];
     });
 
-    toast.success(`Added ${newRows.length} item(s) to invoice`);
+    // Custom manual rows without an inventoryId (e.g. user typed a description manually)
+    const customRows = lineItems.filter(
+      (item) => !item.inventoryId && (item.description || item.unitPrice > 0)
+    );
+
+    // Build list of inventory item rows based on selectedInvIds
+    const updatedInvRows = selectedInvIds.map((invId) => {
+      if (existingMap.has(invId)) {
+        return existingMap.get(invId); // preserve existing quantities, prices, etc.
+      }
+      return {
+        inventoryId: invId,
+        description: invId,
+        hsnCode: "7117",
+        quantity: 1,
+        unitPrice: 0,
+        gstRate: 3,
+      };
+    });
+
+    const finalRows = [...updatedInvRows, ...customRows];
+
+    if (finalRows.length === 0) {
+      finalRows.push({
+        inventoryId: "",
+        description: "",
+        hsnCode: "7117",
+        quantity: 1,
+        unitPrice: 0,
+        gstRate: 3,
+      });
+    }
+
+    setLineItems(finalRows);
+    toast.success(`Updated invoice with ${selectedInvIds.length} selected item(s)`);
     closeMultiSelectModal();
   };
 
@@ -154,6 +184,7 @@ export default function CreateB2BInvoicePage() {
   const [sellerDetails, setSellerDetails] = useState({
     businessName: "CRAZYKUDI",
     address: "75/2 Ground Floor, B.T. Road, Kolkata - 90, West Bengal",
+    state: "19-West Bengal",
     gstNo: "19JHWPK2955Q1ZW",
     bankName: "Slice Small Finance Bank",
     accountNo: "033311501063323",
@@ -188,6 +219,7 @@ export default function CreateB2BInvoicePage() {
   const [shippingFee, setShippingFee] = useState(180);
   const [discount, setDiscount] = useState(0.19);
   const [receivedAmount, setReceivedAmount] = useState(500);
+  const [showQrCode, setShowQrCode] = useState(true);
   const [notes, setNotes] = useState(
     "All goods checked before dispatch.\nGoods once sold will not taken back.\nOpening video is must for any claims. We are not responsible for any damages once goods leave our premises. Any dispute will be subject to Barrackpore jurisdiction only."
   );
@@ -210,6 +242,7 @@ export default function CreateB2BInvoicePage() {
           ...prev,
           businessName: cs.businessName || prev.businessName,
           address: cs.address || prev.address,
+          state: cs.state || prev.state,
           gstNo: cs.gstNo || prev.gstNo,
           bankName: cs.bankName || prev.bankName,
           accountNo: cs.accountNo || prev.accountNo,
@@ -387,6 +420,7 @@ export default function CreateB2BInvoicePage() {
     receivedAmount,
     balanceAmount,
     notes,
+    showQrCode,
   };
 
   // Submit Invoice Form
@@ -462,44 +496,10 @@ export default function CreateB2BInvoicePage() {
     if (!pdfPreviewRef.current) return;
     setIsDownloadingPdf(true);
     try {
-      const html2canvas = (await import("html2canvas")).default;
-      const { jsPDF } = await import("jspdf");
-
-      const element = pdfPreviewRef.current;
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#ffffff",
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-
-      const pageWidth = pdf.internal.pageSize.getWidth(); // 210 mm
-      const pageHeight = pdf.internal.pageSize.getHeight(); // 297 mm
-
-      const imgWidth = pageWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      // Page 1
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      // Add additional A4 pages if content exceeds 1 page
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-
-      pdf.save(
-        `Invoice_${invoiceNumber || "Draft"}_${(buyerDetails.businessName || "B2B").replace(/\s+/g, "_")}.pdf`
-      );
+      const fileName = `Invoice_${invoiceNumber || "Draft"}_${(
+        buyerDetails.businessName || "B2B"
+      ).replace(/\s+/g, "_")}.pdf`;
+      await downloadInvoicePdf(pdfPreviewRef.current, fileName);
       toast.success("PDF generated and downloaded!");
     } catch (err) {
       console.error("PDF generation error:", err);
@@ -566,6 +566,16 @@ export default function CreateB2BInvoicePage() {
 
           {activeTab === "preview" && (
             <>
+              <label style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: "#e4e4e7", fontSize: "13px", cursor: "pointer", marginRight: "8px", userSelect: "none" }}>
+                <input
+                  type="checkbox"
+                  checked={showQrCode}
+                  onChange={(e) => setShowQrCode(e.target.checked)}
+                  style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#ec4899" }}
+                />
+                <span>Print QR Code</span>
+              </label>
+
               <button
                 type="button"
                 className={styles.downloadPdfBtn}
@@ -988,6 +998,17 @@ export default function CreateB2BInvoicePage() {
                   <span>Balance:</span>
                   <span>₹{balanceAmount.toFixed(2)}</span>
                 </div>
+                <div className={styles.summaryRow} style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px dashed rgba(255,255,255,0.1)" }}>
+                  <label style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: "#e4e4e7", fontSize: "13px", cursor: "pointer", userSelect: "none" }}>
+                    <input
+                      type="checkbox"
+                      checked={showQrCode}
+                      onChange={(e) => setShowQrCode(e.target.checked)}
+                      style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#ec4899" }}
+                    />
+                    <span>Show QR Code on Invoice</span>
+                  </label>
+                </div>
               </div>
             </div>
 
@@ -1283,6 +1304,22 @@ export default function CreateB2BInvoicePage() {
                     />
                   </div>
                   <div className={styles.inputGroup}>
+                    <label className={styles.label}>State</label>
+                    <select
+                      className={styles.select}
+                      value={sellerDetails.state || "19-West Bengal"}
+                      onChange={(e) =>
+                        setSellerDetails({ ...sellerDetails, state: e.target.value })
+                      }
+                    >
+                      {GST_STATES.map((st) => (
+                        <option key={st} value={st}>
+                          {st}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className={styles.inputGroup}>
                     <label className={styles.label}>GSTIN</label>
                     <input
                       type="text"
@@ -1537,9 +1574,10 @@ export default function CreateB2BInvoicePage() {
                 type="button"
                 className={styles.addSelectedBtn}
                 onClick={handleAddSelectedItems}
-                disabled={selectedInvIds.length === 0}
               >
-                Add {selectedInvIds.length > 0 ? selectedInvIds.length : ""} Selected Item{selectedInvIds.length !== 1 ? "s" : ""}
+                {selectedInvIds.length > 0
+                  ? `Apply Selection (${selectedInvIds.length} Item${selectedInvIds.length !== 1 ? "s" : ""})`
+                  : "Apply (0 Items Selected)"}
               </button>
             </div>
           </div>

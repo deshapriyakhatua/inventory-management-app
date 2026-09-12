@@ -15,7 +15,7 @@ function formatDateGB(dateStr) {
   return new Date(dateStr).toLocaleDateString("en-GB");
 }
 
-const InvoicePdfPreview = forwardRef(({ invoice }, ref) => {
+const InvoicePdfPreview = forwardRef(({ invoice, showQrCode = true }, ref) => {
   if (!invoice) return null;
 
   const {
@@ -33,7 +33,10 @@ const InvoicePdfPreview = forwardRef(({ invoice }, ref) => {
     receivedAmount = 0,
     balanceAmount,
     notes = "",
+    showQrCode: invoiceShowQrCode,
   } = invoice;
+
+  const displayQrCode = invoiceShowQrCode !== undefined ? invoiceShowQrCode : showQrCode;
 
   const calculatedRows = lineItems.map((item) => {
     const qty = Number(item.quantity) || 0;
@@ -74,6 +77,7 @@ const InvoicePdfPreview = forwardRef(({ invoice }, ref) => {
 
   const companyName = sellerDetails.businessName || "CRAZYKUDI";
   const companyAddress = sellerDetails.address || "75/2 Ground Floor, B.T. Road, Kolkata - 90, West Bengal";
+  const companyState = sellerDetails.state || "19-West Bengal";
   const companyGst = sellerDetails.gstNo || "19JHWPK2955Q1ZW";
   const bankName = sellerDetails.bankName || "Slice Small Finance Bank";
   const accountNo = sellerDetails.accountNo || "033311501063323";
@@ -92,9 +96,8 @@ const InvoicePdfPreview = forwardRef(({ invoice }, ref) => {
           <div>
             <h1 className={styles.sellerCompanyTitle}>{companyName}</h1>
             <div className={styles.sellerCompanyAddress}>
-              {companyAddress.split(", ").map((line, i) => (
-                <div key={i}>{line}</div>
-              ))}
+              <div>{companyAddress}</div>
+              {companyState && <div>State: {companyState}</div>}
               <div>GSTIN - {companyGst}</div>
             </div>
           </div>
@@ -203,8 +206,8 @@ const InvoicePdfPreview = forwardRef(({ invoice }, ref) => {
           </tbody>
         </table>
 
-        {/* Bottom Split */}
-        <div className={styles.sampleBottomGrid}>
+        {/* Bottom Totals & Notes Grid */}
+        <div className={styles.sampleTotalsGrid}>
           <div className={styles.leftNotesPaymentCol}>
             <div className={styles.notesBox}>
               <span className={styles.notesTitle}>Notes : </span>
@@ -221,7 +224,7 @@ const InvoicePdfPreview = forwardRef(({ invoice }, ref) => {
             </div>
           </div>
 
-          <div className={styles.rightTotalsQrCol}>
+          <div className={styles.rightTotalsCol}>
             <div className={styles.totalsList}>
               <div className={styles.totalRowItem}>
                 <span>Subtotal</span>
@@ -288,8 +291,12 @@ const InvoicePdfPreview = forwardRef(({ invoice }, ref) => {
                 </span>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Scan & Pay QR Card */}
+        {/* Scan & Pay QR Card Section (Independent Block) */}
+        {displayQrCode && (
+          <div className={styles.sampleQrGrid}>
             <div className={styles.qrCard}>
               <div className={styles.qrTitle}>Scan & pay</div>
               <img
@@ -302,7 +309,7 @@ const InvoicePdfPreview = forwardRef(({ invoice }, ref) => {
               <div className={styles.qrPoweredBy}>Powered by slice UPI</div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

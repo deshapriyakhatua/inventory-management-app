@@ -7,6 +7,7 @@ const companySettingsSchema = new mongoose.Schema(
       type: String,
       default: "75/2 Ground Floor, B.T. Road, Kolkata - 90, West Bengal",
     },
+    state: { type: String, default: "19-West Bengal" },
     gstNo: { type: String, default: "19JHWPK2955Q1ZW" },
     bankName: { type: String, default: "Slice Small Finance Bank" },
     accountNo: { type: String, default: "033311501063323" },

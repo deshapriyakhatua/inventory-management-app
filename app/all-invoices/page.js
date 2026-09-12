@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import RefreshIcon from "@/components/RefreshIcon/RefreshIcon";
 import { GST_STATES } from "@/utils/gstStates";
 import InvoicePdfPreview from "@/components/InvoicePdfPreview/InvoicePdfPreview";
+import { downloadInvoicePdf } from "@/utils/generatePdf";
 
 function formatDateGB(dateStr) {
   if (!dateStr) return "";
@@ -35,6 +36,7 @@ export default function AllInvoicesPage() {
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [viewingInvoice, setViewingInvoice] = useState(null);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [showQrCode, setShowQrCode] = useState(true);
 
   const pdfPreviewRef = useRef(null);
 
@@ -221,44 +223,10 @@ export default function AllInvoicesPage() {
     if (!pdfPreviewRef.current || !viewingInvoice) return;
     setIsDownloadingPdf(true);
     try {
-      const html2canvas = (await import("html2canvas")).default;
-      const { jsPDF } = await import("jspdf");
-
-      const element = pdfPreviewRef.current;
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#ffffff",
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-
-      const imgWidth = pageWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      // Page 1
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      // Add additional A4 pages if content exceeds 1 page
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-
-      pdf.save(
-        `Invoice_${viewingInvoice.invoiceNumber}_${(viewingInvoice.buyerDetails?.businessName || "B2B").replace(/\s+/g, "_")}.pdf`
-      );
+      const fileName = `Invoice_${viewingInvoice.invoiceNumber}_${(
+        viewingInvoice.buyerDetails?.businessName || "B2B"
+      ).replace(/\s+/g, "_")}.pdf`;
+      await downloadInvoicePdf(pdfPreviewRef.current, fileName);
       toast.success("PDF generated and downloaded!");
     } catch (err) {
       console.error(err);
@@ -853,7 +821,16 @@ export default function AllInvoicesPage() {
       {showPdfModal && viewingInvoice && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent} style={{ width: "880px", background: "#18181b", color: "#ffffff" }}>
-            <div className={styles.pdfModalHeader} style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginBottom: "16px" }}>
+            <div className={styles.pdfModalHeader} style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+              <label style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: "#ffffff", fontSize: "13px", cursor: "pointer", marginRight: "12px", userSelect: "none" }}>
+                <input
+                  type="checkbox"
+                  checked={showQrCode}
+                  onChange={(e) => setShowQrCode(e.target.checked)}
+                  style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#ec4899" }}
+                />
+                <span>Show QR Code</span>
+              </label>
               <button
                 type="button"
                 className={styles.createBtn}
@@ -882,7 +859,7 @@ export default function AllInvoicesPage() {
             </div>
 
             {/* Reusable Exact Replica PDF Component */}
-            <InvoicePdfPreview ref={pdfPreviewRef} invoice={viewingInvoice} />
+            <InvoicePdfPreview ref={pdfPreviewRef} invoice={viewingInvoice} showQrCode={showQrCode} />
           </div>
         </div>
       )}
