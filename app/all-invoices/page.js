@@ -8,6 +8,8 @@ import RefreshIcon from "@/components/RefreshIcon/RefreshIcon";
 import { GST_STATES } from "@/utils/gstStates";
 import InvoicePdfPreview from "@/components/InvoicePdfPreview/InvoicePdfPreview";
 import { downloadInvoicePdf } from "@/utils/generatePdf";
+import { calculatePaymentStatus } from "@/lib/paymentStatus";
+import ConfirmModal from "@/components/ConfirmModal/ConfirmModal";
 
 function formatDateGB(dateStr) {
   if (!dateStr) return "";
@@ -27,6 +29,8 @@ export default function AllInvoicesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
 
+  const [showArchived, setShowArchived] = useState(false);
+
   // Edit Modal State
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);
@@ -42,12 +46,12 @@ export default function AllInvoicesPage() {
 
   useEffect(() => {
     fetchInvoices();
-  }, [search, statusFilter]);
+  }, [search, statusFilter, showArchived]);
 
   const fetchInvoices = async () => {
     setLoading(true);
     try {
-      let url = "/api/employee/b2b-invoice?";
+      let url = `/api/employee/b2b-invoice?archived=${showArchived}&`;
       if (search) url += `search=${encodeURIComponent(search)}&`;
       if (statusFilter && statusFilter !== "All")
         url += `status=${encodeURIComponent(statusFilter)}&`;
@@ -67,25 +71,116 @@ export default function AllInvoicesPage() {
     }
   };
 
-  // Archive invoice
-  const handleArchive = async (id) => {
-    if (!confirm("Are you sure you want to archive this invoice?")) return;
+  // Custom Confirm Modal State
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    confirmLabel: "Confirm",
+    variant: "danger",
+    onConfirm: null,
+    isLoading: false,
+  });
 
-    try {
-      const res = await fetch(`/api/employee/b2b-invoice?id=${id}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (res.ok) {
-        toast.success("Invoice archived successfully");
-        fetchInvoices();
-      } else {
-        toast.error(data.error || "Failed to archive invoice");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Error archiving invoice");
-    }
+  // Archive invoice (soft delete)
+  const handleArchive = (id, invNum) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Archive Invoice",
+      message: `Archive invoice ${invNum || ""}? You can view or restore it anytime from Archived Invoices.`,
+      confirmLabel: "Archive Invoice",
+      variant: "warning",
+      isLoading: false,
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, isLoading: true }));
+        try {
+          const res = await fetch(`/api/employee/b2b-invoice?id=${id}`, {
+            method: "DELETE",
+          });
+          const data = await res.json();
+          if (res.ok) {
+            toast.success("Invoice archived successfully");
+            fetchInvoices();
+            setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+          } else {
+            toast.error(data.error || "Failed to archive invoice");
+          }
+        } catch (err) {
+          console.error(err);
+          toast.error("Error archiving invoice");
+        } finally {
+          setConfirmModal((prev) => ({ ...prev, isLoading: false }));
+        }
+      },
+    });
+  };
+
+  // Restore invoice (unarchive)
+  const handleRestore = (id, invNum) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Restore Invoice",
+      message: `Restore invoice ${invNum || ""} back to Active Invoices?`,
+      confirmLabel: "Restore Invoice",
+      variant: "info",
+      isLoading: false,
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, isLoading: true }));
+        try {
+          const res = await fetch(`/api/employee/b2b-invoice`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ _id: id, isArchived: false }),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            toast.success("Invoice restored to active invoices!");
+            fetchInvoices();
+            setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+          } else {
+            toast.error(data.error || "Failed to restore invoice");
+          }
+        } catch (err) {
+          console.error(err);
+          toast.error("Error restoring invoice");
+        } finally {
+          setConfirmModal((prev) => ({ ...prev, isLoading: false }));
+        }
+      },
+    });
+  };
+
+  // Delete invoice permanently
+  const handlePermanentDelete = (id, invNum) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Permanently Delete Invoice",
+      message: `Are you sure you want to PERMANENTLY delete invoice ${invNum || ""}? This action CANNOT be undone.`,
+      confirmLabel: "Delete Permanently",
+      variant: "danger",
+      isLoading: false,
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, isLoading: true }));
+        try {
+          const res = await fetch(`/api/employee/b2b-invoice?id=${id}&permanent=true`, {
+            method: "DELETE",
+          });
+          const data = await res.json();
+          if (res.ok) {
+            toast.success("Invoice permanently deleted");
+            fetchInvoices();
+            setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+          } else {
+            toast.error(data.error || "Failed to delete invoice");
+          }
+        } catch (err) {
+          console.error(err);
+          toast.error("Error deleting invoice");
+        } finally {
+          setConfirmModal((prev) => ({ ...prev, isLoading: false }));
+        }
+      },
+    });
   };
 
   // Open Edit Modal
@@ -180,12 +275,18 @@ export default function AllInvoicesPage() {
     const balanceAmount =
       grandTotal - Number(editingInvoice.receivedAmount || 0);
 
+    const paymentStatus =
+      editingInvoice.paymentStatus === "Cancelled"
+        ? "Cancelled"
+        : calculatePaymentStatus(grandTotal, editingInvoice.receivedAmount);
+
     const payload = {
       ...editingInvoice,
       subtotal,
       totalTax,
       grandTotal,
       balanceAmount,
+      paymentStatus,
     };
 
     try {
@@ -256,6 +357,38 @@ export default function AllInvoicesPage() {
     0
   );
 
+  // Edit Modal Auto Calculations
+  const modalSubtotal =
+    editingInvoice?.lineItems?.reduce(
+      (sum, item) => sum + (Number(item.amount) || 0),
+      0
+    ) || 0;
+
+  const modalTotalTax =
+    editingInvoice?.lineItems?.reduce(
+      (sum, item) => sum + (Number(item.taxAmount) || 0),
+      0
+    ) || 0;
+
+  const modalGrandTotal =
+    modalSubtotal +
+    modalTotalTax +
+    Number(editingInvoice?.shippingFee || 0) -
+    Number(editingInvoice?.discount || 0);
+
+  const modalReceived = Number(editingInvoice?.receivedAmount || 0);
+
+  const modalAutoStatus = calculatePaymentStatus(modalGrandTotal, modalReceived);
+
+  useEffect(() => {
+    if (editingInvoice && editingInvoice.paymentStatus !== "Cancelled") {
+      const autoSt = calculatePaymentStatus(modalGrandTotal, modalReceived);
+      if (editingInvoice.paymentStatus !== autoSt) {
+        setEditingInvoice((prev) => (prev ? { ...prev, paymentStatus: autoSt } : null));
+      }
+    }
+  }, [modalGrandTotal, modalReceived, editingInvoice?.paymentStatus]);
+
   return (
     <div className={styles.container}>
       {/* Top Header */}
@@ -317,8 +450,25 @@ export default function AllInvoicesPage() {
         </div>
       </div>
 
-      {/* Control Bar: Search & Status Filter */}
+      {/* Control Bar: Tabs, Search & Status Filter */}
       <div className={styles.controlBar}>
+        <div className={styles.tabGroup}>
+          <button
+            type="button"
+            className={`${styles.tabItem} ${!showArchived ? styles.activeTabItem : ""}`}
+            onClick={() => setShowArchived(false)}
+          >
+            Active Invoices
+          </button>
+          <button
+            type="button"
+            className={`${styles.tabItem} ${showArchived ? styles.activeTabItem : ""}`}
+            onClick={() => setShowArchived(true)}
+          >
+            Archived Invoices 🗑️
+          </button>
+        </div>
+
         <div className={styles.searchBox}>
           <svg className={styles.searchIcon} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8"></circle>
@@ -420,30 +570,61 @@ export default function AllInvoicesPage() {
                     </td>
                     <td>
                       <div className={styles.actionCell} style={{ justifyContent: "flex-end" }}>
-                        <button
-                          type="button"
-                          className={styles.editBtn}
-                          onClick={() => handleOpenEdit(inv)}
-                          title="Edit Invoice"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className={styles.viewBtn}
-                          onClick={() => handleOpenPdf(inv)}
-                          title="View / Download PDF"
-                        >
-                          PDF
-                        </button>
-                        <button
-                          type="button"
-                          className={styles.archiveBtn}
-                          onClick={() => handleArchive(inv._id)}
-                          title="Archive"
-                        >
-                          Archive
-                        </button>
+                        {!showArchived ? (
+                          <>
+                            <button
+                              type="button"
+                              className={styles.editBtn}
+                              onClick={() => handleOpenEdit(inv)}
+                              title="Edit Invoice"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.viewBtn}
+                              onClick={() => handleOpenPdf(inv)}
+                              title="View / Download PDF"
+                            >
+                              PDF
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.archiveBtn}
+                              onClick={() => handleArchive(inv._id, inv.invoiceNumber)}
+                              title="Archive Invoice"
+                            >
+                              Archive
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              className={styles.viewBtn}
+                              onClick={() => handleOpenPdf(inv)}
+                              title="View / Download PDF"
+                            >
+                              PDF
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.restoreBtn}
+                              onClick={() => handleRestore(inv._id, inv.invoiceNumber)}
+                              title="Restore Invoice to Active"
+                            >
+                              Restore
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.deleteBtn}
+                              onClick={() => handlePermanentDelete(inv._id, inv.invoiceNumber)}
+                              title="Permanently Delete Invoice"
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -531,16 +712,39 @@ export default function AllInvoicesPage() {
                   <select
                     className={styles.modalSelect}
                     value={editingInvoice.paymentStatus || "Pending"}
-                    onChange={(e) =>
-                      setEditingInvoice({
-                        ...editingInvoice,
-                        paymentStatus: e.target.value,
-                      })
-                    }
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "Cancelled") {
+                        setEditingInvoice({
+                          ...editingInvoice,
+                          paymentStatus: "Cancelled",
+                        });
+                      } else {
+                        setEditingInvoice({
+                          ...editingInvoice,
+                          paymentStatus: calculatePaymentStatus(modalGrandTotal, modalReceived),
+                        });
+                      }
+                    }}
                   >
-                    <option value="Pending">Pending</option>
-                    <option value="Paid">Paid</option>
-                    <option value="Partially Paid">Partially Paid</option>
+                    <option
+                      value="Pending"
+                      disabled={editingInvoice.paymentStatus !== "Cancelled" && modalAutoStatus !== "Pending"}
+                    >
+                      Pending {editingInvoice.paymentStatus !== "Cancelled" && modalAutoStatus === "Pending" ? "(Auto)" : ""}
+                    </option>
+                    <option
+                      value="Paid"
+                      disabled={editingInvoice.paymentStatus !== "Cancelled" && modalAutoStatus !== "Paid"}
+                    >
+                      Paid {editingInvoice.paymentStatus !== "Cancelled" && modalAutoStatus === "Paid" ? "(Auto)" : ""}
+                    </option>
+                    <option
+                      value="Partially Paid"
+                      disabled={editingInvoice.paymentStatus !== "Cancelled" && modalAutoStatus !== "Partially Paid"}
+                    >
+                      Partially Paid {editingInvoice.paymentStatus !== "Cancelled" && modalAutoStatus === "Partially Paid" ? "(Auto)" : ""}
+                    </option>
                     <option value="Cancelled">Cancelled</option>
                   </select>
                 </div>
@@ -863,6 +1067,18 @@ export default function AllInvoicesPage() {
           </div>
         </div>
       )}
+
+      {/* Custom Confirmation Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmLabel={confirmModal.confirmLabel}
+        variant={confirmModal.variant}
+        isLoading={confirmModal.isLoading}
+        onConfirm={confirmModal.onConfirm}
+        onClose={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }

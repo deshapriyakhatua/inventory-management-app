@@ -7,6 +7,7 @@ import RefreshIcon from "@/components/RefreshIcon/RefreshIcon";
 import { GST_STATES } from "@/utils/gstStates";
 import InvoicePdfPreview from "@/components/InvoicePdfPreview/InvoicePdfPreview";
 import { downloadInvoicePdf } from "@/utils/generatePdf";
+import { calculatePaymentStatus } from "@/lib/paymentStatus";
 
 function formatDateGB(dateStr) {
   if (!dateStr) return "";
@@ -195,12 +196,12 @@ export default function CreateB2BInvoicePage() {
 
   // Buyer Details
   const [buyerDetails, setBuyerDetails] = useState({
-    businessName: "Akash Chettri",
+    businessName: "",
     phoneNo: "",
     address:
-      "Garidhura Bazar line, Mirik Road, Darjeeling, West Bengal, Pin-734009, Landmark - Vicky Tea Stall",
+      "",
     gstNo: "NA",
-    state: "19-West Bengal",
+    state: "",
   });
 
   // Line Items
@@ -209,17 +210,17 @@ export default function CreateB2BInvoicePage() {
       inventoryId: "",
       description: "",
       hsnCode: "7117",
-      quantity: 1,
+      quantity: 0,
       unitPrice: 0,
       gstRate: 3,
     },
   ]);
 
   // Overall Financials
-  const [shippingFee, setShippingFee] = useState(180);
-  const [discount, setDiscount] = useState(0.19);
-  const [receivedAmount, setReceivedAmount] = useState(500);
-  const [showQrCode, setShowQrCode] = useState(true);
+  const [shippingFee, setShippingFee] = useState(150);
+  const [discount, setDiscount] = useState(0);
+  const [receivedAmount, setReceivedAmount] = useState(0);
+  const [showQrCode, setShowQrCode] = useState(false);
   const [notes, setNotes] = useState(
     "All goods checked before dispatch.\nGoods once sold will not taken back.\nOpening video is must for any claims. We are not responsible for any damages once goods leave our premises. Any dispute will be subject to Barrackpore jurisdiction only."
   );
@@ -397,6 +398,17 @@ export default function CreateB2BInvoicePage() {
   const grandTotal =
     subtotal + totalGst + Number(shippingFee || 0) - Number(discount || 0);
   const balanceAmount = grandTotal - Number(receivedAmount || 0);
+  const autoPaymentStatus = calculatePaymentStatus(grandTotal, receivedAmount);
+
+  // Synchronize payment status with balance changes automatically (unless manually Cancelled)
+  useEffect(() => {
+    if (paymentStatus !== "Cancelled") {
+      const autoSt = calculatePaymentStatus(grandTotal, receivedAmount);
+      if (paymentStatus !== autoSt) {
+        setPaymentStatus(autoSt);
+      }
+    }
+  }, [grandTotal, receivedAmount, paymentStatus]);
 
   // Payload for PDF Component
   const invoiceDataForPdf = {
@@ -683,11 +695,33 @@ export default function CreateB2BInvoicePage() {
                 <select
                   className={styles.select}
                   value={paymentStatus}
-                  onChange={(e) => setPaymentStatus(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "Cancelled") {
+                      setPaymentStatus("Cancelled");
+                    } else {
+                      setPaymentStatus(calculatePaymentStatus(grandTotal, receivedAmount));
+                    }
+                  }}
                 >
-                  <option value="Pending">Pending</option>
-                  <option value="Paid">Paid</option>
-                  <option value="Partially Paid">Partially Paid</option>
+                  <option
+                    value="Pending"
+                    disabled={paymentStatus !== "Cancelled" && autoPaymentStatus !== "Pending"}
+                  >
+                    Pending {paymentStatus !== "Cancelled" && autoPaymentStatus === "Pending" ? "(Auto)" : ""}
+                  </option>
+                  <option
+                    value="Paid"
+                    disabled={paymentStatus !== "Cancelled" && autoPaymentStatus !== "Paid"}
+                  >
+                    Paid {paymentStatus !== "Cancelled" && autoPaymentStatus === "Paid" ? "(Auto)" : ""}
+                  </option>
+                  <option
+                    value="Partially Paid"
+                    disabled={paymentStatus !== "Cancelled" && autoPaymentStatus !== "Partially Paid"}
+                  >
+                    Partially Paid {paymentStatus !== "Cancelled" && autoPaymentStatus === "Partially Paid" ? "(Auto)" : ""}
+                  </option>
                   <option value="Cancelled">Cancelled</option>
                 </select>
               </div>
@@ -962,7 +996,7 @@ export default function CreateB2BInvoicePage() {
                   <input
                     type="number"
                     step="0.01"
-                    style={{ width: "100px" }}
+                    style={{ width: "100px", textAlign: "end" }}
                     className={styles.tableInput}
                     value={shippingFee}
                     onChange={(e) => setShippingFee(e.target.value)}
@@ -973,7 +1007,7 @@ export default function CreateB2BInvoicePage() {
                   <input
                     type="number"
                     step="0.01"
-                    style={{ width: "100px" }}
+                    style={{ width: "100px", textAlign: "end" }}
                     className={styles.tableInput}
                     value={discount}
                     onChange={(e) => setDiscount(e.target.value)}
@@ -988,7 +1022,7 @@ export default function CreateB2BInvoicePage() {
                   <input
                     type="number"
                     step="0.01"
-                    style={{ width: "100px" }}
+                    style={{ width: "100px", textAlign: "end" }}
                     className={styles.tableInput}
                     value={receivedAmount}
                     onChange={(e) => setReceivedAmount(e.target.value)}

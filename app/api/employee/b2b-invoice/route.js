@@ -4,6 +4,7 @@ import B2BInvoice from "@/models/B2BInvoice";
 import User from "@/models/User";
 import { decrypt } from "@/lib/session";
 import { cookies } from "next/headers";
+import { calculatePaymentStatus } from "@/lib/paymentStatus";
 
 async function getSession() {
   const cookieStore = await cookies();
@@ -119,6 +120,14 @@ export async function POST(request) {
       );
     }
 
+    const computedGrandTotal = Number(grandTotal) || 0;
+    const computedReceived = Number(receivedAmount) || 0;
+    const computedBalance = computedGrandTotal - computedReceived;
+    const computedStatus =
+      paymentStatus === "Cancelled"
+        ? "Cancelled"
+        : calculatePaymentStatus(computedGrandTotal, computedReceived);
+
     const newInvoice = new B2BInvoice({
       invoiceNumber,
       invoiceDate: invoiceDate ? new Date(invoiceDate) : new Date(),
@@ -142,11 +151,11 @@ export async function POST(request) {
       totalTax: Number(totalTax) || 0,
       shippingFee: Number(shippingFee) || 0,
       discount: Number(discount) || 0,
-      grandTotal: Number(grandTotal) || 0,
-      receivedAmount: Number(receivedAmount) || 0,
-      balanceAmount: Number(balanceAmount) || 0,
+      grandTotal: computedGrandTotal,
+      receivedAmount: computedReceived,
+      balanceAmount: computedBalance,
       amountInWords: amountInWords || "",
-      paymentStatus: paymentStatus || "Pending",
+      paymentStatus: computedStatus,
       notes: notes || "",
       addedBy: session.id,
     });
@@ -206,6 +215,26 @@ export async function PUT(request) {
       }));
     }
 
+    // Auto-calculate balance and payment status before saving updates
+    const finalGrandTotal =
+      updateFields.grandTotal !== undefined
+        ? Number(updateFields.grandTotal)
+        : invoice.grandTotal;
+    const finalReceived =
+      updateFields.receivedAmount !== undefined
+        ? Number(updateFields.receivedAmount)
+        : invoice.receivedAmount;
+    const requestedStatus =
+      updateFields.paymentStatus !== undefined
+        ? updateFields.paymentStatus
+        : invoice.paymentStatus;
+
+    updateFields.balanceAmount = finalGrandTotal - finalReceived;
+    updateFields.paymentStatus =
+      requestedStatus === "Cancelled"
+        ? "Cancelled"
+        : calculatePaymentStatus(finalGrandTotal, finalReceived);
+
     // Update object fields
     Object.assign(invoice, updateFields);
     await invoice.save();
@@ -234,9 +263,21 @@ export async function DELETE(request) {
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
+    const permanent = searchParams.get("permanent") === "true";
 
     if (!id) {
       return NextResponse.json({ error: "Invoice ID is required" }, { status: 400 });
+    }
+
+    if (permanent) {
+      const deleted = await B2BInvoice.findByIdAndDelete(id);
+      if (!deleted) {
+        return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+      }
+      return NextResponse.json(
+        { success: true, message: "Invoice permanently deleted successfully" },
+        { status: 200 }
+      );
     }
 
     const invoice = await B2BInvoice.findById(id);

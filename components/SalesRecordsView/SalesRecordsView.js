@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import styles from "./SalesRecordsView.module.css";
 import Toast from "../Toast/Toast";
+import ConfirmModal from "../ConfirmModal/ConfirmModal";
 
 const ALL_COLUMNS = [
     { key: "skuId", label: "SKU ID" },
@@ -160,14 +161,7 @@ export default function SalesRecordsView({ title = "Sales Records", archivedTitl
         }
     };
 
-    const handleBulkAction = async (action) => {
-        if (selectedRecordIds.size === 0) return;
-        setIsActionMenuOpen(false);
-
-        if (action === "delete" && !confirm("Are you sure you want to permanently delete the selected records? This action cannot be undone.")) {
-            return;
-        }
-
+    const executeBulkAction = async (action) => {
         setLoading(true);
         try {
             const res = await fetch("/api/employee/sales-records", {
@@ -183,12 +177,34 @@ export default function SalesRecordsView({ title = "Sales Records", archivedTitl
                 fetchSalesRecords();
             } else {
                 setMessage({ text: response.error || `Failed to ${action} records.`, type: "error" });
-                setLoading(false);
             }
-        } catch {
-            setMessage({ text: `Network error during ${action} action.`, type: "error" });
+        } catch (error) {
+            console.error(error);
+            setMessage({ text: "An error occurred while processing bulk action.", type: "error" });
+        } finally {
             setLoading(false);
+            setConfirmModal(prev => ({ ...prev, isOpen: false, isLoading: false }));
         }
+    };
+
+    const handleBulkAction = async (action) => {
+        if (selectedRecordIds.size === 0) return;
+        setIsActionMenuOpen(false);
+
+        if (action === "delete") {
+            setConfirmModal({
+                isOpen: true,
+                title: "Delete Sales Records",
+                message: `Are you sure you want to permanently delete the ${selectedRecordIds.size} selected sales record(s)? This action cannot be undone.`,
+                confirmLabel: "Delete Records",
+                variant: "danger",
+                isLoading: false,
+                onConfirm: () => executeBulkAction("delete"),
+            });
+            return;
+        }
+
+        executeBulkAction(action);
     };
 
     const formatDate = (dateStr) => {
@@ -527,6 +543,16 @@ export default function SalesRecordsView({ title = "Sales Records", archivedTitl
             </div>
 
             <Toast message={message} onClose={() => setMessage({ text: "", type: "" })} />
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                confirmLabel={confirmModal.confirmLabel}
+                variant={confirmModal.variant}
+                isLoading={confirmModal.isLoading}
+                onConfirm={confirmModal.onConfirm}
+                onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+            />
         </div>
     );
 }
