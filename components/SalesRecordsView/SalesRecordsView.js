@@ -40,6 +40,15 @@ export default function SalesRecordsView({ title = "Sales Records", archivedTitl
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [message, setMessage] = useState({ text: "", type: "" });
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        title: "",
+        message: "",
+        confirmLabel: "Confirm",
+        variant: "danger",
+        onConfirm: null,
+        isLoading: false,
+    });
 
     const [allRecords, setAllRecords] = useState([]);
     const [selectedRecordIds, setSelectedRecordIds] = useState(new Set());

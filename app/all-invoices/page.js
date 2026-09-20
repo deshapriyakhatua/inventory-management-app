@@ -40,13 +40,49 @@ export default function AllInvoicesPage() {
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [viewingInvoice, setViewingInvoice] = useState(null);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
-  const [showQrCode, setShowQrCode] = useState(true);
+  const [showQrCode, setShowQrCode] = useState(false);
 
   const pdfPreviewRef = useRef(null);
 
+  // Graphical View Modal State & Inventory List
+  const [inventoryList, setInventoryList] = useState([]);
+  const [showGraphicalModal, setShowGraphicalModal] = useState(false);
+  const [graphicalModalInvoice, setGraphicalModalInvoice] = useState(null);
+
+  // 3-Dot Dropdown Menu State
+  const [openMenuId, setOpenMenuId] = useState(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest("[data-action-menu]")) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
+
+  const fetchInventoryList = async () => {
+    try {
+      const res = await fetch("/api/employee/inventory");
+      const data = await res.json();
+      if (res.ok && data.data) {
+        setInventoryList(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch inventory list:", err);
+    }
+  };
+
   useEffect(() => {
     fetchInvoices();
+    fetchInventoryList();
   }, [search, statusFilter, showArchived]);
+
+  const handleOpenGraphicalModal = (inv) => {
+    setGraphicalModalInvoice(inv);
+    setShowGraphicalModal(true);
+  };
 
   const fetchInvoices = async () => {
     setLoading(true);
@@ -568,62 +604,148 @@ export default function AllInvoicesPage() {
                         {inv.paymentStatus}
                       </span>
                     </td>
-                    <td>
-                      <div className={styles.actionCell} style={{ justifyContent: "flex-end" }}>
-                        {!showArchived ? (
-                          <>
-                            <button
-                              type="button"
-                              className={styles.editBtn}
-                              onClick={() => handleOpenEdit(inv)}
-                              title="Edit Invoice"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.viewBtn}
-                              onClick={() => handleOpenPdf(inv)}
-                              title="View / Download PDF"
-                            >
-                              PDF
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.archiveBtn}
-                              onClick={() => handleArchive(inv._id, inv.invoiceNumber)}
-                              title="Archive Invoice"
-                            >
-                              Archive
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              className={styles.viewBtn}
-                              onClick={() => handleOpenPdf(inv)}
-                              title="View / Download PDF"
-                            >
-                              PDF
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.restoreBtn}
-                              onClick={() => handleRestore(inv._id, inv.invoiceNumber)}
-                              title="Restore Invoice to Active"
-                            >
-                              Restore
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.deleteBtn}
-                              onClick={() => handlePermanentDelete(inv._id, inv.invoiceNumber)}
-                              title="Permanently Delete Invoice"
-                            >
-                              Delete
-                            </button>
-                          </>
+                    <td style={{ position: "relative" }}>
+                      <div className={styles.actionMenuWrapper} data-action-menu>
+                        <button
+                          type="button"
+                          className={styles.threeDotsBtn}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuId(openMenuId === inv._id ? null : inv._id);
+                          }}
+                          title="Actions"
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <circle cx="12" cy="5" r="1.5"></circle>
+                            <circle cx="12" cy="12" r="1.5"></circle>
+                            <circle cx="12" cy="19" r="1.5"></circle>
+                          </svg>
+                        </button>
+
+                        {openMenuId === inv._id && (
+                          <div className={styles.dropdownMenu}>
+                            {!showArchived ? (
+                              <>
+                                <button
+                                  type="button"
+                                  className={styles.dropdownItem}
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handleOpenGraphicalModal(inv);
+                                  }}
+                                >
+                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                  </svg>
+                                  View (Graphical)
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.dropdownItem}
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handleOpenPdf(inv);
+                                  }}
+                                >
+                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                  </svg>
+                                  PDF Preview
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.dropdownItem}
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handleOpenEdit(inv);
+                                  }}
+                                >
+                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                  </svg>
+                                  Edit Invoice
+                                </button>
+                                <div className={styles.dropdownDivider} />
+                                <button
+                                  type="button"
+                                  className={`${styles.dropdownItem} ${styles.dropdownDanger}`}
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handleArchive(inv._id, inv.invoiceNumber);
+                                  }}
+                                >
+                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                  </svg>
+                                  Archive
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  className={styles.dropdownItem}
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handleOpenGraphicalModal(inv);
+                                  }}
+                                >
+                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                  </svg>
+                                  View (Graphical)
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.dropdownItem}
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handleOpenPdf(inv);
+                                  }}
+                                >
+                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                  </svg>
+                                  PDF Preview
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.dropdownItem}
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handleRestore(inv._id, inv.invoiceNumber);
+                                  }}
+                                >
+                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2">
+                                    <polyline points="1 4 1 10 7 10"></polyline>
+                                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                                  </svg>
+                                  Restore Invoice
+                                </button>
+                                <div className={styles.dropdownDivider} />
+                                <button
+                                  type="button"
+                                  className={`${styles.dropdownItem} ${styles.dropdownDanger}`}
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handlePermanentDelete(inv._id, inv.invoiceNumber);
+                                  }}
+                                >
+                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                  </svg>
+                                  Delete Permanently
+                                </button>
+                              </>
+                            )}
+                          </div>
                         )}
                       </div>
                     </td>
@@ -1046,14 +1168,6 @@ export default function AllInvoicesPage() {
               </button>
               <button
                 type="button"
-                className={styles.createBtn}
-                style={{ padding: "8px 18px", background: "#6366f1" }}
-                onClick={() => window.print()}
-              >
-                Print
-              </button>
-              <button
-                type="button"
                 className={styles.closeBtn}
                 style={{ color: "#ffffff", fontSize: "24px" }}
                 onClick={() => setShowPdfModal(false)}
@@ -1064,6 +1178,221 @@ export default function AllInvoicesPage() {
 
             {/* Reusable Exact Replica PDF Component */}
             <InvoicePdfPreview ref={pdfPreviewRef} invoice={viewingInvoice} showQrCode={showQrCode} />
+          </div>
+        </div>
+      )}
+
+      {/* Graphical View Modal (Invoice Details & Inventory Images) */}
+      {showGraphicalModal && graphicalModalInvoice && (
+        <div className={styles.modalOverlay} onClick={() => setShowGraphicalModal(false)}>
+          <div className={styles.graphicalModal} onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className={styles.pickerHeader}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                  <h3 className={styles.pickerTitle} style={{ margin: 0 }}>
+                    Invoice #{graphicalModalInvoice.invoiceNumber}
+                  </h3>
+                  <span
+                    className={`${styles.statusBadge} ${
+                      graphicalModalInvoice.paymentStatus === "Paid"
+                        ? styles.statusPaid
+                        : graphicalModalInvoice.paymentStatus === "Pending"
+                        ? styles.statusPending
+                        : graphicalModalInvoice.paymentStatus === "Partially Paid"
+                        ? styles.statusPartial
+                        : styles.statusCancelled
+                    }`}
+                  >
+                    {graphicalModalInvoice.paymentStatus}
+                  </span>
+                </div>
+                <p className={styles.pickerSubtitle} style={{ marginTop: "4px" }}>
+                  Date: {formatDateGB(graphicalModalInvoice.invoiceDate)} • Place of Supply: {graphicalModalInvoice.placeOfSupply || "19-West Bengal"}
+                </p>
+              </div>
+              <button
+                type="button"
+                className={styles.pickerCloseBtn}
+                onClick={() => setShowGraphicalModal(false)}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className={styles.graphicalModalBody}>
+              {/* Customer & Seller Grid */}
+              <div className={styles.graphicalGrid2}>
+                {/* Customer Card */}
+                <div className={styles.graphicalInfoBox}>
+                  <div className={styles.graphicalInfoTitle}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                    </svg>
+                    Customer Info
+                  </div>
+                  <div style={{ fontWeight: "700", color: "#ffffff", fontSize: "15px" }}>
+                    {graphicalModalInvoice.buyerDetails?.businessName || "N/A"}
+                  </div>
+                  {graphicalModalInvoice.buyerDetails?.phoneNo && (
+                    <div className={styles.graphicalInfoText}>
+                      Phone: {graphicalModalInvoice.buyerDetails.phoneNo}
+                    </div>
+                  )}
+                  {graphicalModalInvoice.buyerDetails?.address && (
+                    <div className={styles.graphicalInfoText}>
+                      Address: {graphicalModalInvoice.buyerDetails.address}
+                    </div>
+                  )}
+                  <div className={styles.graphicalInfoText}>
+                    GSTIN: {graphicalModalInvoice.buyerDetails?.gstNo || "NA"} | State: {graphicalModalInvoice.buyerDetails?.state || "19-West Bengal"}
+                  </div>
+                </div>
+
+                {/* Seller Card */}
+                <div className={styles.graphicalInfoBox}>
+                  <div className={styles.graphicalInfoTitle}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    Seller Details
+                  </div>
+                  <div style={{ fontWeight: "700", color: "#ffffff", fontSize: "15px" }}>
+                    {graphicalModalInvoice.sellerDetails?.businessName || "CRAZYKUDI"}
+                  </div>
+                  <div className={styles.graphicalInfoText}>
+                    GSTIN: {graphicalModalInvoice.sellerDetails?.gstNo || "19JHWPK2955Q1ZW"}
+                  </div>
+                  {graphicalModalInvoice.sellerDetails?.bankName && (
+                    <div className={styles.graphicalInfoText}>
+                      Bank: {graphicalModalInvoice.sellerDetails.bankName} (A/C: {graphicalModalInvoice.sellerDetails.accountNo})
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Line Items Graphical View */}
+              <div>
+                <div className={styles.graphicalInfoTitle} style={{ marginBottom: "10px", color: "#ec4899" }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  </svg>
+                  Items & Inventory Images ({graphicalModalInvoice.lineItems?.length || 0})
+                </div>
+
+                <div className={styles.graphicalItemsContainer}>
+                  {graphicalModalInvoice.lineItems?.map((item, idx) => {
+                    const matchedInv = inventoryList.find(
+                      (inv) => inv.inventoryId === item.inventoryId
+                    );
+                    const imgUrl = matchedInv?.imageUrl || item.imageUrl;
+                    const qty = Number(item.quantity) || 1;
+                    const price = Number(item.unitPrice) || 0;
+                    const subtotalAmt = item.amount !== undefined ? Number(item.amount) : qty * price;
+                    const taxRate = Number(item.taxRate !== undefined ? item.taxRate : item.gstRate) || 0;
+                    const taxAmt = item.taxAmount !== undefined ? Number(item.taxAmount) : (subtotalAmt * taxRate) / 100;
+                    const totalAmt = item.totalAmount !== undefined ? Number(item.totalAmount) : subtotalAmt + taxAmt;
+
+                    return (
+                      <div key={idx} className={styles.graphicalItemCard}>
+                        {imgUrl ? (
+                          <img
+                            src={imgUrl}
+                            alt={item.inventoryId || item.description}
+                            className={styles.graphicalItemImg}
+                          />
+                        ) : (
+                          <div className={styles.graphicalItemNoImg}>No Image</div>
+                        )}
+
+                        <div className={styles.graphicalItemDetails}>
+                          {item.inventoryId && (
+                            <span className={styles.graphicalItemIdTag}>
+                              {item.inventoryId}
+                            </span>
+                          )}
+                          <div className={styles.graphicalItemDesc}>{item.description || "Line Item"}</div>
+                          <div className={styles.graphicalItemMeta}>
+                            <span>HSN: {item.hsnCode || "7117"}</span>
+                            <span>•</span>
+                            <span>Qty: {qty}</span>
+                            <span>•</span>
+                            <span>Unit Price: ₹{price.toFixed(2)}</span>
+                            <span>•</span>
+                            <span>GST: {taxRate}% (₹{taxAmt.toFixed(2)})</span>
+                          </div>
+                        </div>
+
+                        <div className={styles.graphicalItemPricing}>
+                          <div className={styles.graphicalItemTotal}>
+                            ₹{totalAmt.toFixed(2)}
+                          </div>
+                          <div className={styles.graphicalItemSub}>
+                            Sub: ₹{subtotalAmt.toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Financial Summary */}
+              <div className={styles.summaryContainer} style={{ marginTop: 0 }}>
+                <div className={styles.summaryBox} style={{ width: "100%" }}>
+                  <div className={styles.summaryRow}>
+                    <span>Subtotal:</span>
+                    <span>₹{(graphicalModalInvoice.subtotal || 0).toFixed(2)}</span>
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <span>GST Total:</span>
+                    <span>₹{(graphicalModalInvoice.totalTax || 0).toFixed(2)}</span>
+                  </div>
+                  {graphicalModalInvoice.shippingFee > 0 && (
+                    <div className={styles.summaryRow}>
+                      <span>Shipping Fee:</span>
+                      <span>₹{(graphicalModalInvoice.shippingFee || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {graphicalModalInvoice.discount > 0 && (
+                    <div className={styles.summaryRow}>
+                      <span>Discount:</span>
+                      <span>- ₹{(graphicalModalInvoice.discount || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className={`${styles.summaryRow} ${styles.grandTotalRow}`}>
+                    <span>Grand Total:</span>
+                    <span>₹{(graphicalModalInvoice.grandTotal || 0).toFixed(2)}</span>
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <span>Received Amount:</span>
+                    <span>₹{(graphicalModalInvoice.receivedAmount || 0).toFixed(2)}</span>
+                  </div>
+                  <div className={styles.summaryRow} style={{ fontWeight: "700", color: "#f87171" }}>
+                    <span>Balance Due:</span>
+                    <span>₹{(graphicalModalInvoice.balanceAmount || 0).toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes if present */}
+              {graphicalModalInvoice.notes && (
+                <div className={styles.graphicalInfoBox}>
+                  <div className={styles.graphicalInfoTitle} style={{ color: "#f59e0b" }}>
+                    Notes & Terms
+                  </div>
+                  <div className={styles.graphicalInfoText} style={{ whiteSpace: "pre-line", fontSize: "13px", color: "#a1a1aa" }}>
+                    {graphicalModalInvoice.notes}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
