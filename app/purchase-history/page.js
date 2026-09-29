@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import styles from "./page.module.css";
 import Toast from "../../components/Toast/Toast";
 import { parseSearchQuery, matchesArraySearchTerms } from "../../utils/searchUtils";
+import * as XLSX from "xlsx";
 
 export default function PurchaseHistoryPage() {
   const [loading, setLoading] = useState(true);
@@ -51,6 +52,38 @@ export default function PurchaseHistoryPage() {
   const pinInputRef = useRef(null);
 
   const [message, setMsg] = useState({ text: "", type: "" });
+
+  // Hovered Image Popover State
+  const [hoveredImage, setHoveredImage] = useState(null);
+
+  const handleImageMouseEnter = (e, item) => {
+    if (!item?.imageUrl) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const previewWidth = 220;
+    const previewHeight = 230;
+
+    let left = rect.right + 12;
+    if (left + previewWidth > window.innerWidth) {
+      left = rect.left - previewWidth - 12;
+    }
+
+    let top = rect.top + rect.height / 2 - previewHeight / 2;
+    if (top < 10) top = 10;
+    if (top + previewHeight > window.innerHeight - 10) {
+      top = window.innerHeight - previewHeight - 10;
+    }
+
+    setHoveredImage({
+      url: item.imageUrl,
+      title: item.inventoryId || "Inventory Item",
+      left,
+      top,
+    });
+  };
+
+  const handleImageMouseLeave = () => {
+    setHoveredImage(null);
+  };
 
   useEffect(() => {
     fetchPurchases();
@@ -105,6 +138,275 @@ export default function PurchaseHistoryPage() {
     const subtotal = qty * price;
     const taxAmount = (subtotal * Number(p.taxPercentage || 0)) / 100;
     return subtotal + Number(p.shippingFee || 0) + taxAmount;
+  };
+
+  // ── Calculate final unit price (including Shipping and Tax) ──────
+  const calculateFinalUnitPrice = (p) => {
+    const qty = Number(p.quantity || 0);
+    if (qty <= 0) return 0;
+    return calculateTotal(p) / qty;
+  };
+
+  // ── Multi-Sheet Excel Export (Summary, Grouped, Flat List) ────────
+  const exportGroupedToExcel = () => {
+    const targetGroups = showArchived ? archivedProcessedGroups : processedGroups;
+    const targetItems = showArchived ? archivedPurchases : filteredItems;
+
+    if (!targetGroups || targetGroups.length === 0) {
+      setMsg({ text: "No purchase data available to export.", type: "error" });
+      return;
+    }
+
+    // ── Calculate Summary Statistics ────────────────────────────────
+    let totalInvoices = targetGroups.length;
+    let totalItems = targetItems.length;
+    let totalQty = 0;
+    let totalCost = 0;
+    let totalShipping = 0;
+    let totalTax = 0;
+    let deliveredInvoices = 0;
+    let inTransitInvoices = 0;
+
+    targetGroups.forEach(g => {
+      totalQty += g.totalQuantity;
+      totalCost += g.totalAmount;
+      totalShipping += g.totalShipping;
+      totalTax += g.totalTax;
+      if (g.deliveredCount === g.items.length) deliveredInvoices++;
+      else inTransitInvoices++;
+    });
+
+    // Seller Summary breakdown map
+    const sellerSummaryMap = {};
+    targetGroups.forEach(g => {
+      if (!sellerSummaryMap[g.sellerName]) {
+        sellerSummaryMap[g.sellerName] = {
+          sellerName: g.sellerName,
+          invoiceCount: 0,
+          itemCount: 0,
+          totalQty: 0,
+          totalCost: 0
+        };
+      }
+      const s = sellerSummaryMap[g.sellerName];
+      s.invoiceCount += 1;
+      s.itemCount += g.items.length;
+      s.totalQty += g.totalQuantity;
+      s.totalCost += g.totalAmount;
+    });
+
+    // ── 1. SHEET 1: SUMMARY ─────────────────────────────────────────
+    const summaryData = [
+      ["PURCHASE HISTORY EXECUTIVE SUMMARY REPORT"],
+      [`Generated On: ${new Date().toLocaleString("en-IN")}`],
+      [`Scope: ${showArchived ? "Archived Purchase Records" : "Active Purchase Records"}`],
+      [],
+      ["EXECUTIVE KPI METRICS"],
+      ["Metric", "Value"],
+      ["Total Invoices / Orders", totalInvoices],
+      ["Total Line Items", totalItems],
+      ["Total Purchased Units (Qty)", totalQty],
+      ["Total Shipping Fees (₹)", Number(totalShipping.toFixed(2))],
+      ["Total Tax Amount (₹)", Number(totalTax.toFixed(2))],
+      ["Total Procurement Expense (₹)", Number(totalCost.toFixed(2))],
+      ["Fully Delivered Invoices", deliveredInvoices],
+      ["In-Transit / Partial Invoices", inTransitInvoices],
+      [],
+      ["SELLER PROCUREMENT BREAKDOWN"],
+      ["Seller Name", "Invoices Count", "Items Count", "Total Units (Qty)", "Total Expense (₹)"]
+    ];
+
+    Object.values(sellerSummaryMap).forEach(s => {
+      summaryData.push([
+        s.sellerName,
+        s.invoiceCount,
+        s.itemCount,
+        s.totalQty,
+        Number(s.totalCost.toFixed(2))
+      ]);
+    });
+
+    // ── 2. SHEET 2: INVOICE & SELLER GROUPED ────────────────────────
+    const groupedData = [
+      ["INVOICE & SELLER GROUPED PURCHASES"],
+      [`Generated On: ${new Date().toLocaleString("en-IN")}`],
+      [],
+      [
+        "Record Type",
+        "Invoice No",
+        "Seller Name",
+        "Order Date",
+        "Seller SKU / Item Count",
+        "Internal Inventory ID",
+        "Quantity",
+        "Base Unit Price (₹)",
+        "Final Unit Price (inc. Ship & Tax) (₹)",
+        "Shipping Fee (₹)",
+        "Tax %",
+        "Tax Amount (₹)",
+        "Total Cost (₹)",
+        "Received On",
+        "Status"
+      ]
+    ];
+
+    targetGroups.forEach((group) => {
+      // Group Header Row
+      groupedData.push([
+        "INVOICE GROUP",
+        group.invoiceNo,
+        group.sellerName,
+        formatDate(group.orderedOn),
+        `${group.itemCount} item(s)`,
+        "-",
+        group.totalQuantity,
+        "-",
+        "-",
+        Number(group.totalShipping.toFixed(2)),
+        "-",
+        Number(group.totalTax.toFixed(2)),
+        Number(group.totalAmount.toFixed(2)),
+        "-",
+        group.groupStatus
+      ]);
+
+      // Individual Item Detail Rows
+      group.items.forEach((p) => {
+        const itemTotal = calculateTotal(p);
+        const finalUnitPrice = calculateFinalUnitPrice(p);
+        const subtotal = (p.quantity || 0) * (p.price || 0);
+        const taxAmount = (subtotal * (p.taxPercentage || 0)) / 100;
+
+        groupedData.push([
+          "Item Detail",
+          group.invoiceNo,
+          group.sellerName,
+          formatDate(p.orderedOn),
+          p.sellerProductId || "-",
+          p.inventoryId || "-",
+          p.quantity || 0,
+          Number((p.price || 0).toFixed(2)),
+          Number(finalUnitPrice.toFixed(2)),
+          Number((p.shippingFee || 0).toFixed(2)),
+          `${p.taxPercentage || 0}%`,
+          Number(taxAmount.toFixed(2)),
+          Number(itemTotal.toFixed(2)),
+          formatDate(p.receivedOn),
+          p.receivedOn ? "Delivered" : "In-Transit"
+        ]);
+      });
+
+      groupedData.push([]); // Blank spacing row between groups
+    });
+
+    // ── 3. SHEET 3: RAW DATA (FLAT LIST) ───────────────────────────
+    const flatData = [
+      ["ALL PURCHASE RECORDS (RAW DATA)"],
+      [`Generated On: ${new Date().toLocaleString("en-IN")}`],
+      [],
+      [
+        "Date Ordered",
+        "Invoice No",
+        "Seller Name",
+        "Seller SKU",
+        "Internal Inventory ID",
+        "Quantity",
+        "Base Unit Price (₹)",
+        "Final Unit Price (inc. Ship & Tax) (₹)",
+        "Shipping Fee (₹)",
+        "Tax %",
+        "Tax Amount (₹)",
+        "Total Cost (₹)",
+        "Received On",
+        "Status"
+      ]
+    ];
+
+    targetItems.forEach((p) => {
+      const itemTotal = calculateTotal(p);
+      const finalUnitPrice = calculateFinalUnitPrice(p);
+      const subtotal = (p.quantity || 0) * (p.price || 0);
+      const taxAmount = (subtotal * (p.taxPercentage || 0)) / 100;
+      const sellerName = p.sellerId?.businessName || "Unknown Seller";
+
+      flatData.push([
+        formatDate(p.orderedOn),
+        p.invoiceNo || "-",
+        sellerName,
+        p.sellerProductId || "-",
+        p.inventoryId || "-",
+        p.quantity || 0,
+        Number((p.price || 0).toFixed(2)),
+        Number(finalUnitPrice.toFixed(2)),
+        Number((p.shippingFee || 0).toFixed(2)),
+        `${p.taxPercentage || 0}%`,
+        Number(taxAmount.toFixed(2)),
+        Number(itemTotal.toFixed(2)),
+        formatDate(p.receivedOn),
+        p.receivedOn ? "Delivered" : "In-Transit"
+      ]);
+    });
+
+    // ── CREATE WORKBOOK AND APPEND ALL 3 WORKSHEETS ─────────────────
+    const workbook = XLSX.utils.book_new();
+
+    // 1. Summary Sheet
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+    summarySheet["!cols"] = [
+      { wch: 32 },
+      { wch: 18 },
+      { wch: 14 },
+      { wch: 18 },
+      { wch: 22 }
+    ];
+    XLSX.utils.book_append_sheet(workbook, summarySheet, "Summary");
+
+    // 2. Invoice & Seller Grouped Sheet
+    const groupedSheet = XLSX.utils.aoa_to_sheet(groupedData);
+    groupedSheet["!cols"] = [
+      { wch: 16 }, // Record Type
+      { wch: 18 }, // Invoice No
+      { wch: 22 }, // Seller Name
+      { wch: 14 }, // Order Date
+      { wch: 22 }, // Seller SKU / Item Count
+      { wch: 22 }, // Internal Inventory ID
+      { wch: 10 }, // Quantity
+      { wch: 18 }, // Base Unit Price
+      { wch: 28 }, // Final Unit Price
+      { wch: 16 }, // Shipping Fee
+      { wch: 10 }, // Tax %
+      { wch: 14 }, // Tax Amount
+      { wch: 18 }, // Total Cost
+      { wch: 14 }, // Received On
+      { wch: 14 }  // Status
+    ];
+    XLSX.utils.book_append_sheet(workbook, groupedSheet, "Invoice & Seller Grouped");
+
+    // 3. Raw Data Flat List Sheet
+    const flatSheet = XLSX.utils.aoa_to_sheet(flatData);
+    flatSheet["!cols"] = [
+      { wch: 14 }, // Date Ordered
+      { wch: 18 }, // Invoice No
+      { wch: 22 }, // Seller Name
+      { wch: 20 }, // Seller SKU
+      { wch: 20 }, // Internal Inventory ID
+      { wch: 10 }, // Quantity
+      { wch: 18 }, // Base Unit Price
+      { wch: 28 }, // Final Unit Price
+      { wch: 16 }, // Shipping Fee
+      { wch: 10 }, // Tax %
+      { wch: 14 }, // Tax Amount
+      { wch: 18 }, // Total Cost
+      { wch: 14 }, // Received On
+      { wch: 14 }  // Status
+    ];
+    XLSX.utils.book_append_sheet(workbook, flatSheet, "All Purchase Records");
+
+    // Write file
+    const fileName = `Purchase_History_Report_${showArchived ? "Archived_" : ""}${new Date().toISOString().split("T")[0]}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+
+    setMsg({ text: `Successfully generated Excel report: ${fileName}`, type: "success" });
   };
 
   // ── Copy helper ──────────────────────────────────────────────────
@@ -368,6 +670,7 @@ export default function PurchaseHistoryPage() {
         let bValue = b[sortConfig.key];
         if (sortConfig.key === "sellerId") { aValue = a.sellerId?.businessName || ""; bValue = b.sellerId?.businessName || ""; }
         else if (sortConfig.key === "total") { aValue = calculateTotal(a); bValue = calculateTotal(b); }
+        else if (sortConfig.key === "finalUnitPrice") { aValue = calculateFinalUnitPrice(a); bValue = calculateFinalUnitPrice(b); }
         if (aValue === null || aValue === undefined) aValue = "";
         if (bValue === null || bValue === undefined) bValue = "";
         if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
@@ -598,11 +901,13 @@ export default function PurchaseHistoryPage() {
                               <table className={styles.nestedTable}>
                                 <thead>
                                   <tr>
+                                    <th className={styles.nestedTh}>Image</th>
                                     <th className={styles.nestedTh}>Order Date</th>
                                     <th className={styles.nestedTh}>Seller SKU</th>
                                     <th className={styles.nestedTh}>Internal ID</th>
                                     <th className={styles.nestedTh}>Qty</th>
                                     <th className={styles.nestedTh}>Unit Price</th>
+                                    <th className={styles.nestedTh}>Final Unit Price</th>
                                     <th className={styles.nestedTh}>Shipping & Tax</th>
                                     <th className={styles.nestedTh}>Item Total</th>
                                     <th className={styles.nestedTh}>Received On</th>
@@ -613,15 +918,30 @@ export default function PurchaseHistoryPage() {
                                 <tbody>
                                   {group.items.map((p) => {
                                     const itemTotal = calculateTotal(p);
+                                    const finalUnitPrice = calculateFinalUnitPrice(p);
                                     const subtotal = p.quantity * p.price;
                                     const taxAmount = (subtotal * (p.taxPercentage || 0)) / 100;
                                     return (
                                       <tr key={p._id}>
+                                        <td className={styles.nestedTd}>
+                                          {p.imageUrl ? (
+                                            <div 
+                                              className={styles.imageWrapper}
+                                              onMouseEnter={(e) => handleImageMouseEnter(e, p)}
+                                              onMouseLeave={handleImageMouseLeave}
+                                            >
+                                              <img src={p.imageUrl} alt={p.inventoryId || "Item"} className={styles.itemImageThumbnail} />
+                                            </div>
+                                          ) : (
+                                            <div className={styles.imagePlaceholder}>NA</div>
+                                          )}
+                                        </td>
                                         <td className={styles.nestedTd}>{formatDate(p.orderedOn)}</td>
                                         <td className={styles.nestedTd}>{p.sellerProductId}</td>
                                         <td className={`${styles.nestedTd} ${styles.idCell}`}>{p.inventoryId}</td>
                                         <td className={`${styles.nestedTd} ${styles.quantity}`}>{p.quantity}</td>
                                         <td className={`${styles.nestedTd} ${styles.price}`}>₹{p.price.toFixed(2)}</td>
+                                        <td className={`${styles.nestedTd} ${styles.finalUnitPrice}`}>₹{finalUnitPrice.toFixed(2)}</td>
                                         <td className={styles.nestedTd} style={{ fontSize: "0.78rem", color: "#94a3b8" }}>
                                           ₹{p.shippingFee || 0} ship | {p.taxPercentage || 0}% tax (₹{taxAmount.toFixed(2)})
                                         </td>
@@ -700,12 +1020,14 @@ export default function PurchaseHistoryPage() {
         <table className={styles.table}>
           <thead>
             <tr>
+              <th className={styles.th}>Image</th>
               <th className={`${styles.th} ${styles.sortable}`} onClick={() => handleSort("orderedOn")}>Date Ordered <SortIcon columnKey="orderedOn" /></th>
               <th className={`${styles.th} ${styles.sortable}`} onClick={() => handleSort("sellerId")}>Seller <SortIcon columnKey="sellerId" /></th>
               <th className={`${styles.th} ${styles.sortable}`} onClick={() => handleSort("sellerProductId")}>Seller SKU <SortIcon columnKey="sellerProductId" /></th>
               <th className={`${styles.th} ${styles.sortable}`} onClick={() => handleSort("inventoryId")}>Internal ID <SortIcon columnKey="inventoryId" /></th>
               <th className={`${styles.th} ${styles.sortable}`} onClick={() => handleSort("quantity")}>Qty <SortIcon columnKey="quantity" /></th>
               <th className={`${styles.th} ${styles.sortable}`} onClick={() => handleSort("price")}>Unit Price <SortIcon columnKey="price" /></th>
+              <th className={`${styles.th} ${styles.sortable}`} onClick={() => handleSort("finalUnitPrice")}>Final Unit Price <SortIcon columnKey="finalUnitPrice" /></th>
               <th className={`${styles.th} ${styles.sortable}`} onClick={() => handleSort("total")}>Total <SortIcon columnKey="total" /></th>
               <th className={`${styles.th} ${styles.sortable}`} onClick={() => handleSort("invoiceNo")}>Invoice No <SortIcon columnKey="invoiceNo" /></th>
               <th className={`${styles.th} ${styles.sortable}`} onClick={() => handleSort("receivedOn")}>Received On <SortIcon columnKey="receivedOn" /></th>
@@ -716,22 +1038,38 @@ export default function PurchaseHistoryPage() {
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan="11" className={styles.noData}>
+                <td colSpan="13" className={styles.noData}>
                   {isArchived ? "No archived purchase records." : "No purchase records found matching your filters."}
                 </td>
               </tr>
             ) : (
-              rows.map((p) => (
-                <tr key={p._id} className={`${styles.tr} ${isArchived ? styles.archivedRow : ""}`}>
-                  <td className={styles.td}>{formatDate(p.orderedOn)}</td>
-                  <td className={`${styles.td} ${styles.sellerCell}`}>{p.sellerId?.businessName || "Unknown"}</td>
-                  <td className={styles.td}>{p.sellerProductId}</td>
-                  <td className={`${styles.td} ${styles.idCell}`}>{p.inventoryId}</td>
-                  <td className={`${styles.td} ${styles.quantity}`}>{p.quantity}</td>
-                  <td className={`${styles.td} ${styles.price}`}>₹{p.price.toFixed(2)}</td>
-                  <td className={`${styles.td} ${styles.total}`}>₹{calculateTotal(p).toFixed(2)}</td>
-                  <td className={styles.td}>{p.invoiceNo || "-"}</td>
-                  <td className={styles.td}>{formatDate(p.receivedOn)}</td>
+              rows.map((p) => {
+                const finalUnitPrice = calculateFinalUnitPrice(p);
+                return (
+                  <tr key={p._id} className={`${styles.tr} ${isArchived ? styles.archivedRow : ""}`}>
+                    <td className={styles.td}>
+                      {p.imageUrl ? (
+                        <div 
+                          className={styles.imageWrapper}
+                          onMouseEnter={(e) => handleImageMouseEnter(e, p)}
+                          onMouseLeave={handleImageMouseLeave}
+                        >
+                          <img src={p.imageUrl} alt={p.inventoryId || "Item"} className={styles.itemImageThumbnail} />
+                        </div>
+                      ) : (
+                        <div className={styles.imagePlaceholder}>NA</div>
+                      )}
+                    </td>
+                    <td className={styles.td}>{formatDate(p.orderedOn)}</td>
+                    <td className={`${styles.td} ${styles.sellerCell}`}>{p.sellerId?.businessName || "Unknown"}</td>
+                    <td className={styles.td}>{p.sellerProductId}</td>
+                    <td className={`${styles.td} ${styles.idCell}`}>{p.inventoryId}</td>
+                    <td className={`${styles.td} ${styles.quantity}`}>{p.quantity}</td>
+                    <td className={`${styles.td} ${styles.price}`}>₹{p.price.toFixed(2)}</td>
+                    <td className={`${styles.td} ${styles.finalUnitPrice}`}>₹{finalUnitPrice.toFixed(2)}</td>
+                    <td className={`${styles.td} ${styles.total}`}>₹{calculateTotal(p).toFixed(2)}</td>
+                    <td className={styles.td}>{p.invoiceNo || "-"}</td>
+                    <td className={styles.td}>{formatDate(p.receivedOn)}</td>
                   <td className={styles.td}>
                     <span className={`${styles.status} ${p.receivedOn ? styles.received : styles.pending}`}>
                       <span className={styles.dot}></span>
@@ -779,7 +1117,8 @@ export default function PurchaseHistoryPage() {
                     </div>
                   </td>
                 </tr>
-              ))
+              );
+            })
             )}
           </tbody>
         </table>
@@ -861,6 +1200,19 @@ export default function PurchaseHistoryPage() {
               {isAllExpanded(false) ? "Collapse All" : "Expand All"}
             </button>
           )}
+
+          <button
+            className={styles.downloadExcelBtn}
+            onClick={exportGroupedToExcel}
+            title="Download Grouped Purchase History Excel Sheet"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Download Excel
+          </button>
 
           <button
             className={`${styles.showArchivedBtn} ${showArchived ? styles.showArchivedActive : ""}`}
@@ -1187,6 +1539,18 @@ export default function PurchaseHistoryPage() {
       )}
 
       <Toast message={message} onClose={() => setMsg({ text: "", type: "" })} />
+
+      {hoveredImage && (
+        <div 
+          className={styles.floatingImagePreview} 
+          style={{ top: `${hoveredImage.top}px`, left: `${hoveredImage.left}px` }}
+        >
+          <div className={styles.floatingPreviewCard}>
+            <img src={hoveredImage.url} alt={hoveredImage.title} className={styles.floatingPreviewImg} />
+            <div className={styles.floatingPreviewTitle}>{hoveredImage.title}</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

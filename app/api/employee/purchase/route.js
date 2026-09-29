@@ -31,9 +31,22 @@ export async function GET(request) {
       const fetchArchived = searchParams.get("archived") === "true";
       const purchases = await Purchase.find({ isArchived: fetchArchived ? true : { $ne: true } })
         .populate("sellerId", "businessName")
-        .sort({ orderedOn: -1, createdAt: -1 });
+        .sort({ orderedOn: -1, createdAt: -1 })
+        .lean();
         
-      return NextResponse.json({ success: true, purchases }, { status: 200 });
+      const inventoryIds = [...new Set(purchases.map(p => p.inventoryId).filter(Boolean))];
+      const inventoryItems = await Inventory.find({ inventoryId: { $in: inventoryIds } }, "inventoryId imageUrl").lean();
+      const imageMap = {};
+      inventoryItems.forEach(item => {
+        if (item.inventoryId) imageMap[item.inventoryId] = item.imageUrl;
+      });
+
+      const purchasesWithImage = purchases.map(p => ({
+        ...p,
+        imageUrl: imageMap[p.inventoryId] || null
+      }));
+
+      return NextResponse.json({ success: true, purchases: purchasesWithImage }, { status: 200 });
     }
 
     // Give all active sellers on initial page load
@@ -159,15 +172,19 @@ export async function PUT(request) {
       _id,
       { $set: updateData },
       { new: true }
-    ).populate("sellerId", "businessName");
+    ).populate("sellerId", "businessName").lean();
 
     if (!updatedPurchase) {
       return NextResponse.json({ error: "Purchase not found" }, { status: 404 });
     }
 
+    const inv = await Inventory.findOne({ inventoryId: updatedPurchase.inventoryId }, "imageUrl").lean();
+    const resultData = {
+      ...updatedPurchase,
+      imageUrl: inv?.imageUrl || null
+    };
 
-
-    return NextResponse.json({ success: true, message: "Purchase updated successfully", data: updatedPurchase }, { status: 200 });
+    return NextResponse.json({ success: true, message: "Purchase updated successfully", data: resultData }, { status: 200 });
 
   } catch (error) {
     console.error("Purchase PUT Error:", error);
@@ -191,14 +208,20 @@ export async function PATCH(request) {
       _id,
       { $set: { isArchived: isArchiving } },
       { new: true }
-    ).populate("sellerId", "businessName");
+    ).populate("sellerId", "businessName").lean();
 
     if (!purchase) return NextResponse.json({ error: "Purchase not found" }, { status: 404 });
+
+    const inv = await Inventory.findOne({ inventoryId: purchase.inventoryId }, "imageUrl").lean();
+    const resultData = {
+      ...purchase,
+      imageUrl: inv?.imageUrl || null
+    };
 
     return NextResponse.json({ 
       success: true, 
       message: isArchiving ? "Purchase archived" : "Purchase restored",
-      data: purchase
+      data: resultData
     }, { status: 200 });
   } catch (error) {
     console.error("Purchase PATCH Error:", error);
