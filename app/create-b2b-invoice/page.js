@@ -8,6 +8,7 @@ import { GST_STATES } from "@/utils/gstStates";
 import InvoicePdfPreview from "@/components/InvoicePdfPreview/InvoicePdfPreview";
 import { downloadInvoicePdf } from "@/utils/generatePdf";
 import { calculatePaymentStatus } from "@/lib/paymentStatus";
+import PaymentQrModal from "@/components/PaymentQrModal/PaymentQrModal";
 
 function formatDateGB(dateStr) {
   if (!dateStr) return "";
@@ -51,12 +52,21 @@ export default function CreateB2BInvoicePage() {
   const [showGraphicalModal, setShowGraphicalModal] = useState(false);
   const [graphicalModalInvoice, setGraphicalModalInvoice] = useState(null);
 
+  // Payment QR Modal State
+  const [showPaymentQrModal, setShowPaymentQrModal] = useState(false);
+  const [paymentQrInvoice, setPaymentQrInvoice] = useState(null);
+
   // Floating Cursor Image Preview state
   const [hoveredImage, setHoveredImage] = useState(null);
 
   const handleOpenPdfModal = (inv) => {
     setPdfModalInvoice(inv);
     setShowPdfModal(true);
+  };
+
+  const handleOpenPaymentQrModal = (inv) => {
+    setPaymentQrInvoice(inv);
+    setShowPaymentQrModal(true);
   };
 
   const handleModalDownloadPdf = async () => {
@@ -1210,6 +1220,26 @@ export default function CreateB2BInvoicePage() {
                         </svg>
                         PDF
                       </button>
+                      {(inv.paymentStatus === "Pending" ||
+                        inv.paymentStatus === "Partially Paid" ||
+                        (inv.balanceAmount !== undefined
+                          ? inv.balanceAmount > 0
+                          : (inv.grandTotal || 0) - (inv.receivedAmount || 0) > 0)) && (
+                        <button
+                          type="button"
+                          className={styles.recentQrBtn}
+                          onClick={() => handleOpenPaymentQrModal(inv)}
+                          title="Generate Custom Payment QR for Remaining Balance"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                          </svg>
+                          Payment QR
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -1937,6 +1967,12 @@ export default function CreateB2BInvoicePage() {
           )}
         </div>
       )}
+      {/* Payment QR Generator Modal */}
+      <PaymentQrModal
+        isOpen={showPaymentQrModal}
+        onClose={() => setShowPaymentQrModal(false)}
+        invoice={paymentQrInvoice}
+      />
     </div>
   );
 }

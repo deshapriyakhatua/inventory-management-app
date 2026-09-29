@@ -11,6 +11,7 @@ import InvoicePdfPreview from "@/components/InvoicePdfPreview/InvoicePdfPreview"
 import { downloadInvoicePdf } from "@/utils/generatePdf";
 import { calculatePaymentStatus } from "@/lib/paymentStatus";
 import ConfirmModal from "@/components/ConfirmModal/ConfirmModal";
+import PaymentQrModal from "@/components/PaymentQrModal/PaymentQrModal";
 
 function formatDateGB(dateStr) {
   if (!dateStr) return "";
@@ -50,6 +51,10 @@ export default function AllInvoicesPage() {
   const [showGraphicalModal, setShowGraphicalModal] = useState(false);
   const [graphicalModalInvoice, setGraphicalModalInvoice] = useState(null);
 
+  // Payment QR Modal State
+  const [showPaymentQrModal, setShowPaymentQrModal] = useState(false);
+  const [paymentQrInvoice, setPaymentQrInvoice] = useState(null);
+
   // 3-Dot Dropdown Menu State
   const [openMenuId, setOpenMenuId] = useState(null);
 
@@ -83,6 +88,11 @@ export default function AllInvoicesPage() {
   const handleOpenGraphicalModal = (inv) => {
     setGraphicalModalInvoice(inv);
     setShowGraphicalModal(true);
+  };
+
+  const handleOpenPaymentQr = (inv) => {
+    setPaymentQrInvoice(inv);
+    setShowPaymentQrModal(true);
   };
 
   const fetchInvoices = async () => {
@@ -982,6 +992,28 @@ export default function AllInvoicesPage() {
                                   </svg>
                                   PDF Preview
                                 </button>
+                                {(inv.paymentStatus === "Pending" ||
+                                  inv.paymentStatus === "Partially Paid" ||
+                                  (inv.balanceAmount !== undefined
+                                    ? inv.balanceAmount > 0
+                                    : (inv.grandTotal || 0) - (inv.receivedAmount || 0) > 0)) && (
+                                  <button
+                                    type="button"
+                                    className={styles.dropdownItem}
+                                    onClick={() => {
+                                      setOpenMenuId(null);
+                                      handleOpenPaymentQr(inv);
+                                    }}
+                                  >
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2">
+                                      <rect x="3" y="3" width="7" height="7"></rect>
+                                      <rect x="14" y="3" width="7" height="7"></rect>
+                                      <rect x="14" y="14" width="7" height="7"></rect>
+                                      <rect x="3" y="14" width="7" height="7"></rect>
+                                    </svg>
+                                    Payment QR (Balance)
+                                  </button>
+                                )}
                                 <button
                                   type="button"
                                   className={styles.dropdownItem}
@@ -1042,6 +1074,28 @@ export default function AllInvoicesPage() {
                                   </svg>
                                   PDF Preview
                                 </button>
+                                {(inv.paymentStatus === "Pending" ||
+                                  inv.paymentStatus === "Partially Paid" ||
+                                  (inv.balanceAmount !== undefined
+                                    ? inv.balanceAmount > 0
+                                    : (inv.grandTotal || 0) - (inv.receivedAmount || 0) > 0)) && (
+                                  <button
+                                    type="button"
+                                    className={styles.dropdownItem}
+                                    onClick={() => {
+                                      setOpenMenuId(null);
+                                      handleOpenPaymentQr(inv);
+                                    }}
+                                  >
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2">
+                                      <rect x="3" y="3" width="7" height="7"></rect>
+                                      <rect x="14" y="3" width="7" height="7"></rect>
+                                      <rect x="14" y="14" width="7" height="7"></rect>
+                                      <rect x="3" y="14" width="7" height="7"></rect>
+                                    </svg>
+                                    Payment QR (Balance)
+                                  </button>
+                                )}
                                 <button
                                   type="button"
                                   className={styles.dropdownItem}
@@ -1724,6 +1778,13 @@ export default function AllInvoicesPage() {
           </div>
         </div>
       )}
+
+      {/* Payment QR Generator Modal */}
+      <PaymentQrModal
+        isOpen={showPaymentQrModal}
+        onClose={() => setShowPaymentQrModal(false)}
+        invoice={paymentQrInvoice}
+      />
 
       {/* Custom Confirmation Modal */}
       <ConfirmModal
