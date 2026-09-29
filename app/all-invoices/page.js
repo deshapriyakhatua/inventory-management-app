@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import styles from "./page.module.css";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 import RefreshIcon from "@/components/RefreshIcon/RefreshIcon";
 import { GST_STATES } from "@/utils/gstStates";
 import InvoicePdfPreview from "@/components/InvoicePdfPreview/InvoicePdfPreview";
@@ -373,6 +374,317 @@ export default function AllInvoicesPage() {
     }
   };
 
+  // ── Multi-Sheet Excel Export (Summary, Grouped, Raw Data) ──────────
+  const exportInvoicesToExcel = () => {
+    if (!invoices || invoices.length === 0) {
+      toast.error("No invoices available to export.");
+      return;
+    }
+
+    // ── Calculate Summary Statistics ────────────────────────────────
+    let totalInvoices = invoices.length;
+    let totalRevenue = 0;
+    let totalReceived = 0;
+    let totalBalance = 0;
+    let paidCount = 0;
+    let partialCount = 0;
+    let pendingCount = 0;
+    let cancelledCount = 0;
+
+    // Buyer Summary breakdown map
+    const buyerSummaryMap = {};
+
+    invoices.forEach((inv) => {
+      const gTotal = Number(inv.grandTotal) || 0;
+      const rAmount = Number(inv.receivedAmount) || 0;
+      const bAmount =
+        inv.balanceAmount !== undefined && inv.balanceAmount !== null && inv.balanceAmount !== 0
+          ? inv.balanceAmount
+          : gTotal - rAmount;
+
+      totalRevenue += gTotal;
+      totalReceived += rAmount;
+      totalBalance += bAmount;
+
+      const st = inv.paymentStatus || calculatePaymentStatus(gTotal, rAmount);
+      if (st === "Paid") paidCount++;
+      else if (st === "Partially Paid") partialCount++;
+      else if (st === "Cancelled") cancelledCount++;
+      else pendingCount++;
+
+      const buyerName = inv.buyerDetails?.businessName || "Unknown Customer";
+      const gstin = inv.buyerDetails?.gstNo || inv.buyerDetails?.gstin || inv.buyerDetails?.gstNumber || "NA";
+      const state = inv.buyerDetails?.state || inv.placeOfSupply || "NA";
+
+      if (!buyerSummaryMap[buyerName]) {
+        buyerSummaryMap[buyerName] = {
+          buyerName,
+          gstin,
+          state,
+          invoiceCount: 0,
+          totalRevenue: 0,
+          totalReceived: 0,
+          totalBalance: 0,
+        };
+      }
+      const b = buyerSummaryMap[buyerName];
+      if (b.gstin === "NA" && gstin !== "NA") b.gstin = gstin;
+      if (b.state === "NA" && state !== "NA") b.state = state;
+
+      b.invoiceCount += 1;
+      b.totalRevenue += gTotal;
+      b.totalReceived += rAmount;
+      b.totalBalance += bAmount;
+    });
+
+    // ── 1. SHEET 1: SUMMARY ─────────────────────────────────────────
+    const summaryData = [
+      ["B2B INVOICES EXECUTIVE SUMMARY REPORT"],
+      [`Generated On: ${new Date().toLocaleString("en-IN")}`],
+      [`Scope: ${showArchived ? "Archived Invoices" : "Active Invoices"}`],
+      [],
+      ["EXECUTIVE KPI METRICS"],
+      ["Metric", "Value"],
+      ["Total Invoices Count", totalInvoices],
+      ["Total Invoiced Revenue (₹)", Number(totalRevenue.toFixed(2))],
+      ["Total Amount Received (₹)", Number(totalReceived.toFixed(2))],
+      ["Outstanding Balance Due (₹)", Number(totalBalance.toFixed(2))],
+      ["Paid Invoices", paidCount],
+      ["Partially Paid Invoices", partialCount],
+      ["Pending Invoices", pendingCount],
+      ["Cancelled Invoices", cancelledCount],
+      [],
+      ["CUSTOMER / BUYER SALES BREAKDOWN"],
+      ["Customer / Buyer Name", "GSTIN", "Customer State", "Invoices Count", "Total Revenue (₹)", "Total Received (₹)", "Balance Due (₹)"]
+    ];
+
+    Object.values(buyerSummaryMap).forEach((b) => {
+      summaryData.push([
+        b.buyerName,
+        b.gstin,
+        b.state,
+        b.invoiceCount,
+        Number(b.totalRevenue.toFixed(2)),
+        Number(b.totalReceived.toFixed(2)),
+        Number(b.totalBalance.toFixed(2))
+      ]);
+    });
+
+    // ── 2. SHEET 2: INVOICE & CUSTOMER GROUPED ──────────────────────
+    const groupedData = [
+      ["INVOICE & CUSTOMER GROUPED REPORT"],
+      [`Generated On: ${new Date().toLocaleString("en-IN")}`],
+      [],
+      [
+        "Record Type",
+        "Invoice No",
+        "Invoice Date",
+        "Customer / Buyer Name",
+        "Customer GSTIN",
+        "Customer State",
+        "Line Items / Inventory ID",
+        "Description",
+        "HSN Code",
+        "Quantity",
+        "Unit Price (₹)",
+        "Tax Rate %",
+        "Tax Amount (₹)",
+        "Line / Invoice Total (₹)",
+        "Received Amount (₹)",
+        "Balance Due (₹)",
+        "Payment Status"
+      ]
+    ];
+
+    invoices.forEach((inv) => {
+      const buyerName = inv.buyerDetails?.businessName || "Unknown Customer";
+      const gstin = inv.buyerDetails?.gstNo || inv.buyerDetails?.gstin || inv.buyerDetails?.gstNumber || "NA";
+      const state = inv.buyerDetails?.state || inv.placeOfSupply || "NA";
+      const lineItemsCount = inv.lineItems?.length || 0;
+      const gTotal = Number(inv.grandTotal) || 0;
+      const rAmount = Number(inv.receivedAmount) || 0;
+      const bAmount =
+        inv.balanceAmount !== undefined && inv.balanceAmount !== null && inv.balanceAmount !== 0
+          ? inv.balanceAmount
+          : gTotal - rAmount;
+
+      // Group Header Row
+      groupedData.push([
+        "INVOICE HEADER",
+        inv.invoiceNumber || "-",
+        formatDateGB(inv.invoiceDate),
+        buyerName,
+        gstin,
+        state,
+        `${lineItemsCount} item(s)`,
+        "-",
+        "-",
+        "-",
+        "-",
+        "-",
+        Number((inv.totalTax || 0).toFixed(2)),
+        Number(gTotal.toFixed(2)),
+        Number(rAmount.toFixed(2)),
+        Number(bAmount.toFixed(2)),
+        inv.paymentStatus || calculatePaymentStatus(gTotal, rAmount)
+      ]);
+
+      // Sub-rows for each Line Item in the Invoice
+      (inv.lineItems || []).forEach((item) => {
+        groupedData.push([
+          "Item Detail",
+          inv.invoiceNumber || "-",
+          formatDateGB(inv.invoiceDate),
+          buyerName,
+          gstin,
+          state,
+          item.inventoryId || "-",
+          item.description || "-",
+          item.hsnCode || "-",
+          item.quantity || 0,
+          Number((item.unitPrice || 0).toFixed(2)),
+          `${item.taxRate || 0}%`,
+          Number((item.taxAmount || 0).toFixed(2)),
+          Number((item.totalAmount || 0).toFixed(2)),
+          "-",
+          "-",
+          inv.paymentStatus || calculatePaymentStatus(gTotal, rAmount)
+        ]);
+      });
+
+      groupedData.push([]); // Blank spacing row between invoices
+    });
+
+    // ── 3. SHEET 3: ALL INVOICE LINE ITEMS (RAW DATA FLAT LIST) ─────
+    const flatData = [
+      ["ALL INVOICE LINE ITEMS (RAW DATA)"],
+      [`Generated On: ${new Date().toLocaleString("en-IN")}`],
+      [],
+      [
+        "Invoice No",
+        "Invoice Date",
+        "Customer / Buyer Name",
+        "Customer GSTIN",
+        "Customer State",
+        "Inventory ID",
+        "Description",
+        "HSN Code",
+        "Quantity",
+        "Unit Price (₹)",
+        "Tax Rate %",
+        "Tax Amount (₹)",
+        "Line Total (₹)",
+        "Invoice Grand Total (₹)",
+        "Amount Received (₹)",
+        "Balance Due (₹)",
+        "Payment Status"
+      ]
+    ];
+
+    invoices.forEach((inv) => {
+      const buyerName = inv.buyerDetails?.businessName || "Unknown Customer";
+      const gstin = inv.buyerDetails?.gstNo || inv.buyerDetails?.gstin || inv.buyerDetails?.gstNumber || "NA";
+      const state = inv.buyerDetails?.state || inv.placeOfSupply || "NA";
+      const gTotal = Number(inv.grandTotal) || 0;
+      const rAmount = Number(inv.receivedAmount) || 0;
+      const bAmount =
+        inv.balanceAmount !== undefined && inv.balanceAmount !== null && inv.balanceAmount !== 0
+          ? inv.balanceAmount
+          : gTotal - rAmount;
+      const st = inv.paymentStatus || calculatePaymentStatus(gTotal, rAmount);
+
+      (inv.lineItems || []).forEach((item) => {
+        flatData.push([
+          inv.invoiceNumber || "-",
+          formatDateGB(inv.invoiceDate),
+          buyerName,
+          gstin,
+          state,
+          item.inventoryId || "-",
+          item.description || "-",
+          item.hsnCode || "-",
+          item.quantity || 0,
+          Number((item.unitPrice || 0).toFixed(2)),
+          `${item.taxRate || 0}%`,
+          Number((item.taxAmount || 0).toFixed(2)),
+          Number((item.totalAmount || 0).toFixed(2)),
+          Number(gTotal.toFixed(2)),
+          Number(rAmount.toFixed(2)),
+          Number(bAmount.toFixed(2)),
+          st
+        ]);
+      });
+    });
+
+    // ── CREATE WORKBOOK & APPEND ALL 3 WORKSHEETS ────────────────────
+    const workbook = XLSX.utils.book_new();
+
+    // 1. Summary Sheet
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+    summarySheet["!cols"] = [
+      { wch: 28 }, // Customer Name
+      { wch: 20 }, // GSTIN
+      { wch: 20 }, // Customer State
+      { wch: 14 }, // Invoices Count
+      { wch: 20 }, // Total Revenue
+      { wch: 20 }, // Total Received
+      { wch: 20 }  // Balance Due
+    ];
+    XLSX.utils.book_append_sheet(workbook, summarySheet, "Summary");
+
+    // 2. Invoice & Customer Grouped Sheet
+    const groupedSheet = XLSX.utils.aoa_to_sheet(groupedData);
+    groupedSheet["!cols"] = [
+      { wch: 16 }, // Record Type
+      { wch: 18 }, // Invoice No
+      { wch: 14 }, // Invoice Date
+      { wch: 24 }, // Customer Name
+      { wch: 20 }, // Customer GSTIN
+      { wch: 20 }, // Customer State
+      { wch: 22 }, // Line Items / Inventory ID
+      { wch: 24 }, // Description
+      { wch: 12 }, // HSN Code
+      { wch: 10 }, // Quantity
+      { wch: 16 }, // Unit Price
+      { wch: 12 }, // Tax Rate %
+      { wch: 14 }, // Tax Amount
+      { wch: 20 }, // Line / Invoice Total
+      { wch: 18 }, // Received Amount
+      { wch: 16 }, // Balance Due
+      { wch: 16 }  // Payment Status
+    ];
+    XLSX.utils.book_append_sheet(workbook, groupedSheet, "Invoice & Customer Grouped");
+
+    // 3. All Invoice Line Items Sheet (Flat List)
+    const flatSheet = XLSX.utils.aoa_to_sheet(flatData);
+    flatSheet["!cols"] = [
+      { wch: 18 }, // Invoice No
+      { wch: 14 }, // Invoice Date
+      { wch: 24 }, // Customer Name
+      { wch: 20 }, // Customer GSTIN
+      { wch: 20 }, // Customer State
+      { wch: 22 }, // Inventory ID
+      { wch: 24 }, // Description
+      { wch: 12 }, // HSN Code
+      { wch: 10 }, // Quantity
+      { wch: 16 }, // Unit Price
+      { wch: 12 }, // Tax Rate %
+      { wch: 14 }, // Tax Amount
+      { wch: 18 }, // Line Total
+      { wch: 20 }, // Invoice Grand Total
+      { wch: 18 }, // Amount Received
+      { wch: 16 }, // Balance Due
+      { wch: 16 }  // Payment Status
+    ];
+    XLSX.utils.book_append_sheet(workbook, flatSheet, "All Invoice Line Items");
+
+    // Write file
+    const fileName = `All_Invoices_Report_${showArchived ? "Archived_" : ""}${new Date().toISOString().split("T")[0]}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+
+    toast.success(`Successfully downloaded Excel report: ${fileName}`);
+  };
+
   // Metrics Calculations
   const totalRevenue = invoices.reduce(
     (sum, inv) => sum + (inv.grandTotal || 0),
@@ -436,13 +748,29 @@ export default function AllInvoicesPage() {
           </p>
         </div>
 
-        <Link href="/create-b2b-invoice" className={styles.createBtn}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-          + Create New Invoice
-        </Link>
+        <div className={styles.headerActions}>
+          <button
+            type="button"
+            className={styles.downloadExcelBtn}
+            onClick={exportInvoicesToExcel}
+            title="Download Invoices Excel Report"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Download Excel
+          </button>
+
+          <Link href="/create-b2b-invoice" className={styles.createBtn}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Create New Invoice
+          </Link>
+        </div>
       </div>
 
       {/* Summary Metrics */}
