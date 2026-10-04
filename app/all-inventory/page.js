@@ -1,10 +1,14 @@
 "use client";
+import { toast } from "sonner";
+
+import Icon from "@/components/ui/Icon/Icon";
+
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import styles from "./page.module.css";
-import Toast from "../../components/Toast/Toast";
+
 import SmoothImage from "../../components/SmoothImage/SmoothImage";
 import { fetchVerticalsData } from "../../utils/apiUtils";
 import { useAuth } from "../../components/AuthProvider";
@@ -18,7 +22,7 @@ export default function AllInventoryPage() {
     const [refreshing, setRefreshing] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
-    const [message, setMessage] = useState({ text: "", type: "" });
+
     const [deleteButtonLoading, setDeleteButtonLoading] = useState(false);
     const [deletingItemId, setDeletingItemId] = useState(null);
     const [pageSize, setPageSize] = useState(100);
@@ -173,16 +177,16 @@ export default function AllInventoryPage() {
             const result = await response.json();
 
             if (response.ok) {
-                setMessage({ text: "Inventory archived successfully.", type: "success" });
+                toast.success("Inventory archived successfully.", { id: "app-feedback", duration: 3000 });
                 // Update local data
                 const updatedData = allInventoryData.filter(item => item._id !== id);
                 setAllInventoryData(updatedData);
             } else {
-                setMessage({ text: result.error || "Failed to archive inventory.", type: "error" });
+                toast.error(result.error || "Failed to archive inventory.", { id: "app-feedback", duration: 3000 });
             }
         } catch (error) {
             console.error("Network Error:", error);
-            setMessage({ text: "Network error. Please try again.", type: "error" });
+            toast.error("Network error. Please try again.", { id: "app-feedback", duration: 3000 });
         } finally {
             setDeleteButtonLoading(false);
             setDeletingItemId(null);
@@ -211,14 +215,14 @@ export default function AllInventoryPage() {
             const result = await response.json();
 
             if (response.ok) {
-                setMessage({ text: "Inventory restored successfully.", type: "success" });
+                toast.success("Inventory restored successfully.", { id: "app-feedback", duration: 3000 });
                 fetchInventory(true);
             } else {
-                setMessage({ text: result.error || "Failed to restore inventory.", type: "error" });
+                toast.error(result.error || "Failed to restore inventory.", { id: "app-feedback", duration: 3000 });
             }
         } catch (error) {
             console.error("Network Error:", error);
-            setMessage({ text: "Network error. Please try again.", type: "error" });
+            toast.error("Network error. Please try again.", { id: "app-feedback", duration: 3000 });
         } finally {
             setRestoreButtonLoading(false);
             setShowRestoreConfirm(false);
@@ -240,15 +244,15 @@ export default function AllInventoryPage() {
             });
             const result = await res.json();
             if (res.ok && result.success) {
-                setMessage({ text: "Inventory item permanently deleted.", type: "success" });
+                toast.success("Inventory item permanently deleted.", { id: "app-feedback", duration: 3000 });
                 const updatedData = allInventoryData.filter(item => item._id !== itemToPermDelete);
                 setAllInventoryData(updatedData);
             } else {
-                setMessage({ text: result.error || "Failed to permanently delete item.", type: "error" });
+                toast.error(result.error || "Failed to permanently delete item.", { id: "app-feedback", duration: 3000 });
             }
         } catch (error) {
             console.error("Permanent Delete Error:", error);
-            setMessage({ text: "Network error. Please try again.", type: "error" });
+            toast.error("Network error. Please try again.", { id: "app-feedback", duration: 3000 });
         } finally {
             setPermDeleteLoading(false);
             setShowPermDeleteConfirm(false);
@@ -289,11 +293,11 @@ export default function AllInventoryPage() {
         e.preventDefault();
         if (!editingItem) return;
         if (!editForm.inventoryId.trim()) {
-            setMessage({ text: "Inventory ID is required.", type: "error" });
+            toast.error("Inventory ID is required.", { id: "app-feedback", duration: 3000 });
             return;
         }
         if (!editForm.vertical.trim()) {
-            setMessage({ text: "Vertical is required.", type: "error" });
+            toast.error("Vertical is required.", { id: "app-feedback", duration: 3000 });
             return;
         }
 
@@ -314,15 +318,15 @@ export default function AllInventoryPage() {
 
             const result = await res.json();
             if (res.ok && result.success) {
-                setMessage({ text: "Inventory item updated successfully.", type: "success" });
+                toast.success("Inventory item updated successfully.", { id: "app-feedback", duration: 3000 });
                 fetchInventory(true, showArchived);
                 closeEditModal();
             } else {
-                setMessage({ text: result.error || "Failed to update inventory item.", type: "error" });
+                toast.error(result.error || "Failed to update inventory item.", { id: "app-feedback", duration: 3000 });
             }
         } catch (error) {
             console.error("Save Edit Error:", error);
-            setMessage({ text: "Network error while saving inventory item.", type: "error" });
+            toast.error("Network error while saving inventory item.", { id: "app-feedback", duration: 3000 });
         } finally {
             setEditSaving(false);
         }
@@ -331,10 +335,10 @@ export default function AllInventoryPage() {
     const copyToClipboard = async (text, label) => {
         try {
             await navigator.clipboard.writeText(text);
-            setMessage({ text: `${label} copied to clipboard!`, type: "success" });
+            toast.success(`${label} copied to clipboard!`, { id: "app-feedback", duration: 3000 });
         } catch (err) {
             console.error("Failed to copy:", err);
-            setMessage({ text: "Failed to copy to clipboard", type: "error" });
+            toast.error("Failed to copy to clipboard", { id: "app-feedback", duration: 3000 });
         }
     };
 
@@ -355,7 +359,7 @@ export default function AllInventoryPage() {
             setLoading(true);
         }
 
-        setMessage({ text: "", type: "" });
+        toast.dismiss("app-feedback");
 
         try {
             const url = `/api/employee/inventory${fetchArchived ? '?showArchived=true' : ''}`;
@@ -367,15 +371,15 @@ export default function AllInventoryPage() {
                 setAllInventoryData(fetchedData);
 
                 if (forceRefresh) {
-                    setMessage({ text: "Inventory refreshed successfully.", type: "success" });
+                    toast.success("Inventory refreshed successfully.", { id: "app-feedback", duration: 3000 });
                 }
             } else {
-                setMessage({ text: result.error || "Failed to load inventory.", type: "error" });
+                toast.error(result.error || "Failed to load inventory.", { id: "app-feedback", duration: 3000 });
                 if (!allInventoryData.length) setAllInventoryData([]);
             }
         } catch (error) {
             console.error("Fetch Error:", error);
-            setMessage({ text: "Network error while loading data.", type: "error" });
+            toast.error("Network error while loading data.", { id: "app-feedback", duration: 3000 });
             if (!allInventoryData.length) setAllInventoryData([]);
         } finally {
             setLoading(false);
@@ -403,10 +407,7 @@ export default function AllInventoryPage() {
                                 className={styles.searchInput}
                             />
                             <button className={styles.searchBtn} onClick={handleSearch} title="Search">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="11" cy="11" r="8"></circle>
-                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                                </svg>
+                                <Icon name="icon-9c4a10ac" size={18} />
                             </button>
                         </div>
 
@@ -441,10 +442,7 @@ export default function AllInventoryPage() {
                             onClick={handleReset}
                             title="Reset Filters"
                         >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                                <polyline points="3 3 3 8 8 8"></polyline>
-                            </svg>
+                            <Icon name="reset-filters" size={18} />
                             Reset
                         </button>
 
@@ -454,11 +452,7 @@ export default function AllInventoryPage() {
                             disabled={refreshing}
                             title="Refresh Data"
                         >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="23 4 23 10 17 10"></polyline>
-                                <polyline points="1 20 1 14 7 14"></polyline>
-                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                            </svg>
+                            <Icon name="refresh" size={18} />
                             Refresh
                         </button>
 
@@ -482,11 +476,7 @@ export default function AllInventoryPage() {
                                 title={showArchived ? "Hide Archived" : "Show Archived"}
                                 style={showArchived ? { backgroundColor: 'var(--accent-color, #3b82f6)', color: 'white', borderColor: 'var(--accent-color, #3b82f6)' } : {}}
                             >
-                                <svg width="18" height="18" viewBox="0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M21 8v13H3V8"></path>
-                                    <polyline points="1 3 23 3 23 8 1 8 1 3"></polyline>
-                                    <path d="M10 12h4"></path>
-                                </svg>
+                                <Icon name="icon-fb9fc010" size={18} />
                                 {showArchived ? "Hide Archived" : "Show Archived"}
                             </button>
                         )}
@@ -524,10 +514,7 @@ export default function AllInventoryPage() {
                                                 title="Restore Inventory"
                                                 disabled={restoreButtonLoading}
                                             >
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <polyline points="9 14 4 9 9 4"></polyline>
-                                                    <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
-                                                </svg>
+                                                <Icon name="restore-inventory" size={16} />
                                             </button>
                                         ) : canArchive ? (
                                             <button
@@ -538,14 +525,8 @@ export default function AllInventoryPage() {
                                                 disabled={deleteButtonLoading}
                                             >
                                                 {deleteButtonLoading && deletingItemId === item._id
-                                                    ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                        <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-                                                        <path d="M21 3v5h-5"></path>
-                                                    </svg>
-                                                    : <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                        <polyline points="3 6 5 6 21 6"></polyline>
-                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                                    </svg>
+                                                    ? <Icon name="refresh-loop" size={16} className={styles.deleteLoadingIcon} />
+                                                    : <Icon name="trash" size={16} className={styles.deleteIcon} />
                                                 }
                                             </button>
                                         ) : null}
@@ -560,12 +541,7 @@ export default function AllInventoryPage() {
                                                 className={styles.editCardBtn}
                                                 title="Permanently Delete"
                                             >
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                                                    <line x1="14" y1="11" x2="14" y2="17"></line>
-                                                </svg>
+                                                <Icon name="permanently-delete" size={14} />
                                             </button>
                                         ) : (
                                             <button
@@ -577,10 +553,7 @@ export default function AllInventoryPage() {
                                                 className={styles.editCardBtn}
                                                 title="Edit Inventory"
                                             >
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                                </svg>
+                                                <Icon name="edit-inventory" size={14} />
                                             </button>
                                         )}
 
@@ -608,10 +581,7 @@ export default function AllInventoryPage() {
                                                     }}
                                                     title="Copy SKU"
                                                 >
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                                    </svg>
+                                                    <Icon name="copy-inventory-id" size={14} />
                                                 </button>
                                             </div>
                                             <p className={styles.itemDate}>
@@ -684,21 +654,12 @@ export default function AllInventoryPage() {
                 </div>
             )}
 
-            <Toast
-                message={message}
-                onClose={() => setMessage({ text: "", type: "" })}
-            />
-
-            {showDeleteConfirm && (
+                     {showDeleteConfirm && (
                 <div className={styles.confirmOverlay} onClick={() => setShowDeleteConfirm(false)}>
                     <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
                         <div className={styles.confirmHeader}>
                             <div className={styles.warningIcon}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                                    <line x1="12" y1="9" x2="12" y2="13"></line>
-                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                                </svg>
+                                <Icon name="icon-cfd589e1" size={24} />
                             </div>
                             <h3 className={styles.confirmTitle}>Confirm Archiving</h3>
                         </div>
@@ -730,10 +691,7 @@ export default function AllInventoryPage() {
                     <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
                         <div className={styles.confirmHeader}>
                             <div className={styles.restoreIcon} style={{ color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '8px', borderRadius: '50%', display: 'flex' }}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="9 14 4 9 9 4"></polyline>
-                                    <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
-                                </svg>
+                                <Icon name="restore-inventory" size={24} />
                             </div>
                             <h3 className={styles.confirmTitle}>Confirm Restore</h3>
                         </div>
@@ -765,10 +723,7 @@ export default function AllInventoryPage() {
                 <div className={styles.modalOverlay} onClick={() => setSelectedItem(null)}>
                     <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
                         <button className={styles.closeModal} onClick={() => setSelectedItem(null)}>
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
+                            <Icon name="remove-this-product" size={24} />
                         </button>
 
                         <div className={styles.modalScrollArea}>
@@ -794,10 +749,7 @@ export default function AllInventoryPage() {
                                             onClick={() => copyToClipboard(selectedItem.inventoryId, "Inventory ID")}
                                             title="Copy ID"
                                         >
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                            </svg>
+                                            <Icon name="copy-inventory-id" size={16} />
                                         </button>
                                     </div>
                                     <p className={styles.modalVertical}>{selectedItem.vertical}</p>
@@ -864,10 +816,7 @@ export default function AllInventoryPage() {
                                                                 onClick={() => copyToClipboard(sku.skuId, "SKU ID")}
                                                                 title="Copy SKU ID"
                                                             >
-                                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                                                </svg>
+                                                                <Icon name="copy-inventory-id" size={14} />
                                                             </button>
                                                         </div>
                                                         <span className={`${styles.statusBadge} ${sku.status?.toLowerCase() === 'active' ? styles.activeStatus : sku.status?.toLowerCase() === 'blocked' ? styles.blockedStatus : styles.inactiveStatus}`}>
@@ -907,10 +856,7 @@ export default function AllInventoryPage() {
                                                                             onClick={() => copyToClipboard(combo.inventoryId, "Combo Inventory ID")}
                                                                             title="Copy ID"
                                                                         >
-                                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                                                            </svg>
+                                                                            <Icon name="copy-inventory-id" size={12} />
                                                                         </button>
                                                                     </div>
                                                                     <div className={styles.comboQuantity}>
@@ -936,12 +882,7 @@ export default function AllInventoryPage() {
                     <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
                         <div className={styles.confirmHeader}>
                             <div className={styles.warningIcon}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                                    <line x1="14" y1="11" x2="14" y2="17"></line>
-                                </svg>
+                                <Icon name="permanently-delete" size={24} />
                             </div>
                             <h3 className={styles.confirmTitle}>Permanently Delete</h3>
                         </div>
@@ -974,10 +915,7 @@ export default function AllInventoryPage() {
                     <div className={styles.confirmModal} style={{ maxWidth: '500px' }} onClick={(e) => e.stopPropagation()}>
                         <div className={styles.confirmHeader}>
                             <div style={{ color: '#3b82f6', background: 'rgba(59, 130, 246, 0.1)', padding: '8px', borderRadius: '50%', display: 'flex' }}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                </svg>
+                                <Icon name="edit-inventory" />
                             </div>
                             <h3 className={styles.confirmTitle}>Edit Inventory Item</h3>
                         </div>

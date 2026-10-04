@@ -1,8 +1,12 @@
 "use client";
+import { toast } from "sonner";
+
+import Icon from "@/components/ui/Icon/Icon";
+
 
 import React, { useState } from "react";
 import styles from "./page.module.css";
-import Toast from "../../components/Toast/Toast";
+
 
 const INITIAL_FORM = {
   businessName: "",
@@ -72,7 +76,7 @@ function TextArea({ label, name, placeholder = "", value, onChange, disabled }) 
 export default function AddSellerPage() {
   const [form, setForm] = useState(INITIAL_FORM);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ text: "", type: "" });
+
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -80,10 +84,10 @@ export default function AddSellerPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage({ text: "", type: "" });
+    toast.dismiss("app-feedback");
 
     if (!form.businessName.trim()) {
-      setMessage({ text: "Business Name is required.", type: "error" });
+      toast.error("Business Name is required.", { id: "app-feedback", duration: 3000 });
       return;
     }
 
@@ -96,14 +100,14 @@ export default function AddSellerPage() {
       });
       const result = await res.json();
       if (res.ok && result.success) {
-        setMessage({ text: "Seller added successfully!", type: "success" });
+        toast.success("Seller added successfully!", { id: "app-feedback", duration: 3000 });
         setForm(INITIAL_FORM);
       } else {
-        setMessage({ text: result.error || "Failed to add seller.", type: "error" });
+        toast.error(result.error || "Failed to add seller.", { id: "app-feedback", duration: 3000 });
       }
     } catch (err) {
       console.error(err);
-      setMessage({ text: "Network error. Please try again.", type: "error" });
+      toast.error("Network error. Please try again.", { id: "app-feedback", duration: 3000 });
     } finally {
       setLoading(false);
     }
@@ -113,10 +117,7 @@ export default function AddSellerPage() {
     <div className={styles.container}>
       <div className={styles.pageHeader}>
         <div className={styles.pageHeaderIcon}>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
+          <Icon name="icon-d5851a0c" size={28} />
         </div>
         <div>
           <h1 className={styles.pageTitle}>Add New Seller</h1>
@@ -129,10 +130,7 @@ export default function AddSellerPage() {
         {/* ── Section: Basic Info ── */}
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2" />
-              <path d="M8 21h8M12 17v4" />
-            </svg>
+            <Icon name="icon-4c39cef6" size={18} />
             <h2 className={styles.sectionTitle}>Business Information</h2>
           </div>
           <div className={styles.grid2}>
@@ -147,9 +145,7 @@ export default function AddSellerPage() {
         {/* ── Section: Contact ── */}
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12 19.79 19.79 0 0 1 1.07 3.4 2 2 0 0 1 3 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16z" />
-            </svg>
+            <Icon name="icon-2d625620" size={18} />
             <h2 className={styles.sectionTitle}>Contact Numbers</h2>
           </div>
           <div className={styles.grid2}>
@@ -163,10 +159,7 @@ export default function AddSellerPage() {
         {/* ── Section: Address ── */}
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
+            <Icon name="icon-28f62de3" size={18} />
             <h2 className={styles.sectionTitle}>Address</h2>
           </div>
           <div className={styles.grid1}>
@@ -182,10 +175,7 @@ export default function AddSellerPage() {
         {/* ── Section: Primary Bank ── */}
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-              <line x1="1" y1="10" x2="23" y2="10" />
-            </svg>
+            <Icon name="icon-208b8f70" size={18} />
             <h2 className={styles.sectionTitle}>Primary Banking Details</h2>
           </div>
           <div className={styles.grid2}>
@@ -201,10 +191,7 @@ export default function AddSellerPage() {
         {/* ── Section: Alternate Bank ── */}
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-              <line x1="1" y1="10" x2="23" y2="10" />
-            </svg>
+            <Icon name="icon-208b8f70" size={18} />
             <h2 className={styles.sectionTitle}>Alternate Banking Details</h2>
             <span className={styles.optionalBadge}>Optional</span>
           </div>
@@ -234,18 +221,12 @@ export default function AddSellerPage() {
           >
             {loading ? (
               <>
-                <svg className={styles.spinner} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-                  <path d="M21 3v5h-5" />
-                </svg>
+                <Icon name="refresh-loop" size={18} className={styles.spinner} />
                 Adding Seller...
               </>
             ) : (
               <>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
-                </svg>
+                <Icon name="icon-d5851a0c" size={18} />
                 Add Seller
               </>
             )}
@@ -253,7 +234,6 @@ export default function AddSellerPage() {
         </div>
       </form>
 
-      <Toast message={message} onClose={() => setMessage({ text: "", type: "" })} />
-    </div>
+      </div>
   );
 }

@@ -1,4 +1,6 @@
 "use client";
+import Icon from "@/components/ui/Icon/Icon";
+
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
@@ -15,11 +17,7 @@ const NAV_CARDS = [
     {
         href: "/add-inventory",
         icon: (
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                <line x1="12" y1="22.08" x2="12" y2="12" />
-            </svg>
+            <Icon name="add-inventory" size={24} />
         ),
         label: "Add Inventory",
         desc: "Add a new inventory item",
@@ -28,11 +26,7 @@ const NAV_CARDS = [
     {
         href: "/all-inventory",
         icon: (
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-                <line x1="8" y1="21" x2="16" y2="21" />
-                <line x1="12" y1="17" x2="12" y2="21" />
-            </svg>
+            <Icon name="all-inventory" size={24} />
         ),
         label: "All Inventory",
         desc: "Browse all inventory items",
@@ -41,10 +35,7 @@ const NAV_CARDS = [
     {
         href: "/add-listing",
         icon: (
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
+            <Icon name="add-another-product" size={24} />
         ),
         label: "Create Listing",
         desc: "Generate a marketplace listing",
@@ -53,14 +44,7 @@ const NAV_CARDS = [
     {
         href: "/all-listings",
         icon: (
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="8" y1="6" x2="21" y2="6" />
-                <line x1="8" y1="12" x2="21" y2="12" />
-                <line x1="8" y1="18" x2="21" y2="18" />
-                <line x1="3" y1="6" x2="3.01" y2="6" />
-                <line x1="3" y1="12" x2="3.01" y2="12" />
-                <line x1="3" y1="18" x2="3.01" y2="18" />
-            </svg>
+            <Icon name="icon-5d77ebc6" size={24} />
         ),
         label: "All Listings",
         desc: "View and manage all listings",
@@ -69,9 +53,7 @@ const NAV_CARDS = [
     {
         href: "/add-sales-log",
         icon: (
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-            </svg>
+            <Icon name="log-sales" size={24} />
         ),
         label: "Log Sales",
         desc: "Record sales & returns",
@@ -80,11 +62,7 @@ const NAV_CARDS = [
     {
         href: "/sales-data",
         icon: (
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="20" x2="18" y2="10" />
-                <line x1="12" y1="20" x2="12" y2="4" />
-                <line x1="6" y1="20" x2="6" y2="14" />
-            </svg>
+            <Icon name="sales-data" size={24} />
         ),
         label: "Sales Data",
         desc: "Browse monthly sales records",
@@ -341,11 +319,7 @@ export default function DashboardPage() {
                         <option value="all">All Time</option>
                     </select>
                     <button className={`${styles.refreshBtn} ${refreshing ? styles.spinning : ''}`} onClick={() => loadAllData(true)} disabled={refreshing} title="Refresh all data">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="23 4 23 10 17 10" />
-                            <polyline points="1 20 1 14 7 14" />
-                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-                        </svg>
+                        <Icon name="refresh" size={16} />
                         Refresh
                     </button>
                 </div>
@@ -355,9 +329,7 @@ export default function DashboardPage() {
             <div className={styles.kpiStrip}>
                 <div className={`${styles.kpiCard} ${styles.kpiBlue}`}>
                     <div className={styles.kpiIcon}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                        </svg>
+                        <Icon name="icon-d0275ba0" />
                     </div>
                     <div className={styles.kpiBody}>
                         <span className={styles.kpiLabel}>Total Inventory</span>
@@ -367,10 +339,7 @@ export default function DashboardPage() {
                 </div>
                 <div className={`${styles.kpiCard} ${styles.kpiPurple}`}>
                     <div className={styles.kpiIcon}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" />
-                            <line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
-                        </svg>
+                        <Icon name="icon-5d77ebc6" />
                     </div>
                     <div className={styles.kpiBody}>
                         <span className={styles.kpiLabel}>Total Listings</span>
@@ -380,9 +349,7 @@ export default function DashboardPage() {
                 </div>
                 <div className={`${styles.kpiCard} ${styles.kpiGreen}`}>
                     <div className={styles.kpiIcon}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
-                        </svg>
+                        <Icon name="icon-a312377a" />
                     </div>
                     <div className={styles.kpiBody}>
                         <span className={styles.kpiLabel}>Total Sales</span>
@@ -392,9 +359,7 @@ export default function DashboardPage() {
                 </div>
                 <div className={`${styles.kpiCard} ${styles.kpiCyan}`}>
                     <div className={styles.kpiIcon}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
-                        </svg>
+                        <Icon name="sales-data" />
                     </div>
                     <div className={styles.kpiBody}>
                         <span className={styles.kpiLabel}>Net Sales</span>
@@ -404,9 +369,7 @@ export default function DashboardPage() {
                 </div>
                 <div className={`${styles.kpiCard} ${styles.kpiAmber}`}>
                     <div className={styles.kpiIcon}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 .49-3" />
-                        </svg>
+                        <Icon name="icon-d347fd9b" />
                     </div>
                     <div className={styles.kpiBody}>
                         <span className={styles.kpiLabel}>Return Rate</span>
@@ -567,9 +530,7 @@ export default function DashboardPage() {
                                 <span className={styles.navLabel}>{card.label}</span>
                                 <span className={styles.navDesc}>{card.desc}</span>
                             </div>
-                            <svg className={styles.navArrow} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
-                            </svg>
+                            <Icon name="icon-8a780677" size={16} className={styles.navArrow} />
                         </Link>
                     ))}
                 </div>

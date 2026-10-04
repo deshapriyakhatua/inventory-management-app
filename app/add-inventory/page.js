@@ -1,12 +1,16 @@
 "use client";
+import { toast } from "sonner";
+
+import Icon from "@/components/ui/Icon/Icon";
+
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
-import Toast from "../../components/Toast/Toast";
+
 import { fetchVerticalsData } from "../../utils/apiUtils";
 import { useAuth } from "../../components/AuthProvider";
-import RefreshIcon from "@/components/RefreshIcon/RefreshIcon";
+
 
 export default function AddInventory() {
     const [inventoryId, setInventoryId] = useState("");
@@ -15,7 +19,7 @@ export default function AddInventory() {
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [message, setMessage] = useState({ text: "", type: "" });
+
     const [isGenerating, setIsGenerating] = useState(false);
     const [recentItems, setRecentItems] = useState([]);
     const [loadingInventoryItems, setLoadingInventoryItems] = useState(true);
@@ -71,10 +75,10 @@ export default function AddInventory() {
     const copyInventoryId = async (id) => {
         try {
             await navigator.clipboard.writeText(id);
-            setMessage({ text: "Inventory ID copied to clipboard!", type: "success" });
+            toast.success("Inventory ID copied to clipboard!", { id: "app-feedback", duration: 3000 });
         } catch (err) {
             console.error("Failed to copy:", err);
-            setMessage({ text: "Failed to copy to clipboard.", type: "error" });
+            toast.error("Failed to copy to clipboard.", { id: "app-feedback", duration: 3000 });
         }
     };
 
@@ -106,14 +110,14 @@ export default function AddInventory() {
 
             const result = await response.json();
             if (response.ok) {
-                setMessage({ text: "Inventory archived successfully.", type: "success" });
+                toast.success("Inventory archived successfully.", { id: "app-feedback", duration: 3000 });
                 loadData(true);
             } else {
-                setMessage({ text: result.error || "Failed to archive inventory.", type: "error" });
+                toast.error(result.error || "Failed to archive inventory.", { id: "app-feedback", duration: 3000 });
             }
         } catch (error) {
             console.error("Network Error:", error);
-            setMessage({ text: "Network error. Please try again.", type: "error" });
+            toast.error("Network error. Please try again.", { id: "app-feedback", duration: 3000 });
         } finally {
             setDeleteButtonLoading(false);
             setDeletingItemId(null);
@@ -123,9 +127,9 @@ export default function AddInventory() {
     const generateId = async () => {
         try {
             setIsGenerating(true);
-            setMessage({ text: "", type: "" });
+            toast.dismiss("app-feedback");
             if (!verticalShort) {
-                setMessage({ text: "Please select a Vertical to generate an ID.", type: "error" });
+                toast.error("Please select a Vertical to generate an ID.", { id: "app-feedback", duration: 3000 });
                 return;
             }
             const response = await fetch(`/api/employee/inventory/generate-id?verticalShort=${verticalShort}`);
@@ -133,13 +137,13 @@ export default function AddInventory() {
             const result = await response.json();
             if (response.ok) {
                 setInventoryId(result.nextId);
-                setMessage({ text: "Inventory ID generated successfully.", type: "success" });
+                toast.success("Inventory ID generated successfully.", { id: "app-feedback", duration: 3000 });
             } else {
-                setMessage({ text: "Failed to generate ID: " + (result.error || "Unknown error"), type: "error" });
+                toast.error("Failed to generate ID: " + (result.error || "Unknown error"), { id: "app-feedback", duration: 3000 });
             }
         } catch (error) {
             console.error("Error generating ID:", error);
-            setMessage({ text: "Network error. Please try again.", type: "error" });
+            toast.error("Network error. Please try again.", { id: "app-feedback", duration: 3000 });
         } finally {
             setIsGenerating(false);
         }
@@ -162,10 +166,10 @@ export default function AddInventory() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setMessage({ text: "", type: "" });
+        toast.dismiss("app-feedback");
 
         if (!inventoryId) {
-            setMessage({ text: "Please generate or enter an Inventory ID.", type: "error" });
+            toast.error("Please generate or enter an Inventory ID.", { id: "app-feedback", duration: 3000 });
             return;
         }
 
@@ -185,7 +189,7 @@ export default function AddInventory() {
             const result = await response.json();
 
             if (response.ok) {
-                setMessage({ text: "Inventory item added successfully!", type: "success" });
+                toast.success("Inventory item added successfully!", { id: "app-feedback", duration: 3000 });
                 setInventoryId("");
                 setVertical("");
                 setVerticalShort("");
@@ -194,11 +198,11 @@ export default function AddInventory() {
                 document.getElementById('imageUpload').value = "";
                 loadData(true);
             } else {
-                setMessage({ text: "Failed to add inventory: " + (result.error || "Unknown error"), type: "error" });
+                toast.error("Failed to add inventory: " + (result.error || "Unknown error"), { id: "app-feedback", duration: 3000 });
             }
         } catch (error) {
             console.error("Error submitting form:", error);
-            setMessage({ text: "Network error. Please try again.", type: "error" });
+            toast.error("Network error. Please try again.", { id: "app-feedback", duration: 3000 });
         } finally {
             setIsLoading(false);
         }
@@ -243,7 +247,7 @@ export default function AddInventory() {
                             disabled={loadingVerticals}
                             title="Refresh"
                         >
-                            <RefreshIcon />
+                            <Icon name="refresh" size={16} />
                         </button>
                         </div>
                     </div>
@@ -308,11 +312,7 @@ export default function AddInventory() {
                     </button>
                 </form>
 
-                <Toast
-                    message={message}
-                    onClose={() => setMessage({ text: "", type: "" })}
-                />
-            </div>
+                        </div>
 
             {(recentItems.length > 0 || loadingInventoryItems || refreshingRecentItems) && (
                 <div className={styles.recentSection}>
@@ -325,7 +325,7 @@ export default function AddInventory() {
                             disabled={loadingInventoryItems || refreshingRecentItems}
                             title="Refresh Recent Inventory"
                         >
-                            <RefreshIcon />
+                            <Icon name="refresh" size={16} />
                         </button>
                     </div>
                     {loadingInventoryItems
@@ -358,14 +358,8 @@ export default function AddInventory() {
                                                 disabled={deleteButtonLoading}
                                             >
                                                 {deleteButtonLoading && deletingItemId === (item._id || item.inventoryId)
-                                                    ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                        <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-                                                        <path d="M21 3v5h-5"></path>
-                                                    </svg>
-                                                    : <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                        <polyline points="3 6 5 6 21 6"></polyline>
-                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                                    </svg>
+                                                    ? <Icon name="refresh-loop" size={16} className={styles.deleteLoadingIcon} />
+                                                    : <Icon name="trash" size={16} className={styles.deleteIcon} />
                                                 }
                                             </button>
                                         )}
@@ -391,10 +385,7 @@ export default function AddInventory() {
                                                 onClick={() => copyInventoryId(item.inventoryId)}
                                                 title="Copy Inventory ID"
                                             >
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                                </svg>
+                                                <Icon name="copy-inventory-id" size={14} />
                                             </button>
                                         </div>
                                         <p className={styles.recentDate}>
@@ -419,11 +410,7 @@ export default function AddInventory() {
                 <div className={styles.modalOverlay}>
                     <div className={styles.modalContent}>
                         <div className={styles.modalHeader}>
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                                <line x1="12" y1="9" x2="12" y2="13"></line>
-                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                            </svg>
+                            <Icon name="icon-cfd589e1" size={24} />
                             <h2>Confirm Archiving</h2>
                         </div>
                         <div className={styles.modalBody}>

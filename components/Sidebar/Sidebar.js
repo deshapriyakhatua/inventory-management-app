@@ -1,298 +1,270 @@
 "use client";
 
-import React, { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import styles from "./Sidebar.module.css";
+import { motion } from "motion/react";
 import { toast } from "sonner";
-import { useAuth } from "../AuthProvider";
+import { spring } from "@/lib/motion";
+import { Button, Icon, IconButton, Sheet } from "@/components/ui";
+import cx from "@/components/ui/cx";
+import { useAuth } from "@/components/AuthProvider";
+import styles from "./Sidebar.module.css";
 
-const Sidebar = () => {
-    const [isExpanded, setIsExpanded] = useState(true);
+function formatRole(role) {
+    if (!role) return "Employee";
+    return role.charAt(0).toUpperCase() + role.slice(1).replace(/([A-Z])/g, " $1");
+}
+
+function MobileTopBar({ onOpen }) {
+    return (
+        <div className={styles.mobileTopBar}>
+            <IconButton
+                name="toggle-sidebar"
+                size="md"
+                variant="ghost"
+                aria-label="Open navigation menu"
+                onClick={onOpen}
+                className={styles.mobileToggle}
+            />
+            <Link href="/" className={styles.mobileBrand}>
+                CRAZYKUDI
+            </Link>
+        </div>
+    );
+}
+
+export default function Sidebar() {
+    const [isExpanded, setIsExpanded] = useState(() => {
+        if (typeof window === "undefined") return true;
+
+        try {
+            const savedPreference = window.localStorage.getItem("sidebar-expanded");
+            if (savedPreference !== null) {
+                return JSON.parse(savedPreference);
+            }
+        } catch (error) {
+            console.warn("Unable to read sidebar preference", error);
+        }
+
+        return window.innerWidth >= 768;
+    });
+    const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const pathname = usePathname();
     const router = useRouter();
     const { user } = useAuth();
 
-    const toggleSidebar = () => {
-        setIsExpanded(!isExpanded);
-    };
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+
+        const syncMobileState = () => {
+            const mobileView = window.innerWidth < 768;
+            setIsMobile(mobileView);
+            if (mobileView) {
+                setIsExpanded(false);
+            }
+        };
+
+        window.addEventListener("resize", syncMobileState);
+        return () => window.removeEventListener("resize", syncMobileState);
+    }, []);
+
+    useEffect(() => {
+        if (typeof window === "undefined" || isMobile) return;
+
+        try {
+            window.localStorage.setItem("sidebar-expanded", JSON.stringify(isExpanded));
+        } catch (error) {
+            console.warn("Unable to save sidebar preference", error);
+        }
+    }, [isExpanded, isMobile]);
 
     const handleLogout = async () => {
         try {
             const res = await fetch("/api/public/auth/logout", {
-                method: "POST"
+                method: "POST",
             });
+
             if (res.ok) {
                 sessionStorage.removeItem("app_pin");
                 toast.success("Logged out successfully");
                 router.push("/login");
-            } else {
-                toast.error("Logout failed");
+                return;
             }
+
+            toast.error("Logout failed");
         } catch (error) {
             console.error("Logout error:", error);
             toast.error("An error occurred during logout");
         }
     };
 
-    const navItems = [
-        { type: "category", title: "Inventory" },
-        {
-            title: "Add Inventory",
-            path: "/add-inventory",
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-            )
-        },
-        {
-            title: "All Inventory",
-            path: "/all-inventory",
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
-                </svg>
-            )
-        },
-        { type: "category", title: "Listings" },
-        {
-            title: "Add Listing",
-            path: "/add-listing",
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="12" y1="18" x2="12" y2="12"></line>
-                    <line x1="9" y1="15" x2="15" y2="15"></line>
-                </svg>
-            )
-        },
-        {
-            title: "All Listings",
-            path: "/all-listings",
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="9 11 12 14 22 4"></polyline>
-                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-                </svg>
-            )
-        },
-        { type: "category", title: "Purchases" },
-        {
-            title: "Add Purchase",
-            path: "/add-purchase",
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="9" cy="21" r="1"></circle>
-                    <circle cx="20" cy="21" r="1"></circle>
-                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                    <line x1="12" y1="10" x2="12" y2="16"></line>
-                    <line x1="9" y1="13" x2="15" y2="13"></line>
-                </svg>
-            )
-        },
-        {
-            title: "Purchase History",
-            path: "/purchase-history",
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <path d="M16 13H8"></path>
-                    <path d="M16 17H8"></path>
-                    <path d="M10 9H9H8"></path>
-                </svg>
-            )
-        },
-        { type: "category", title: "Sales Log" },
-        {
-            title: "Add Sales/Returns",
-            path: "/add-sales-log",
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="9" cy="21" r="1"></circle>
-                    <circle cx="20" cy="21" r="1"></circle>
-                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                </svg>
-            )
-        },
-        {
-            title: "Sales Records",
-            path: "/sales-records",
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="20" x2="18" y2="10"></line>
-                    <line x1="12" y1="20" x2="12" y2="4"></line>
-                    <line x1="6" y1="20" x2="6" y2="14"></line>
-                </svg>
-            )
-        },
-        {
-            title: "P&L Summary",
-            path: "/pl-summary",
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="12" y1="1" x2="12" y2="23"></line>
-                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                </svg>
-            )
-        },
-        { type: "category", title: "B2B Sales" },
-        {
-            title: "Create B2B Invoice",
-            path: "/create-b2b-invoice",
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                    <polyline points="10 9 9 9 8 9"></polyline>
-                </svg>
-            )
-        },
-        {
-            title: "All Invoices",
-            path: "/all-invoices",
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="3" y1="9" x2="21" y2="9"></line>
-                    <line x1="9" y1="21" x2="9" y2="9"></line>
-                </svg>
-            )
-        },
-        {
-            title: "Custom Payment QR",
-            path: "/custom-qr",
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="7" height="7"></rect>
-                    <rect x="14" y="3" width="7" height="7"></rect>
-                    <rect x="14" y="14" width="7" height="7"></rect>
-                    <rect x="3" y="14" width="7" height="7"></rect>
-                </svg>
-            )
-        },
-        { type: "category", title: "Sellers" },
-        {
-            title: "Add Seller",
-            path: "/add-seller",
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-            )
-        },
-        {
-            title: "All Sellers",
-            path: "/all-sellers",
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                </svg>
-            )
-        },
-        { type: "category", title: "Map Inventory" },
-        {
-            title: "Map Sources",
-            path: "/map-sources",
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="18" cy="18" r="3"></circle>
-                    <circle cx="6" cy="6" r="3"></circle>
-                    <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
-                    <line x1="6" y1="9" x2="6" y2="21"></line>
-                </svg>
-            )
-        }
-    ];
+    const navItems = useMemo(() => {
+        const items = [
+            { type: "category", title: "Inventory" },
+            { title: "Add Inventory", path: "/add-inventory", icon: "add-another-product" },
+            { title: "All Inventory", path: "/all-inventory", icon: "add-inventory" },
+            { type: "category", title: "Listings" },
+            { title: "Add Listing", path: "/add-listing", icon: "add-listing" },
+            { title: "All Listings", path: "/all-listings", icon: "all-listings" },
+            { type: "category", title: "Purchases" },
+            { title: "Add Purchase", path: "/add-purchase", icon: "add-purchase" },
+            { title: "Purchase History", path: "/purchase-history", icon: "purchase-history" },
+            { type: "category", title: "Sales Log" },
+            { title: "Add Sales/Returns", path: "/add-sales-log", icon: "add-sales-returns" },
+            { title: "Sales Records", path: "/sales-records", icon: "sales-data" },
+            { title: "P&L Summary", path: "/pl-summary", icon: "icon-7e710d4a" },
+            { type: "category", title: "B2B Sales" },
+            { title: "Create B2B Invoice", path: "/create-b2b-invoice", icon: "create-b2b-invoice" },
+            { title: "All Invoices", path: "/all-invoices", icon: "all-invoices" },
+            { title: "Custom Payment QR", path: "/custom-qr", icon: "payment-qr-balance" },
+            { type: "category", title: "Sellers" },
+            { title: "Add Seller", path: "/add-seller", icon: "icon-d5851a0c" },
+            { title: "All Sellers", path: "/all-sellers", icon: "icon-2df76557" },
+            { type: "category", title: "Map Inventory" },
+            { title: "Map Sources", path: "/map-sources", icon: "map-sources" },
+        ];
 
-    // Filter nav items based on role
-    const filteredNavItems = navItems.slice();
-    
-    if (user?.role === "admin" || user?.role === "superadmin") {
-        filteredNavItems.push({ type: "category", title: "Admin" });
-        filteredNavItems.push({
-            title: "Add Vertical",
-            path: "/admin/add-vertical",
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
-            )
-        });
+        if (user?.role === "admin" || user?.role === "superadmin") {
+            items.push({ type: "category", title: "Admin" });
+            items.push({ title: "Add Vertical", path: "/admin/add-vertical", icon: "edit-inventory" });
+        }
+
+        return items;
+    }, [user?.role]);
+
+    const renderNavItems = (compact) => (
+        <nav className={cx(styles.navMenu, compact && styles.compactNav)}>
+            {navItems.map((item, index) => {
+                if (item.type === "category") {
+                    return (
+                        <div key={`category-${index}`} className={styles.categoryHeader}>
+                            {compact ? (
+                                <span className={styles.categoryDivider} aria-hidden="true" />
+                            ) : (
+                                <span className={styles.categoryTitle}>{item.title}</span>
+                            )}
+                        </div>
+                    );
+                }
+
+                const isActive = pathname === item.path;
+
+                return (
+                    <Link
+                        key={item.path}
+                        href={item.path}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className={cx(styles.navItem, isActive && styles.active, compact && styles.compactItem)}
+                        aria-current={isActive ? "page" : undefined}
+                        title={compact ? item.title : undefined}
+                    >
+                        {isActive && <motion.span layoutId="sidebar-active-pill" className={styles.activePill} aria-hidden="true" />}
+                        <span className={styles.iconWrap}>
+                            <Icon name={item.icon} size={20} />
+                        </span>
+                        <span className={styles.navText}>{item.title}</span>
+                    </Link>
+                );
+            })}
+        </nav>
+    );
+
+    const userInitials = useMemo(() => {
+        const source = user?.name || "User";
+        return source
+            .trim()
+            .split(/\s+/)
+            .slice(0, 2)
+            .map((part) => part[0]?.toUpperCase() ?? "")
+            .join("") || "U";
+    }, [user?.name]);
+
+    if (isMobile) {
+        return (
+            <>
+                <MobileTopBar onOpen={() => setIsMobileMenuOpen(true)} />
+                <Sheet
+                    open={isMobileMenuOpen}
+                    onClose={() => setIsMobileMenuOpen(false)}
+                    side="right"
+                    title="Navigation"
+                    description={user ? `${formatRole(user.role)} workspace` : "Workspace"}
+                    ariaLabel="Navigation menu"
+                    closeLabel="Close navigation"
+                    closeOnScrim
+                >
+                    <div className={styles.mobileSheetContent}>
+                        {renderNavItems(true)}
+                    </div>
+                    <div className={styles.sheetFooter}>
+                        <div className={styles.userPanel}>
+                            <div className={styles.userAvatar}>{userInitials}</div>
+                            <div className={styles.userMeta}>
+                                <span className={styles.userName}>{user?.name || "User"}</span>
+                                <span className={styles.userRole}>{formatRole(user?.role)}</span>
+                            </div>
+                        </div>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={handleLogout}
+                            className={styles.logoutButton}
+                            leftIcon={<Icon name="logout" size={18} />}
+                        >
+                            Logout
+                        </Button>
+                    </div>
+                </Sheet>
+            </>
+        );
     }
 
     return (
-        <aside className={`${styles.sidebar} ${isExpanded ? styles.expanded : styles.collapsed}`}>
+        <motion.aside
+            className={cx(styles.sidebar, isExpanded ? styles.isExpanded : styles.isCollapsed)}
+            initial={false}
+            animate={{ width: isExpanded ? 260 : 72 }}
+            transition={spring.default}
+        >
             <div className={styles.sidebarHeader}>
-                <button className={styles.toggleBtn} onClick={toggleSidebar} aria-label="Toggle Sidebar">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="3" y1="12" x2="21" y2="12"></line>
-                        <line x1="3" y1="6" x2="21" y2="6"></line>
-                        <line x1="3" y1="18" x2="21" y2="18"></line>
-                    </svg>
-                </button>
-                {isExpanded && <Link href="/" className={styles.logoText}>CRAZYKUDI</Link>}
+                <IconButton
+                    name="toggle-sidebar"
+                    size="md"
+                    variant="ghost"
+                    aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+                    onClick={() => setIsExpanded((current) => !current)}
+                    className={styles.toggleButton}
+                />
+                {isExpanded && (
+                    <Link href="/" className={styles.logoText}>
+                        CRAZYKUDI
+                    </Link>
+                )}
             </div>
 
-            <nav className={styles.navMenu}>
-                {filteredNavItems.map((item, index) => {
-                    if (item.type === "category") {
-                        return (
-                            <div key={`category-${index}`} className={styles.categoryHeader}>
-                                {isExpanded ? (
-                                    <span className={styles.categoryTitle}>{item.title}</span>
-                                ) : (
-                                    <div className={styles.categoryDivider} />
-                                )}
-                            </div>
-                        );
-                    }
-
-                    const isActive = pathname === item.path;
-                    return (
-                        <Link 
-                            key={item.path} 
-                            href={item.path}
-                            className={`${styles.navItem} ${isActive ? styles.active : ''}`}
-                            title={!isExpanded ? item.title : ""}
-                        >
-                            <span className={styles.icon}>{item.icon}</span>
-                            <span className={styles.navText}>{item.title}</span>
-                        </Link>
-                    )
-                })}
-            </nav>
+            {renderNavItems(!isExpanded)}
 
             <div className={styles.sidebarFooter}>
-                <button 
-                    className={styles.logoutBtn} 
+                <div className={cx(styles.userPanel, !isExpanded && styles.userPanelCompact)}>
+                    <div className={styles.userAvatar}>{userInitials}</div>
+                    <div className={styles.userMeta}>
+                        <span className={styles.userName}>{user?.name || "User"}</span>
+                        <span className={styles.userRole}>{formatRole(user?.role)}</span>
+                    </div>
+                </div>
+                <Button
+                    type="button"
+                    variant="ghost"
                     onClick={handleLogout}
-                    title={!isExpanded ? "Logout" : ""}
+                    className={styles.logoutButton}
+                    leftIcon={<Icon name="logout" size={18} />}
                 >
-                    <span className={styles.icon}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                            <polyline points="16 17 21 12 16 7"></polyline>
-                            <line x1="21" y1="12" x2="9" y2="12"></line>
-                        </svg>
-                    </span>
-                    <span className={styles.navText}>Logout</span>
-                </button>
+                    {isExpanded ? "Logout" : ""}
+                </Button>
             </div>
-        </aside>
+        </motion.aside>
     );
-};
+}
 
-export default Sidebar;

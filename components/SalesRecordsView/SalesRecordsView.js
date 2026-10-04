@@ -1,8 +1,12 @@
 "use client";
+import { toast } from "sonner";
+
+import Icon from "@/components/ui/Icon/Icon";
+
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import styles from "./SalesRecordsView.module.css";
-import Toast from "../Toast/Toast";
+
 import ConfirmModal from "../ConfirmModal/ConfirmModal";
 
 const ALL_COLUMNS = [
@@ -39,7 +43,7 @@ const SALES_CHANNELS = ["Amazon", "Flipkart", "Shopsy", "Myntra", "Meesho", "Aji
 export default function SalesRecordsView({ title = "Sales Records", archivedTitle = "Archived Sales Records" }) {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [message, setMessage] = useState({ text: "", type: "" });
+
     const [confirmModal, setConfirmModal] = useState({
         isOpen: false,
         title: "",
@@ -131,12 +135,12 @@ export default function SalesRecordsView({ title = "Sales Records", archivedTitl
                 setAllRecords(response.data || []);
                 setTotalItems(response.totalItems || 0);
                 setTotalPages(response.totalPages || 1);
-                if (isRefresh) setMessage({ text: "Records refreshed.", type: "success" });
+                if (isRefresh) toast.success("Records refreshed.", { id: "app-feedback", duration: 3000 });
             } else {
-                setMessage({ text: response.error || "Failed to load records.", type: "error" });
+                toast.error(response.error || "Failed to load records.", { id: "app-feedback", duration: 3000 });
             }
         } catch {
-            setMessage({ text: "Network error fetching records.", type: "error" });
+            toast.error("Network error fetching records.", { id: "app-feedback", duration: 3000 });
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -181,15 +185,15 @@ export default function SalesRecordsView({ title = "Sales Records", archivedTitl
             const response = await res.json();
 
             if (res.ok && response.success) {
-                setMessage({ text: `Successfully processed ${response.modifiedCount} records.`, type: "success" });
+                toast.success(`Successfully processed ${response.modifiedCount} records.`, { id: "app-feedback", duration: 3000 });
                 setSelectedRecordIds(new Set());
                 fetchSalesRecords();
             } else {
-                setMessage({ text: response.error || `Failed to ${action} records.`, type: "error" });
+                toast.error(response.error || `Failed to ${action} records.`, { id: "app-feedback", duration: 3000 });
             }
         } catch (error) {
             console.error(error);
-            setMessage({ text: "An error occurred while processing bulk action.", type: "error" });
+            toast.error("An error occurred while processing bulk action.", { id: "app-feedback", duration: 3000 });
         } finally {
             setLoading(false);
             setConfirmModal(prev => ({ ...prev, isOpen: false, isLoading: false }));
@@ -290,23 +294,23 @@ export default function SalesRecordsView({ title = "Sales Records", archivedTitl
                         <div className={styles.dropdownContainer} ref={actionMenuRef}>
                             <button className={`${styles.dropdownBtn} ${styles.actionsBtn}`} onClick={() => setIsActionMenuOpen(!isActionMenuOpen)}>
                                 Actions ({selectedRecordIds.size})
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                <Icon name="click-to-select-from-inventory" size={14} />
                             </button>
                             {isActionMenuOpen && (
                                 <div className={styles.dropdownMenu}>
                                     {!viewArchived ? (
                                         <div className={styles.dropdownActionItem} onClick={() => handleBulkAction("archive")}>
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+                                            <Icon name="archive-this-record" size={14} />
                                             Archive Selected
                                         </div>
                                     ) : (
                                         <>
                                             <div className={styles.dropdownActionItem} onClick={() => handleBulkAction("restore")}>
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 9 9 3 15 9"></polyline><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+                                                <Icon name="icon-eec919d0" size={14} />
                                                 Restore Selected
                                             </div>
                                             <div className={`${styles.dropdownActionItem} ${styles.dangerItem}`} onClick={() => handleBulkAction("delete")}>
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                                <Icon name="trash" size={14} />
                                                 Permanently Delete
                                             </div>
                                         </>
@@ -317,7 +321,7 @@ export default function SalesRecordsView({ title = "Sales Records", archivedTitl
                     )}
 
                     <div className={styles.searchWrapper}>
-                        <svg className={styles.searchIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <Icon name="icon-9c4a10ac" size={16} className={styles.searchIcon} />
                         <input
                             type="text"
                             className={styles.searchInput}
@@ -351,7 +355,7 @@ export default function SalesRecordsView({ title = "Sales Records", archivedTitl
                     <div className={styles.dropdownContainer} ref={colMenuRef}>
                         <button className={styles.dropdownBtn} onClick={() => setIsColMenuOpen(!isColMenuOpen)}>
                             Columns
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            <Icon name="click-to-select-from-inventory" size={14} />
                         </button>
                         {isColMenuOpen && (
                             <div className={styles.dropdownMenu}>
@@ -382,7 +386,7 @@ export default function SalesRecordsView({ title = "Sales Records", archivedTitl
                     </select>
 
                     <button className={`${styles.refreshBtn} ${refreshing ? styles.spinning : ""}`} onClick={handleRefresh} disabled={refreshing} title="Fetch Latest Data">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                        <Icon name="refresh" size={18} />
                     </button>
                 </div>
             </div>
@@ -391,7 +395,7 @@ export default function SalesRecordsView({ title = "Sales Records", archivedTitl
                 {!loading && allRecords.length > 0 && (
                     <div className={styles.totalsSection}>
                         <div className={styles.totalsHeader}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M2 15h10"></path><path d="M5 12l3 3-3 3"></path></svg>
+                            <Icon name="icon-3af5fc37" size={16} />
                             Visible Rows Totals ({allRecords.length})
                         </div>
                         <div className={styles.totalsGrid}>
@@ -477,9 +481,7 @@ export default function SalesRecordsView({ title = "Sales Records", archivedTitl
                                                 <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => { if (sortBy === c.key) setSortOrder(sortOrder === "asc" ? "desc" : "asc"); else { setSortBy(c.key); setSortOrder("desc"); } }}>
                                                     {c.label}
                                                     {sortBy === c.key && (
-                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                            {sortOrder === "desc" ? <polyline points="6 9 12 15 18 9"></polyline> : <polyline points="18 15 12 9 6 15"></polyline>}
-                                                        </svg>
+                                                        <Icon name="icon-b18c9210" size={12} sortOrder={sortOrder} />
                                                     )}
                                                 </div>
                                             </th>
@@ -551,8 +553,7 @@ export default function SalesRecordsView({ title = "Sales Records", archivedTitl
                 )}
             </div>
 
-            <Toast message={message} onClose={() => setMessage({ text: "", type: "" })} />
-            <ConfirmModal
+                    <ConfirmModal
                 isOpen={confirmModal.isOpen}
                 title={confirmModal.title}
                 message={confirmModal.message}

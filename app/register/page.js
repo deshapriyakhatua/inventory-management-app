@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
 import styles from "./page.module.css";
 
 export default function RegisterPage() {
@@ -60,7 +60,6 @@ export default function RegisterPage() {
 
   return (
     <div className={styles.container}>
-      <Toaster position="top-center" richColors />
       <div className={styles.card}>
         <div>
           <h1 className={styles.title}>Create Account</h1>

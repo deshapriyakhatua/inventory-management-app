@@ -1,8 +1,12 @@
 "use client";
+import { toast } from "sonner";
+
+import Icon from "@/components/ui/Icon/Icon";
+
 
 import React, { useState, useRef, useCallback } from "react";
 import styles from "./page.module.css";
-import Toast from "../../components/Toast/Toast";
+
 import { parseCSV } from "../../utils/csvParser";
 
 export default function UploadSalesLog() {
@@ -11,7 +15,7 @@ export default function UploadSalesLog() {
     const [parsedData, setParsedData] = useState([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isParsing, setIsParsing] = useState(false);
-    const [message, setMessage] = useState({ text: "", type: "" });
+
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef(null);
 
@@ -58,7 +62,7 @@ export default function UploadSalesLog() {
 
     const processFile = async (selectedFile) => {
         if (!selectedFile.name.endsWith('.csv')) {
-            setMessage({ text: "Please select a valid CSV file.", type: "error" });
+            toast.error("Please select a valid CSV file.", { id: "app-feedback", duration: 3000 });
             return;
         }
 
@@ -73,10 +77,10 @@ export default function UploadSalesLog() {
                 data = await parseCSV(selectedFile);
             }
             setParsedData(data);
-            setMessage({ text: `Parsed ${data.length} rows successfully.`, type: "success" });
+            toast.success(`Parsed ${data.length} rows successfully.`, { id: "app-feedback", duration: 3000 });
         } catch (error) {
             console.error("Parsing error:", error);
-            setMessage({ text: "Failed to parse CSV file.", type: "error" });
+            toast.error("Failed to parse CSV file.", { id: "app-feedback", duration: 3000 });
             setFile(null);
             setParsedData([]);
         } finally {
@@ -131,7 +135,7 @@ export default function UploadSalesLog() {
 
     const handleSubmit = async () => {
         if (!file || parsedData.length === 0) {
-            setMessage({ text: "No data to submit.", type: "error" });
+            toast.error("No data to submit.", { id: "app-feedback", duration: 3000 });
             return;
         }
 
@@ -148,7 +152,7 @@ export default function UploadSalesLog() {
         })).filter(item => item.orderId && item.skuId && item.quantity > 0);
 
         if (salesItems.length === 0) {
-            setMessage({ text: "No valid sales items found in the file.", type: "error" });
+            toast.error("No valid sales items found in the file.", { id: "app-feedback", duration: 3000 });
             setIsSubmitting(false);
             return;
         }
@@ -163,16 +167,13 @@ export default function UploadSalesLog() {
 
             if (res.ok && response.success) {
                 const { inserted = 0, updated = 0, total = salesItems.length } = response;
-                setMessage({
-                    text: `Upload complete: ${inserted} new, ${updated} updated (${total} total).`,
-                    type: "success",
-                });
+                toast.success(`Upload complete: ${inserted} new, ${updated} updated (${total} total).`, { id: "app-feedback", duration: 3000 });
                 removeFile();
             } else {
-                setMessage({ text: response.error || "Failed to upload data.", type: "error" });
+                toast.error(response.error || "Failed to upload data.", { id: "app-feedback", duration: 3000 });
             }
         } catch (error) {
-            setMessage({ text: "Network error occurred.", type: "error" });
+            toast.error("Network error occurred.", { id: "app-feedback", duration: 3000 });
         } finally {
             setIsSubmitting(false);
         }
@@ -211,11 +212,7 @@ export default function UploadSalesLog() {
                     />
 
                     <div className={styles.uploadIcon}>
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                            <polyline points="17 8 12 3 7 8" />
-                            <line x1="12" y1="3" x2="12" y2="15" />
-                        </svg>
+                        <Icon name="icon-f583f931" size={48} />
                     </div>
 
                     <div className={styles.uploadText}>
@@ -228,18 +225,12 @@ export default function UploadSalesLog() {
 
                 {file && (
                     <div className={styles.fileInfo}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                            <polyline points="14 2 14 8 20 8" />
-                        </svg>
+                        <Icon name="pdf-preview" size={18} />
                         <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {file.name} ({(file.size / 1024).toFixed(1)} KB)
                         </span>
                         <button className={styles.removeFile} onClick={(e) => { e.stopPropagation(); removeFile(); }} title="Remove file">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
+                            <Icon name="remove-this-product" size={18} />
                         </button>
                     </div>
                 )}
@@ -252,16 +243,7 @@ export default function UploadSalesLog() {
                     >
                         {isSubmitting ? (
                             <>
-                                <svg className={styles.spinning} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="12" y1="2" x2="12" y2="6"></line>
-                                    <line x1="12" y1="18" x2="12" y2="22"></line>
-                                    <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
-                                    <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
-                                    <line x1="2" y1="12" x2="6" y2="12"></line>
-                                    <line x1="18" y1="12" x2="22" y2="12"></line>
-                                    <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
-                                    <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
-                                </svg>
+                                <Icon name="icon-9336224a" size={18} className={styles.spinning} />
                                 Uploading...
                             </>
                         ) : `Submit ${parsedData.length > 0 ? parsedData.length : ""} Records`}
@@ -326,12 +308,7 @@ export default function UploadSalesLog() {
                                                     onClick={() => removeRow(idx)}
                                                     title="Remove this record"
                                                 >
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                        <polyline points="3 6 5 6 21 6"></polyline>
-                                                        <path d="M19 6l-1 14H6L5 6"></path>
-                                                        <path d="M10 11v6M14 11v6"></path>
-                                                        <path d="M9 6V4h6v2"></path>
-                                                    </svg>
+                                                    <Icon name="remove" size={14} />
                                                 </button>
                                             </td>
                                         </tr>
@@ -343,7 +320,6 @@ export default function UploadSalesLog() {
                 </div>
             )}
 
-            <Toast message={message} onClose={() => setMessage({ text: "", type: "" })} />
-        </div>
+                </div>
     );
 }

@@ -1,8 +1,12 @@
 "use client";
+import { toast } from "sonner";
+
+import Icon from "@/components/ui/Icon/Icon";
+
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
-import Toast from "../../components/Toast/Toast";
+
 import { fetchVerticalsData } from "../../utils/apiUtils";
 import { useAuth } from "../../components/AuthProvider";
 import MarketplaceLogo from "../../components/MarketplaceLogo/MarketplaceLogo";
@@ -14,7 +18,7 @@ export default function CreateNewListing() {
     const [skuId, setSkuId] = useState("");
     const [styleId, setStyleId] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [message, setMessage] = useState({ text: "", type: "" });
+
     const [isGenerating, setIsGenerating] = useState(false);
     const { user } = useAuth();
 
@@ -81,14 +85,14 @@ export default function CreateNewListing() {
             });
             const result = await response.json();
             if (response.ok && result.success) {
-                setMessage({ text: "Listing deleted successfully.", type: "success" });
+                toast.success("Listing deleted successfully.", { id: "app-feedback", duration: 3000 });
                 loadData(true); 
             } else {
-                setMessage({ text: result.error || "Failed to delete listing.", type: "error" });
+                toast.error(result.error || "Failed to delete listing.", { id: "app-feedback", duration: 3000 });
             }
         } catch (error) {
             console.error("Network Error:", error);
-            setMessage({ text: "Network error. Please try again.", type: "error" });
+            toast.error("Network error. Please try again.", { id: "app-feedback", duration: 3000 });
         } finally {
             setDeleteButtonLoading(false);
             setDeletingListingId(null);
@@ -98,13 +102,13 @@ export default function CreateNewListing() {
     const handleCopySku = (sku) => {
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(sku).then(() => {
-                setMessage({ text: "SKU ID copied to clipboard!", type: "success" });
+                toast.success("SKU ID copied to clipboard!", { id: "app-feedback", duration: 3000 });
             }).catch(err => {
                 console.error("Failed to copy:", err);
-                setMessage({ text: "Failed to copy SKU ID.", type: "error" });
+                toast.error("Failed to copy SKU ID.", { id: "app-feedback", duration: 3000 });
             });
         } else {
-            setMessage({ text: "Clipboard copy not supported in this browser.", type: "error" });
+            toast.error("Clipboard copy not supported in this browser.", { id: "app-feedback", duration: 3000 });
         }
     };
 
@@ -188,17 +192,17 @@ export default function CreateNewListing() {
     const generateSkuId = async () => {
         try {
             setIsGenerating(true);
-            setMessage({ text: "", type: "" });
+            toast.dismiss("app-feedback");
             
             const params = getEffectiveVerticalParams();
             const effVerticalShort = params.verticalShort;
 
             if (!effVerticalShort) {
-                setMessage({ text: "Please select a Vertical first or ensure items are selected.", type: "error" });
+                toast.error("Please select a Vertical first or ensure items are selected.", { id: "app-feedback", duration: 3000 });
                 return;
             }
             if (selectedItems.length === 0) {
-                setMessage({ text: "Please select at least one inventory item.", type: "error" });
+                toast.error("Please select at least one inventory item.", { id: "app-feedback", duration: 3000 });
                 return;
             }
 
@@ -207,13 +211,13 @@ export default function CreateNewListing() {
 
             if (response.ok && result.success) {
                 setSkuId(result.nextId);
-                setMessage({ text: "SKU ID generated successfully.", type: "success" });
+                toast.success("SKU ID generated successfully.", { id: "app-feedback", duration: 3000 });
             } else {
-                setMessage({ text: result.error || "Failed to generate SKU ID.", type: "error" });
+                toast.error(result.error || "Failed to generate SKU ID.", { id: "app-feedback", duration: 3000 });
             }
         } catch (error) {
             console.error("Error generating SKU ID:", error);
-            setMessage({ text: "Network error. Please try again.", type: "error" });
+            toast.error("Network error. Please try again.", { id: "app-feedback", duration: 3000 });
         } finally {
             setIsGenerating(false);
         }
@@ -221,25 +225,25 @@ export default function CreateNewListing() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setMessage({ text: "", type: "" });
+        toast.dismiss("app-feedback");
 
         const params = getEffectiveVerticalParams();
         const effVertical = params.vertical;
 
         if (!effVertical) {
-            setMessage({ text: "Please ensure vertical or items are selected.", type: "error" });
+            toast.error("Please ensure vertical or items are selected.", { id: "app-feedback", duration: 3000 });
             return;
         }
         if (!marketplace) {
-            setMessage({ text: "Please select a Marketplace.", type: "error" });
+            toast.error("Please select a Marketplace.", { id: "app-feedback", duration: 3000 });
             return;
         }
         if (selectedItems.length === 0) {
-            setMessage({ text: "Please select at least one inventory item.", type: "error" });
+            toast.error("Please select at least one inventory item.", { id: "app-feedback", duration: 3000 });
             return;
         }
         if (!skuId) {
-            setMessage({ text: "Please auto-generate or enter a SKU ID.", type: "error" });
+            toast.error("Please auto-generate or enter a SKU ID.", { id: "app-feedback", duration: 3000 });
             return;
         }
 
@@ -261,7 +265,7 @@ export default function CreateNewListing() {
             const result = await response.json();
 
             if (response.ok && result.success) {
-                setMessage({ text: "New listing created successfully!", type: "success" });
+                toast.success("New listing created successfully!", { id: "app-feedback", duration: 3000 });
 
                 // Reset specific form fields
                 setSkuId("");
@@ -269,11 +273,11 @@ export default function CreateNewListing() {
                 setSelectedItems([]);
                 loadData(true); // Force fresh fetch to show the newly created listing
             } else {
-                setMessage({ text: "Failed to create listing: " + (result.error || "Unknown error"), type: "error" });
+                toast.error("Failed to create listing: " + (result.error || "Unknown error"), { id: "app-feedback", duration: 3000 });
             }
         } catch (error) {
             console.error("Error submitting form:", error);
-            setMessage({ text: "Error submitting. Please try again.", type: "error" });
+            toast.error("Error submitting. Please try again.", { id: "app-feedback", duration: 3000 });
         } finally {
             setIsLoading(false);
         }
@@ -318,11 +322,7 @@ export default function CreateNewListing() {
                                 disabled={loadingVerticals}
                                 title="Refresh Verticals"
                             >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="23 4 23 10 17 10"></polyline>
-                                    <polyline points="1 20 1 14 7 14"></polyline>
-                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                                </svg>
+                                <Icon name="refresh" size={16} />
                             </button>
                         </div>
 
@@ -406,11 +406,7 @@ export default function CreateNewListing() {
                                     disabled={loadingInventoryItems || refreshingInventory}
                                     title="Refresh Inventory"
                                 >
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <polyline points="23 4 23 10 17 10"></polyline>
-                                        <polyline points="1 20 1 14 7 14"></polyline>
-                                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                                    </svg>
+                                    <Icon name="refresh" size={16} />
                                 </button>
                             </div>
                             <div className={styles.inventoryGridContainer}>
@@ -426,9 +422,7 @@ export default function CreateNewListing() {
                                             >
                                                 {selectedItems.some(s => s.inventoryId === item.inventoryId) && (
                                                     <div className={styles.checkmark}>
-                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                                            <polyline points="20 6 9 17 4 12"></polyline>
-                                                        </svg>
+                                                        <Icon name="icon-5ab11cbf" size={12} />
                                                     </div>
                                                 )}
                                                 <div className={styles.imageContainer}>
@@ -442,11 +436,7 @@ export default function CreateNewListing() {
                                                         />
                                                     ) : (
                                                         <div className={styles.imagePlaceholder}>
-                                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.3 }}>
-                                                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                                                                <polyline points="21 15 16 10 5 21"></polyline>
-                                                            </svg>
+                                                            <Icon name="icon-b99b6c9f" size={24} style={{opacity:0.3}} />
                                                         </div>
                                                     )}
                                                 </div>
@@ -514,11 +504,7 @@ export default function CreateNewListing() {
 
                 </form>
 
-                <Toast
-                    message={message}
-                    onClose={() => setMessage({ text: "", type: "" })}
-                />
-            </div>
+                        </div>
 
             {/* Recent Listings Section */}
             {(recentListings.length > 0 || loadingRecentListings || refreshingRecentListings) && (
@@ -532,11 +518,7 @@ export default function CreateNewListing() {
                             disabled={loadingRecentListings || refreshingRecentListings}
                             title="Refresh Recent Listings"
                         >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="23 4 23 10 17 10"></polyline>
-                                <polyline points="1 20 1 14 7 14"></polyline>
-                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                            </svg>
+                            <Icon name="refresh" size={16} />
                         </button>
                     </div>
                     {loadingRecentListings
@@ -566,14 +548,8 @@ export default function CreateNewListing() {
                                         disabled={deleteButtonLoading}
                                     >
                                         {deleteButtonLoading && deletingListingId === item.skuId
-                                            ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-                                                <path d="M21 3v5h-5"></path>
-                                            </svg>
-                                            : <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <polyline points="3 6 5 6 21 6"></polyline>
-                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                            </svg>
+                                            ? <Icon name="refresh-loop" size={16} className={styles.deleteLoadingIcon} />
+                                            : <Icon name="trash" size={16} className={styles.deleteIcon} />
                                         }
                                     </button>
                                     {item.inventoryItems && item.inventoryItems.length > 0 ? (
@@ -611,10 +587,7 @@ export default function CreateNewListing() {
                                                 className={styles.copyBtn}
                                                 title="Copy SKU ID"
                                             >
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                                </svg>
+                                                <Icon name="copy-inventory-id" size={14} />
                                             </button>
                                         </div>
                                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '4px' }}>

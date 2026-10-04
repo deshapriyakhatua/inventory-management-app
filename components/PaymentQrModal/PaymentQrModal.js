@@ -1,4 +1,6 @@
 "use client";
+import Icon from "@/components/ui/Icon/Icon";
+
 
 import { useState, useEffect, useRef } from "react";
 import styles from "./PaymentQrModal.module.css";
@@ -121,12 +123,7 @@ export default function PaymentQrModal({ isOpen, onClose, invoice }) {
         <div className={styles.modalHeader}>
           <div>
             <h2 className={styles.modalTitle}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2.5">
-                <rect x="3" y="3" width="7" height="7"></rect>
-                <rect x="14" y="3" width="7" height="7"></rect>
-                <rect x="14" y="14" width="7" height="7"></rect>
-                <rect x="3" y="14" width="7" height="7"></rect>
-              </svg>
+              <Icon name="payment-qr-balance" size={22} />
               Payment QR Generator (Remaining Balance)
             </h2>
             <p className={styles.modalSubtitle}>
@@ -134,10 +131,7 @@ export default function PaymentQrModal({ isOpen, onClose, invoice }) {
             </p>
           </div>
           <button type="button" className={styles.closeBtn} onClick={onClose}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+            <Icon name="remove-this-product" />
           </button>
         </div>
 
@@ -231,10 +225,7 @@ export default function PaymentQrModal({ isOpen, onClose, invoice }) {
 
             <div className={styles.actionsRow}>
               <button type="button" className={styles.copyBtn} onClick={handleCopyLink}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
+                <Icon name="copy-inventory-id" size={15} />
                 Copy Link
               </button>
 

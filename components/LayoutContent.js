@@ -2,7 +2,8 @@
 
 import { useAuth } from "./AuthProvider";
 import Sidebar from "./Sidebar/Sidebar";
-import { Toaster } from "sonner";
+import { Toaster } from "./ui";
+import styles from "./LayoutContent.module.css";
 
 export default function LayoutContent({ children }) {
     const { isAuthenticated, isLoading } = useAuth();
@@ -13,24 +14,18 @@ export default function LayoutContent({ children }) {
 
     if (!isAuthenticated) {
         return (
-            <main style={{ height: "100vh", overflowY: "auto", overflowX: "hidden" }}>
-                <Toaster position="top-right" richColors />
-                {children}
-            </main>
+            <>
+                <Toaster />
+                <main className={styles.publicMain}>{children}</main>
+            </>
         );
     }
 
     return (
-        <div style={{ display: "flex", height: "100vh", width: "100vw", overflow: "hidden" }}>
-            <Toaster position="top-right" richColors />
+        <div className={styles.layout}>
+            <Toaster />
             <Sidebar />
-            <main style={{ 
-                flex: 1, 
-                height: "100vh", 
-                overflowY: "auto", 
-                overflowX: "hidden", 
-                background: "var(--background)" 
-            }}>
+            <main className={styles.main}>
                 {children}
             </main>
         </div>

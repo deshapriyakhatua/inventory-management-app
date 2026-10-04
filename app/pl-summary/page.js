@@ -1,8 +1,10 @@
 "use client";
+import { toast } from "sonner";
+
 
 import React, { useState, useCallback, useEffect } from "react";
 import styles from "./page.module.css";
-import Toast from "../../components/Toast/Toast";
+
 
 const MONTHS = [
     { value: "1", label: "January" }, { value: "2", label: "February" }, { value: "3", label: "March" },
@@ -21,7 +23,7 @@ export default function PLSummaryPage() {
 
     const [loading, setLoading] = useState(false);
     const [summary, setSummary] = useState(null);
-    const [message, setMessage] = useState({ text: "", type: "" });
+
 
     const yearOptions = Array.from({ length: 6 }, (_, i) => now.getFullYear() - 4 + i);
 
@@ -34,7 +36,7 @@ export default function PLSummaryPage() {
 
     const fetchSummary = useCallback(async () => {
         setLoading(true);
-        setMessage({ text: "", type: "" });
+        toast.dismiss("app-feedback");
 
         const params = new URLSearchParams({
             month,
@@ -50,11 +52,11 @@ export default function PLSummaryPage() {
                 setSummary(data);
             } else {
                 setSummary(null);
-                setMessage({ text: data.error || "Failed to load P&L summary.", type: "error" });
+                toast.error(data.error || "Failed to load P&L summary.", { id: "app-feedback", duration: 3000 });
             }
         } catch {
             setSummary(null);
-            setMessage({ text: "Network error loading P&L summary.", type: "error" });
+            toast.error("Network error loading P&L summary.", { id: "app-feedback", duration: 3000 });
         } finally {
             setLoading(false);
         }
@@ -216,7 +218,6 @@ export default function PLSummaryPage() {
                 </>
             )}
 
-            <Toast message={message} onClose={() => setMessage({ text: "", type: "" })} />
-        </div>
+                </div>
     );
 }

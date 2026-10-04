@@ -1,9 +1,11 @@
 "use client";
+import Icon from "@/components/ui/Icon/Icon";
+
 
 import { useState, useEffect, useRef } from "react";
 import styles from "./page.module.css";
 import { toast } from "sonner";
-import RefreshIcon from "@/components/RefreshIcon/RefreshIcon";
+
 import { GST_STATES } from "@/utils/gstStates";
 import InvoicePdfPreview from "@/components/InvoicePdfPreview/InvoicePdfPreview";
 import { downloadInvoicePdf } from "@/utils/generatePdf";
@@ -594,10 +596,7 @@ export default function CreateB2BInvoicePage() {
             className={styles.companySettingsBtn}
             onClick={() => setIsCompanyModalOpen(true)}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
-            </svg>
+            <Icon name="icon-d5851a0c" size={18} />
             Company & Bank Info
           </button>
 
@@ -607,10 +606,7 @@ export default function CreateB2BInvoicePage() {
               className={styles.tabBtn}
               onClick={() => setActiveTab("form")}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
+              <Icon name="remove-this-product" size={18} />
               Close Preview
             </button>
           ) : (
@@ -619,10 +615,7 @@ export default function CreateB2BInvoicePage() {
               className={styles.tabBtn}
               onClick={() => setActiveTab("preview")}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
+              <Icon name="view-graphical" size={18} />
               PDF Preview
             </button>
           )}
@@ -645,11 +638,7 @@ export default function CreateB2BInvoicePage() {
                 onClick={handleDownloadPdf}
                 disabled={isDownloadingPdf}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
+                <Icon name="download-invoices-excel-report" size={18} />
                 {isDownloadingPdf ? "Generating PDF..." : "Download PDF"}
               </button>
             </>
@@ -663,12 +652,7 @@ export default function CreateB2BInvoicePage() {
           {/* Card 1: Invoice Meta */}
           <div className={styles.card}>
             <h3 className={styles.sectionTitle}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
+              <Icon name="icon-f5ba4e77" />
               Invoice Header Info
             </h3>
 
@@ -777,10 +761,7 @@ export default function CreateB2BInvoicePage() {
             </div>
 
             <h3 className={styles.sectionTitle}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-              </svg>
+              <Icon name="icon-a887788a" />
               Issued To (Customer)
             </h3>
             <div className={styles.formGrid}>
@@ -852,9 +833,7 @@ export default function CreateB2BInvoicePage() {
           {/* Card 3: Line Items */}
           <div className={styles.card}>
             <h3 className={styles.sectionTitle}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-              </svg>
+              <Icon name="icon-d0275ba0" />
               Items List
             </h3>
 
@@ -922,18 +901,7 @@ export default function CreateB2BInvoicePage() {
                                 />
                               ) : (
                                 <span className={styles.pickerBtnIcon}>
-                                  <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                  >
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                                    <polyline points="21 15 16 10 5 21"></polyline>
-                                  </svg>
+                                  <Icon name="icon-b99b6c9f" size={16} />
                                 </span>
                               )}
                               <span
@@ -946,16 +914,7 @@ export default function CreateB2BInvoicePage() {
                                 {item.inventoryId || "Select Inventory..."}
                               </span>
                               <span className={styles.pickerBtnChevron}>
-                                <svg
-                                  width="14"
-                                  height="14"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2.5"
-                                >
-                                  <polyline points="6 9 12 15 18 9"></polyline>
-                                </svg>
+                                <Icon name="click-to-select-from-inventory" size={14} />
                               </span>
                             </button>
                           );
@@ -1135,7 +1094,7 @@ export default function CreateB2BInvoicePage() {
             onClick={fetchRecentInvoices}
             disabled={isLoadingHistory}
           >
-            <RefreshIcon />
+            <Icon name="refresh" size={16} />
             Refresh History
           </button>
         </div>
@@ -1200,10 +1159,7 @@ export default function CreateB2BInvoicePage() {
                         onClick={() => handleOpenGraphicalModal(inv)}
                         title="View Graphical Invoice & Inventory Images"
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                          <circle cx="12" cy="12" r="3"></circle>
-                        </svg>
+                        <Icon name="view-graphical" size={14} />
                         View
                       </button>
                       <button
@@ -1212,12 +1168,7 @@ export default function CreateB2BInvoicePage() {
                         onClick={() => handleOpenPdfModal(inv)}
                         title="View & Download Invoice PDF"
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                          <polyline points="14 2 14 8 20 8"></polyline>
-                          <line x1="16" y1="13" x2="8" y2="13"></line>
-                          <line x1="16" y1="17" x2="8" y2="17"></line>
-                        </svg>
+                        <Icon name="view-and-download-invoice-pdf" size={14} />
                         PDF
                       </button>
                       {(inv.paymentStatus === "Pending" ||
@@ -1231,12 +1182,7 @@ export default function CreateB2BInvoicePage() {
                           onClick={() => handleOpenPaymentQrModal(inv)}
                           title="Generate Custom Payment QR for Remaining Balance"
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="3" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="14" width="7" height="7"></rect>
-                            <rect x="3" y="14" width="7" height="7"></rect>
-                          </svg>
+                          <Icon name="payment-qr-balance" size={14} />
                           Payment QR
                         </button>
                       )}
@@ -1266,19 +1212,13 @@ export default function CreateB2BInvoicePage() {
                 className={styles.pickerCloseBtn}
                 onClick={closeInventoryPicker}
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+                <Icon name="remove-this-product" />
               </button>
             </div>
 
             {/* Search */}
             <div className={styles.pickerSearch}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={styles.pickerSearchIcon}>
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
+              <Icon name="icon-9c4a10ac" size={16} className={styles.pickerSearchIcon} />
               <input
                 ref={pickerSearchRef}
                 type="text"
@@ -1293,10 +1233,7 @@ export default function CreateB2BInvoicePage() {
                   className={styles.pickerSearchClear}
                   onClick={() => setInventorySearch("")}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
+                  <Icon name="remove-this-product" size={14} />
                 </button>
               )}
             </div>
@@ -1305,10 +1242,7 @@ export default function CreateB2BInvoicePage() {
             <div className={styles.pickerGrid}>
               {filteredInventory.length === 0 ? (
                 <div className={styles.pickerEmpty}>
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity: 0.3 }}>
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                  </svg>
+                  <Icon name="icon-9c4a10ac" size={40} style={{opacity:0.3}} />
                   <span>No inventory items found.</span>
                 </div>
               ) : (
@@ -1332,9 +1266,7 @@ export default function CreateB2BInvoicePage() {
                         )}
                         {isSelected && (
                           <span className={styles.pickerSelectedTick}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                              <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
+                            <Icon name="icon-5ab11cbf" size={12} />
                           </span>
                         )}
                       </div>
@@ -1372,10 +1304,7 @@ export default function CreateB2BInvoicePage() {
                 className={styles.pickerCloseBtn}
                 onClick={() => setIsCompanyModalOpen(false)}
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+                <Icon name="remove-this-product" />
               </button>
             </div>
 
@@ -1383,10 +1312,7 @@ export default function CreateB2BInvoicePage() {
               {/* Company Details */}
               <div>
                 <div className={styles.modalSubSectionTitle}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                  </svg>
+                  <Icon name="icon-d5851a0c" size={18} />
                   Company Details
                 </div>
                 <div className={styles.formGrid}>
@@ -1445,10 +1371,7 @@ export default function CreateB2BInvoicePage() {
               {/* Bank & Payment Details */}
               <div>
                 <div className={styles.modalSubSectionTitle} style={{ color: "#10b981" }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="2" y="5" width="20" height="14" rx="2"></rect>
-                    <line x1="2" y1="10" x2="22" y2="10"></line>
-                  </svg>
+                  <Icon name="icon-3790acba" size={18} />
                   Bank & Payment Details
                 </div>
                 <div className={styles.formGrid}>
@@ -1506,12 +1429,7 @@ export default function CreateB2BInvoicePage() {
               {/* Notes & Terms */}
               <div>
                 <div className={styles.modalSubSectionTitle} style={{ color: "#f59e0b" }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                  </svg>
+                  <Icon name="view-and-download-invoice-pdf" size={18} />
                   Notes & Terms
                 </div>
                 <div className={styles.inputGroup}>
@@ -1556,19 +1474,13 @@ export default function CreateB2BInvoicePage() {
                 className={styles.pickerCloseBtn}
                 onClick={closeMultiSelectModal}
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+                <Icon name="remove-this-product" />
               </button>
             </div>
 
             {/* Search Input */}
             <div className={styles.pickerSearch}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={styles.pickerSearchIcon}>
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
+              <Icon name="icon-9c4a10ac" size={16} className={styles.pickerSearchIcon} />
               <input
                 ref={multiSearchRef}
                 type="text"
@@ -1583,10 +1495,7 @@ export default function CreateB2BInvoicePage() {
                   className={styles.pickerSearchClear}
                   onClick={() => setMultiSelectSearch("")}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
+                  <Icon name="remove-this-product" size={14} />
                 </button>
               )}
             </div>
@@ -1621,10 +1530,7 @@ export default function CreateB2BInvoicePage() {
             <div className={styles.pickerGrid}>
               {filteredMultiInventory.length === 0 ? (
                 <div className={styles.pickerEmpty}>
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity: 0.3 }}>
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                  </svg>
+                  <Icon name="icon-9c4a10ac" size={40} style={{opacity:0.3}} />
                   <span>No inventory items found.</span>
                 </div>
               ) : (
@@ -1647,9 +1553,7 @@ export default function CreateB2BInvoicePage() {
                         )}
                         {isSelected && (
                           <span className={styles.pickerSelectedTick}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                              <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
+                            <Icon name="icon-5ab11cbf" size={12} />
                           </span>
                         )}
                       </div>
@@ -1768,10 +1672,7 @@ export default function CreateB2BInvoicePage() {
                 className={styles.pickerCloseBtn}
                 onClick={() => setShowGraphicalModal(false)}
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+                <Icon name="remove-this-product" />
               </button>
             </div>
 
@@ -1782,10 +1683,7 @@ export default function CreateB2BInvoicePage() {
                 {/* Customer Card */}
                 <div className={styles.graphicalInfoBox}>
                   <div className={styles.graphicalInfoTitle}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="9" cy="7" r="4"></circle>
-                    </svg>
+                    <Icon name="icon-a887788a" size={16} />
                     Customer Info
                   </div>
                   <div style={{ fontWeight: "700", color: "#ffffff", fontSize: "15px" }}>
@@ -1809,10 +1707,7 @@ export default function CreateB2BInvoicePage() {
                 {/* Seller Card */}
                 <div className={styles.graphicalInfoBox}>
                   <div className={styles.graphicalInfoTitle}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
+                    <Icon name="icon-d5851a0c" size={16} />
                     Seller Details
                   </div>
                   <div style={{ fontWeight: "700", color: "#ffffff", fontSize: "15px" }}>
@@ -1832,9 +1727,7 @@ export default function CreateB2BInvoicePage() {
               {/* Line Items Graphical View */}
               <div>
                 <div className={styles.graphicalInfoTitle} style={{ marginBottom: "10px", color: "#ec4899" }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2">
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                  </svg>
+                  <Icon name="icon-d0275ba0" size={16} />
                   Items & Inventory Images ({graphicalModalInvoice.lineItems?.length || 0})
                 </div>
 

@@ -1,11 +1,13 @@
 "use client";
+import Icon from "@/components/ui/Icon/Icon";
+
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import styles from "./page.module.css";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
-import RefreshIcon from "@/components/RefreshIcon/RefreshIcon";
+
 import { GST_STATES } from "@/utils/gstStates";
 import InvoicePdfPreview from "@/components/InvoicePdfPreview/InvoicePdfPreview";
 import { downloadInvoicePdf } from "@/utils/generatePdf";
@@ -765,19 +767,12 @@ export default function AllInvoicesPage() {
             onClick={exportInvoicesToExcel}
             title="Download Invoices Excel Report"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
+            <Icon name="download-invoices-excel-report" size={16} />
             Download Excel
           </button>
 
           <Link href="/create-b2b-invoice" className={styles.createBtn}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
+            <Icon name="add-another-product" size={18} />
             Create New Invoice
           </Link>
         </div>
@@ -844,10 +839,7 @@ export default function AllInvoicesPage() {
         </div>
 
         <div className={styles.searchBox}>
-          <svg className={styles.searchIcon} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
+          <Icon name="icon-9c4a10ac" size={18} className={styles.searchIcon} />
           <input
             type="text"
             className={styles.searchInput}
@@ -876,7 +868,7 @@ export default function AllInvoicesPage() {
             onClick={fetchInvoices}
             disabled={loading}
           >
-            <RefreshIcon />
+            <Icon name="refresh" size={16} />
             Refresh
           </button>
         </div>
@@ -953,11 +945,7 @@ export default function AllInvoicesPage() {
                           }}
                           title="Actions"
                         >
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <circle cx="12" cy="5" r="1.5"></circle>
-                            <circle cx="12" cy="12" r="1.5"></circle>
-                            <circle cx="12" cy="19" r="1.5"></circle>
-                          </svg>
+                          <Icon name="actions" size={18} />
                         </button>
 
                         {openMenuId === inv._id && (
@@ -972,10 +960,7 @@ export default function AllInvoicesPage() {
                                     handleOpenGraphicalModal(inv);
                                   }}
                                 >
-                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                  </svg>
+                                  <Icon name="view-graphical" size={15} />
                                   View (Graphical)
                                 </button>
                                 <button
@@ -986,10 +971,7 @@ export default function AllInvoicesPage() {
                                     handleOpenPdf(inv);
                                   }}
                                 >
-                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                    <polyline points="14 2 14 8 20 8"></polyline>
-                                  </svg>
+                                  <Icon name="pdf-preview" size={15} />
                                   PDF Preview
                                 </button>
                                 {(inv.paymentStatus === "Pending" ||
@@ -1005,12 +987,7 @@ export default function AllInvoicesPage() {
                                       handleOpenPaymentQr(inv);
                                     }}
                                   >
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2">
-                                      <rect x="3" y="3" width="7" height="7"></rect>
-                                      <rect x="14" y="3" width="7" height="7"></rect>
-                                      <rect x="14" y="14" width="7" height="7"></rect>
-                                      <rect x="3" y="14" width="7" height="7"></rect>
-                                    </svg>
+                                    <Icon name="payment-qr-balance" size={15} />
                                     Payment QR (Balance)
                                   </button>
                                 )}
@@ -1022,10 +999,7 @@ export default function AllInvoicesPage() {
                                     handleOpenEdit(inv);
                                   }}
                                 >
-                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                  </svg>
+                                  <Icon name="edit-inventory" size={15} />
                                   Edit Invoice
                                 </button>
                                 <div className={styles.dropdownDivider} />
@@ -1037,10 +1011,7 @@ export default function AllInvoicesPage() {
                                     handleArchive(inv._id, inv.invoiceNumber);
                                   }}
                                 >
-                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2">
-                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                  </svg>
+                                  <Icon name="trash" size={15} />
                                   Archive
                                 </button>
                               </>
@@ -1054,10 +1025,7 @@ export default function AllInvoicesPage() {
                                     handleOpenGraphicalModal(inv);
                                   }}
                                 >
-                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                  </svg>
+                                  <Icon name="view-graphical" size={15} />
                                   View (Graphical)
                                 </button>
                                 <button
@@ -1068,10 +1036,7 @@ export default function AllInvoicesPage() {
                                     handleOpenPdf(inv);
                                   }}
                                 >
-                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                    <polyline points="14 2 14 8 20 8"></polyline>
-                                  </svg>
+                                  <Icon name="pdf-preview" size={15} />
                                   PDF Preview
                                 </button>
                                 {(inv.paymentStatus === "Pending" ||
@@ -1087,12 +1052,7 @@ export default function AllInvoicesPage() {
                                       handleOpenPaymentQr(inv);
                                     }}
                                   >
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2">
-                                      <rect x="3" y="3" width="7" height="7"></rect>
-                                      <rect x="14" y="3" width="7" height="7"></rect>
-                                      <rect x="14" y="14" width="7" height="7"></rect>
-                                      <rect x="3" y="14" width="7" height="7"></rect>
-                                    </svg>
+                                    <Icon name="payment-qr-balance" size={15} />
                                     Payment QR (Balance)
                                   </button>
                                 )}
@@ -1104,10 +1064,7 @@ export default function AllInvoicesPage() {
                                     handleRestore(inv._id, inv.invoiceNumber);
                                   }}
                                 >
-                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2">
-                                    <polyline points="1 4 1 10 7 10"></polyline>
-                                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-                                  </svg>
+                                  <Icon name="restore-invoice" size={15} />
                                   Restore Invoice
                                 </button>
                                 <div className={styles.dropdownDivider} />
@@ -1119,10 +1076,7 @@ export default function AllInvoicesPage() {
                                     handlePermanentDelete(inv._id, inv.invoiceNumber);
                                   }}
                                 >
-                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2">
-                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                  </svg>
+                                  <Icon name="trash" size={15} />
                                   Delete Permanently
                                 </button>
                               </>
@@ -1598,10 +1552,7 @@ export default function AllInvoicesPage() {
                 className={styles.pickerCloseBtn}
                 onClick={() => setShowGraphicalModal(false)}
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+                <Icon name="remove-this-product" />
               </button>
             </div>
 
@@ -1612,10 +1563,7 @@ export default function AllInvoicesPage() {
                 {/* Customer Card */}
                 <div className={styles.graphicalInfoBox}>
                   <div className={styles.graphicalInfoTitle}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="9" cy="7" r="4"></circle>
-                    </svg>
+                    <Icon name="icon-a887788a" size={16} />
                     Customer Info
                   </div>
                   <div style={{ fontWeight: "700", color: "#ffffff", fontSize: "15px" }}>
@@ -1639,10 +1587,7 @@ export default function AllInvoicesPage() {
                 {/* Seller Card */}
                 <div className={styles.graphicalInfoBox}>
                   <div className={styles.graphicalInfoTitle}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
+                    <Icon name="icon-d5851a0c" size={16} />
                     Seller Details
                   </div>
                   <div style={{ fontWeight: "700", color: "#ffffff", fontSize: "15px" }}>
@@ -1662,9 +1607,7 @@ export default function AllInvoicesPage() {
               {/* Line Items Graphical View */}
               <div>
                 <div className={styles.graphicalInfoTitle} style={{ marginBottom: "10px", color: "#ec4899" }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2">
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                  </svg>
+                  <Icon name="icon-d0275ba0" size={16} />
                   Items & Inventory Images ({graphicalModalInvoice.lineItems?.length || 0})
                 </div>
 

@@ -1,9 +1,13 @@
 "use client";
+import { toast } from "sonner";
+
+import Icon from "@/components/ui/Icon/Icon";
+
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
-import Toast from "../../components/Toast/Toast";
+
 import { parseSearchQuery, matchesSearchTerms } from "../../utils/searchUtils";
 
 export default function MapSourcesPage() {
@@ -25,7 +29,7 @@ export default function MapSourcesPage() {
   const [sourceToRemove, setSourceToRemove] = useState(null);
   const [unmapLoading, setUnmapLoading] = useState(false);
 
-  const [message, setMsg] = useState({ text: "", type: "" });
+
 
   useEffect(() => {
     fetchMappingData();
@@ -41,10 +45,10 @@ export default function MapSourcesPage() {
         setFilteredInventories(result.inventory || []);
         setSellers(result.sellers || []);
       } else {
-        setMsg({ text: result.error || "Failed to load mapping data", type: "error" });
+        toast.error(result.error || "Failed to load mapping data", { id: "app-feedback", duration: 3000 });
       }
     } catch (error) {
-      setMsg({ text: "Network error loading data", type: "error" });
+      toast.error("Network error loading data", { id: "app-feedback", duration: 3000 });
     } finally {
       setLoading(false);
     }
@@ -70,7 +74,7 @@ export default function MapSourcesPage() {
   const handleAddSource = async (e) => {
     e.preventDefault();
     if (!selectedInventory || !formSellerId) {
-      setMsg({ text: "Please select an inventory item and a seller", type: "error" });
+      toast.error("Please select an inventory item and a seller", { id: "app-feedback", duration: 3000 });
       return;
     }
 
@@ -90,7 +94,7 @@ export default function MapSourcesPage() {
       const result = await res.json();
 
       if (res.ok && result.success) {
-        setMsg({ text: "Source mapped successfully", type: "success" });
+        toast.success("Source mapped successfully", { id: "app-feedback", duration: 3000 });
         
         // Update local state arrays seamlessly
         const updatedInventory = result.data;
@@ -101,10 +105,10 @@ export default function MapSourcesPage() {
         setFormSellerId("");
         setFormSellerSku("");
       } else {
-        setMsg({ text: result.error || "Failed to map source", type: "error" });
+        toast.error(result.error || "Failed to map source", { id: "app-feedback", duration: 3000 });
       }
     } catch (error) {
-      setMsg({ text: "Network error while mapping source", type: "error" });
+      toast.error("Network error while mapping source", { id: "app-feedback", duration: 3000 });
     } finally {
       setSubmitting(false);
     }
@@ -122,15 +126,15 @@ export default function MapSourcesPage() {
       const result = await res.json();
       
       if (res.ok && result.success) {
-        setMsg({ text: "Source removed", type: "success" });
+        toast.success("Source removed", { id: "app-feedback", duration: 3000 });
         const updatedInventory = result.data;
         setSelectedInventory(updatedInventory);
         setInventories(prev => prev.map(inv => inv._id === updatedInventory._id ? updatedInventory : inv));
       } else {
-        setMsg({ text: result.error || "Failed to remove source", type: "error" });
+        toast.error(result.error || "Failed to remove source", { id: "app-feedback", duration: 3000 });
       }
     } catch (error) {
-      setMsg({ text: "Network error while removing source", type: "error" });
+      toast.error("Network error while removing source", { id: "app-feedback", duration: 3000 });
     } finally {
       setUnmapLoading(false);
       setShowUnmapConfirm(false);
@@ -161,9 +165,7 @@ export default function MapSourcesPage() {
         {/* Left Panel: Inventory Selection */}
         <div className={`${styles.panel} ${styles.selectionPanel}`}>
           <h2 className={styles.panelTitle}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line>
-            </svg>
+            <Icon name="icon-5d77ebc6" />
             Select Inventory
           </h2>
           
@@ -198,9 +200,7 @@ export default function MapSourcesPage() {
                       )}
                     </div>
                   </div>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={selectedInventory?._id === inv._id ? "#3b82f6" : "#475569"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                  </svg>
+                  <Icon name="icon-40639b2b" size={18} />
                 </div>
               ))
             )}
@@ -211,9 +211,7 @@ export default function MapSourcesPage() {
         <div className={`${styles.panel} ${styles.mappingPanel}`}>
           {!selectedInventory ? (
             <div className={styles.emptySelection}>
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline>
-              </svg>
+              <Icon name="icon-b99b6c9f" size={48} />
               <p>Select an inventory item from the left to view and edit its sources.</p>
             </div>
           ) : (
@@ -252,7 +250,7 @@ export default function MapSourcesPage() {
                           }}
                           title="Unmap this seller"
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                          <Icon name="remove-this-product" size={14} />
                         </button>
                         
                         <h4 className={styles.sellerName}>
@@ -306,7 +304,7 @@ export default function MapSourcesPage() {
                     <button type="submit" className={styles.submitBtn} disabled={submitting}>
                       {submitting ? "Mapping..." : (
                         <>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                          <Icon name="add-another-product" size={18} />
                           Map Source
                         </>
                       )}
@@ -333,10 +331,7 @@ export default function MapSourcesPage() {
             style={{ background: "#1e293b", padding: "2rem", borderRadius: "12px", border: "1px solid #334155", maxWidth: "420px", textAlign: "center", boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.5)" }}
           >
             <div style={{ background: "rgba(239, 68, 68, 0.1)", width: "60px", height: "60px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.5rem" }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
-              </svg>
+              <Icon name="icon-cfd589e1" size={28} />
             </div>
             <h3 style={{ color: "#fff", fontSize: "1.3rem", margin: "0 0 0.8rem 0" }}>Unmap Seller?</h3>
             <p style={{ color: "#94a3b8", margin: "0 0 2rem 0", lineHeight: "1.5" }}>
@@ -362,7 +357,6 @@ export default function MapSourcesPage() {
         </div>
       )}
 
-      <Toast message={message} onClose={() => setMsg({ text: "", type: "" })} />
-    </div>
+          </div>
   );
 }

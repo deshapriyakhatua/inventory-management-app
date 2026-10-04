@@ -1,9 +1,13 @@
 "use client";
+import { toast } from "sonner";
+
+import Icon from "@/components/ui/Icon/Icon";
+
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
-import Toast from "../../components/Toast/Toast";
+
 import { fetchVerticalsData } from "../../utils/apiUtils";
 import MarketplaceLogo from "../../components/MarketplaceLogo/MarketplaceLogo";
 import * as XLSX from "xlsx";
@@ -41,7 +45,7 @@ export default function AllListingsPage() {
     const [refreshing, setRefreshing] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
-    const [message, setMessage] = useState({ text: "", type: "" });
+
     const [deleteButtonLoading, setDeleteButtonLoading] = useState(false);
     const [deletingListingId, setDeletingListingId] = useState(null);
     const [pageSize, setPageSize] = useState(100);
@@ -227,11 +231,11 @@ export default function AllListingsPage() {
 
     const handleEditSave = async () => {
         if (!editForm.vertical) {
-            setMessage({ text: "Please select a vertical.", type: "error" });
+            toast.error("Please select a vertical.", { id: "app-feedback", duration: 3000 });
             return;
         }
         if (!editForm.marketplace) {
-            setMessage({ text: "Please select a marketplace.", type: "error" });
+            toast.error("Please select a marketplace.", { id: "app-feedback", duration: 3000 });
             return;
         }
         setEditSaving(true);
@@ -250,7 +254,7 @@ export default function AllListingsPage() {
             });
             const result = await res.json();
             if (res.ok && result.success) {
-                setMessage({ text: "Listing updated successfully.", type: "success" });
+                toast.success("Listing updated successfully.", { id: "app-feedback", duration: 3000 });
                 // Update local cache
                 const updated = allListingsData.map(item =>
                     (editingListing._id ? item._id === editingListing._id : item.skuId === editingListing.skuId && item.marketplace === editingListing.marketplace)
@@ -265,11 +269,11 @@ export default function AllListingsPage() {
                 setAllListingsData(updated);
                 setEditingListing(null);
             } else {
-                setMessage({ text: result.error || "Failed to update listing.", type: "error" });
+                toast.error(result.error || "Failed to update listing.", { id: "app-feedback", duration: 3000 });
             }
         } catch (e) {
             console.error("Edit Error:", e);
-            setMessage({ text: "Network error. Please try again.", type: "error" });
+            toast.error("Network error. Please try again.", { id: "app-feedback", duration: 3000 });
         } finally {
             setEditSaving(false);
         }
@@ -297,7 +301,7 @@ export default function AllListingsPage() {
             });
             const result = await response.json();
             if (response.ok && result.success) {
-                setMessage({ text: "Listing deleted successfully.", type: "success" });
+                toast.success("Listing deleted successfully.", { id: "app-feedback", duration: 3000 });
                 // Update local data
                 const updatedData = allListingsData.filter(item => 
                     id ? item._id !== id : !(item.skuId === skuId && item.marketplace === marketplace)
@@ -306,11 +310,11 @@ export default function AllListingsPage() {
                 setDeletingListing(null);
                 setDeleteInputText("");
             } else {
-                setMessage({ text: result.error || "Failed to delete listing.", type: "error" });
+                toast.error(result.error || "Failed to delete listing.", { id: "app-feedback", duration: 3000 });
             }
         } catch (error) {
             console.error("Network Error:", error);
-            setMessage({ text: "Network error. Please try again.", type: "error" });
+            toast.error("Network error. Please try again.", { id: "app-feedback", duration: 3000 });
         } finally {
             setDeleteButtonLoading(false);
             setDeletingListingId(null);
@@ -320,10 +324,10 @@ export default function AllListingsPage() {
     const copyToClipboard = async (text, label) => {
         try {
             await navigator.clipboard.writeText(text);
-            setMessage({ text: `${label} copied to clipboard!`, type: "success" });
+            toast.success(`${label} copied to clipboard!`, { id: "app-feedback", duration: 3000 });
         } catch (err) {
             console.error("Failed to copy:", err);
-            setMessage({ text: "Failed to copy to clipboard", type: "error" });
+            toast.error("Failed to copy to clipboard", { id: "app-feedback", duration: 3000 });
         }
     };
 
@@ -344,7 +348,7 @@ export default function AllListingsPage() {
             setLoading(true);
         }
 
-        setMessage({ text: "", type: "" });
+        toast.dismiss("app-feedback");
 
         try {
             const response = await fetch("/api/employee/listing");
@@ -355,15 +359,15 @@ export default function AllListingsPage() {
                 setAllListingsData(fetchedData);
 
                 if (forceRefresh) {
-                    setMessage({ text: "Listings refreshed successfully.", type: "success" });
+                    toast.success("Listings refreshed successfully.", { id: "app-feedback", duration: 3000 });
                 }
             } else {
-                setMessage({ text: result.error || "Failed to load listings.", type: "error" });
+                toast.error(result.error || "Failed to load listings.", { id: "app-feedback", duration: 3000 });
                 if (!allListingsData.length) setAllListingsData([]);
             }
         } catch (error) {
             console.error("Fetch Error:", error);
-            setMessage({ text: "Network error while loading data.", type: "error" });
+            toast.error("Network error while loading data.", { id: "app-feedback", duration: 3000 });
             if (!allListingsData.length) setAllListingsData([]);
         } finally {
             setLoading(false);
@@ -375,7 +379,7 @@ export default function AllListingsPage() {
         const filteredData = getFilteredListings();
 
         if (!filteredData || filteredData.length === 0) {
-            setMessage({ text: "No filtered listings to download.", type: "error" });
+            toast.error("No filtered listings to download.", { id: "app-feedback", duration: 3000 });
             return;
         }
 
@@ -411,7 +415,7 @@ export default function AllListingsPage() {
         const fileName = `SKU_List${marketplaceSuffix}_${dateStr}_${timestampStr}.xlsx`;
 
         XLSX.writeFile(workbook, fileName);
-        setMessage({ text: `Excel sheet with all ${filteredData.length} filtered entries downloaded successfully.`, type: "success" });
+        toast.success(`Excel sheet with all ${filteredData.length} filtered entries downloaded successfully.`, { id: "app-feedback", duration: 3000 });
     };
 
     const handleNextPage = () => setCurrentPage(prev => Math.min(Math.ceil(totalItems / pageSize) || 1, prev + 1));
@@ -435,10 +439,7 @@ export default function AllListingsPage() {
                                 className={styles.searchInput}
                             />
                             <button className={styles.searchBtn} onClick={handleSearch} title="Search">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="11" cy="11" r="8"></circle>
-                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                                </svg>
+                                <Icon name="icon-9c4a10ac" size={15} />
                             </button>
                         </div>
 
@@ -451,10 +452,7 @@ export default function AllListingsPage() {
                                 className={styles.searchInput}
                             />
                             <button className={styles.searchBtn} onClick={() => setCurrentPage(1)} title="Search">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="11" cy="11" r="8"></circle>
-                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                                </svg>
+                                <Icon name="icon-9c4a10ac" size={15} />
                             </button>
                         </div>
 
@@ -467,10 +465,7 @@ export default function AllListingsPage() {
                                 className={styles.searchInput}
                             />
                             <button className={styles.searchBtn} onClick={() => setCurrentPage(1)} title="Search Style ID">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="11" cy="11" r="8"></circle>
-                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                                </svg>
+                                <Icon name="icon-9c4a10ac" size={15} />
                             </button>
                         </div>
 
@@ -480,11 +475,7 @@ export default function AllListingsPage() {
                             disabled={refreshing}
                             title="Refresh Data"
                         >
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="23 4 23 10 17 10"></polyline>
-                                <polyline points="1 20 1 14 7 14"></polyline>
-                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                            </svg>
+                            <Icon name="refresh" size={15} />
                             Refresh
                         </button>
 
@@ -494,11 +485,7 @@ export default function AllListingsPage() {
                             disabled={totalItems === 0}
                             title={`Download all ${totalItems} filtered SKUs as Excel`}
                         >
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
+                            <Icon name="download-invoices-excel-report" size={15} />
                             Download
                         </button>
                     </div>
@@ -571,10 +558,7 @@ export default function AllListingsPage() {
                             onClick={handleReset}
                             title="Reset Filters"
                         >
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M3 7v6h6"></path>
-                                <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
-                            </svg>
+                            <Icon name="reset-filters-listings" size={15} />
                             Reset
                         </button>
                     </div>
@@ -616,14 +600,8 @@ export default function AllListingsPage() {
                                                 disabled={deleteButtonLoading && deletingListingId === item.skuId}
                                             >
                                                 {deleteButtonLoading && deletingListingId === item.skuId
-                                                    ? <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteLoadingIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                        <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-                                                        <path d="M21 3v5h-5"></path>
-                                                    </svg>
-                                                    : <svg xmlns="http://www.w3.org/2000/svg" className={styles.deleteIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                        <polyline points="3 6 5 6 21 6"></polyline>
-                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                                    </svg>
+                                                    ? <Icon name="refresh-loop" size={16} className={styles.deleteLoadingIcon} />
+                                                    : <Icon name="trash" size={16} className={styles.deleteIcon} />
                                                 }
                                             </button>
                                             {/* Edit button – sits top-right on the card */}
@@ -633,7 +611,7 @@ export default function AllListingsPage() {
                                                 className={styles.editCardBtn}
                                                 title="Edit Listing"
                                             >
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                                                <Icon name="edit-inventory" size={14} />
                                             </button>
                                             <div className={styles.imageContainer} data-count={displayImages.length}>
                                                 {displayImages.length > 0 ? (
@@ -656,11 +634,7 @@ export default function AllListingsPage() {
                                                     ))
                                                 ) : (
                                                     <div className={styles.imagePlaceholder}>
-                                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5, marginBottom: '0.5rem' }}>
-                                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                                                            <polyline points="21 15 16 10 5 21"></polyline>
-                                                        </svg>
+                                                        <Icon name="icon-b99b6c9f" size={32} style={{opacity:0.5,marginBottom:'0.5rem'}} />
                                                         <br />No Images
                                                     </div>
                                                 )}
@@ -676,10 +650,7 @@ export default function AllListingsPage() {
                                                         }}
                                                         title="Copy SKU ID"
                                                     >
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                                        </svg>
+                                                        <Icon name="copy-inventory-id" size={14} />
                                                     </button>
                                                 </div>
                                                 <div className={styles.metaInfoRow}>
@@ -755,10 +726,7 @@ export default function AllListingsPage() {
                         <div className={styles.modalHeader}>
                             <h2>Listing Details</h2>
                             <button className={styles.closeBtn} onClick={() => setSelectedListing(null)}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
+                                <Icon name="remove-this-product" size={24} />
                             </button>
                         </div>
 
@@ -774,10 +742,7 @@ export default function AllListingsPage() {
                                         }}
                                         title="Copy SKU ID"
                                     >
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                        </svg>
+                                        <Icon name="copy-inventory-id" size={18} />
                                     </button>
                                 </div>
                                 <div className={styles.metaGrid}>
@@ -856,10 +821,7 @@ export default function AllListingsPage() {
                                                         }}
                                                         title="Copy ID"
                                                     >
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                                        </svg>
+                                                        <Icon name="copy-inventory-id" size={14} />
                                                     </button>
                                                 </div>
                                             </div>
@@ -884,7 +846,7 @@ export default function AllListingsPage() {
                                 <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>{editingListing.skuId}</p>
                             </div>
                             <button className={styles.closeBtn} onClick={() => setEditingListing(null)}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                                <Icon name="remove-this-product" />
                             </button>
                         </div>
 
@@ -986,7 +948,7 @@ export default function AllListingsPage() {
                                     className={styles.addTagBtn}
                                     onClick={openInventoryPicker}
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                                    <Icon name="add-another-product" size={14} />
                                     Select from Inventory
                                 </button>
                             </div>
@@ -1015,12 +977,12 @@ export default function AllListingsPage() {
                                 </p>
                             </div>
                             <button className={styles.closeBtn} onClick={() => setShowInventoryPicker(false)}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                                <Icon name="remove-this-product" />
                             </button>
                         </div>
 
                         <div className={styles.inventoryPickerSearch}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: '#64748b' }}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                            <Icon name="icon-9c4a10ac" size={16} style={{flexShrink:0,color:'#64748b'}} />
                             <input
                                 type="text"
                                 placeholder="Search inventory ID..."
@@ -1069,12 +1031,12 @@ export default function AllListingsPage() {
                                                         />
                                                     ) : (
                                                         <div className={styles.inventoryPickerNoImage}>
-                                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
+                                                            <Icon name="icon-a992d83c" />
                                                         </div>
                                                     )}
                                                     {isSelected && (
                                                         <div className={styles.inventoryPickerCheckmark}>
-                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                                                            <Icon name="icon-5ab11cbf" size={14} />
                                                         </div>
                                                     )}
                                                 </div>
@@ -1104,18 +1066,11 @@ export default function AllListingsPage() {
                     <div className={styles.deleteConfirmModalContent} onClick={e => e.stopPropagation()}>
                         <div className={styles.modalHeader}>
                             <h2 style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                                    <line x1="12" y1="9" x2="12" y2="13"></line>
-                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                                </svg>
+                                <Icon name="icon-cfd589e1" size={22} />
                                 Confirm Deletion
                             </h2>
                             <button className={styles.closeBtn} onClick={() => setDeletingListing(null)}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
+                                <Icon name="remove-this-product" />
                             </button>
                         </div>
 
@@ -1163,10 +1118,6 @@ export default function AllListingsPage() {
                 </div>
             )}
 
-            <Toast
-                message={message}
-                onClose={() => setMessage({ text: "", type: "" })}
-            />
-        </div>
+                </div>
     );
 }

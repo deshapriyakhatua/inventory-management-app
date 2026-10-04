@@ -3,6 +3,8 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AUTH_ROUTES } from "@/lib/routes";
+import Spinner from "@/components/ui/Spinner/Spinner";
+import styles from "./AuthProvider.module.css";
 
 const AuthContext = createContext({
     user: null,
@@ -72,28 +74,9 @@ export default function AuthProvider({ children }) {
 
     if (isLoading) {
         return (
-            <div style={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                height: "100vh",
-                width: "100vw",
-                backgroundColor: "#0f172a",
-                color: "#f8fafc"
-            }}>
-                <div style={{ textAlign: "center" }}>
-                    <div style={{
-                        width: "40px",
-                        height: "40px",
-                        border: "3px solid rgba(255, 255, 255, 0.1)",
-                        borderTop: "3px solid #38bdf8",
-                        borderRadius: "50%",
-                        animation: "spin 1s linear infinite",
-                        margin: "0 auto 1rem"
-                    }}></div>
-                    <style dangerouslySetInnerHTML={{ __html: `
-                        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-                    `}} />
+            <div className={styles.loadingScreen}>
+                <div className={styles.loadingContent}>
+                    <Spinner size="lg" label="Loading application" />
                     <p>Loading application...</p>
                 </div>
             </div>

@@ -1,0 +1,54 @@
+.root {
+  display: block;
+  width: 100%;
+  min-height: calc(var(--control-h-md) * 2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  background: var(--color-surface-sunken);
+  font: inherit;
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
+  resize: vertical;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.root::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
+}
+
+.root:hover:not(:disabled) {
+  border-color: var(--color-border-focus);
+}
+
+.root:focus-visible {
+  border-color: var(--color-border-focus);
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.root:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.root[aria-invalid="true"] {
+  border-color: var(--color-danger);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root {
+    transition-duration: var(--duration-instant);
+  }
+}
+
+@media (prefers-contrast: more) {
+  .root {
+    border-color: var(--color-border-strong);
+  }
+}

@@ -1,0 +1,46 @@
+.root {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-accent);
+}
+
+.indicator {
+  display: block;
+  width: var(--space-4);
+  height: var(--space-4);
+  border: 0.125rem solid currentColor;
+  border-right-color: transparent;
+  border-radius: var(--radius-pill);
+  animation: spin 0.8s linear infinite;
+}
+
+.sizeSm .indicator {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.sizeMd .indicator {
+  width: var(--space-5);
+  height: var(--space-5);
+}
+
+.sizeLg .indicator {
+  width: var(--space-6);
+  height: var(--space-6);
+  border-width: 0.1875rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .indicator {
+    border-right-color: currentColor;
+    animation: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .root {
+    color: var(--color-text);
+  }
+}

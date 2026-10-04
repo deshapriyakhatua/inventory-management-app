@@ -1,8 +1,12 @@
 "use client";
+import { toast } from "sonner";
+
+import Icon from "@/components/ui/Icon/Icon";
+
 
 import { useState, useEffect } from "react";
 import styles from "./page.module.css";
-import Toast from "../../../components/Toast/Toast";
+
 
 export default function AddVertical() {
     const [name, setName] = useState("");
@@ -11,7 +15,7 @@ export default function AddVertical() {
     const [verticals, setVerticals] = useState([]);
     const [loadingVerticals, setLoadingVerticals] = useState(true);
     const [refreshingVerticals, setRefreshingVerticals] = useState(false);
-    const [message, setMessage] = useState({ text: "", type: "" });
+
 
     useEffect(() => {
         fetchVerticals();
@@ -43,12 +47,12 @@ export default function AddVertical() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!name || !shortName) {
-            setMessage({ text: "Please fill in all fields.", type: "error" });
+            toast.error("Please fill in all fields.", { id: "app-feedback", duration: 3000 });
             return;
         }
 
         setIsLoading(true);
-        setMessage({ text: "", type: "" });
+        toast.dismiss("app-feedback");
 
         try {
             const response = await fetch("/api/admin/vertical/add", {
@@ -60,16 +64,16 @@ export default function AddVertical() {
             const result = await response.json();
 
             if (response.ok) {
-                setMessage({ text: "Vertical added successfully!", type: "success" });
+                toast.success("Vertical added successfully!", { id: "app-feedback", duration: 3000 });
                 setName("");
                 setShortName("");
                 fetchVerticals();
             } else {
-                setMessage({ text: result.error || "Failed to add vertical.", type: "error" });
+                toast.error(result.error || "Failed to add vertical.", { id: "app-feedback", duration: 3000 });
             }
         } catch (error) {
             console.error("Error adding vertical:", error);
-            setMessage({ text: "Network error. Please try again.", type: "error" });
+            toast.error("Network error. Please try again.", { id: "app-feedback", duration: 3000 });
         } finally {
             setIsLoading(false);
         }
@@ -116,11 +120,7 @@ export default function AddVertical() {
                     </button>
                 </form>
 
-                <Toast
-                    message={message}
-                    onClose={() => setMessage({ text: "", type: "" })}
-                />
-            </div>
+                        </div>
 
             <div className={styles.listSection}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -132,11 +132,7 @@ export default function AddVertical() {
                         disabled={loadingVerticals || refreshingVerticals}
                         title="Refresh Verticals"
                     >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="23 4 23 10 17 10"></polyline>
-                            <polyline points="1 20 1 14 7 14"></polyline>
-                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                        </svg>
+                        <Icon name="refresh" size={18} />
                     </button>
                 </div>
                 {loadingVerticals ? (

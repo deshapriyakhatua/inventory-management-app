@@ -1,8 +1,12 @@
 "use client";
+import { toast } from "sonner";
+
+import Icon from "@/components/ui/Icon/Icon";
+
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import styles from "./page.module.css";
-import Toast from "../../components/Toast/Toast";
+
 import { parseSearchQuery, matchesArraySearchTerms } from "../../utils/searchUtils";
 import * as XLSX from "xlsx";
 
@@ -51,7 +55,7 @@ export default function PurchaseHistoryPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const pinInputRef = useRef(null);
 
-  const [message, setMsg] = useState({ text: "", type: "" });
+
 
   // Hovered Image Popover State
   const [hoveredImage, setHoveredImage] = useState(null);
@@ -97,10 +101,10 @@ export default function PurchaseHistoryPage() {
       if (res.ok && result.success) {
         setPurchases(result.purchases || []);
       } else {
-        setMsg({ text: result.error || "Failed to load purchase history", type: "error" });
+        toast.error(result.error || "Failed to load purchase history", { id: "app-feedback", duration: 3000 });
       }
     } catch (error) {
-      setMsg({ text: "Network error loading history", type: "error" });
+      toast.error("Network error loading history", { id: "app-feedback", duration: 3000 });
     } finally {
       setLoading(false);
     }
@@ -114,10 +118,10 @@ export default function PurchaseHistoryPage() {
       if (res.ok && result.success) {
         setArchivedPurchases(result.purchases || []);
       } else {
-        setMsg({ text: result.error || "Failed to load archived records", type: "error" });
+        toast.error(result.error || "Failed to load archived records", { id: "app-feedback", duration: 3000 });
       }
     } catch (error) {
-      setMsg({ text: "Network error loading archived records", type: "error" });
+      toast.error("Network error loading archived records", { id: "app-feedback", duration: 3000 });
     } finally {
       setLoadingArchived(false);
     }
@@ -153,7 +157,7 @@ export default function PurchaseHistoryPage() {
     const targetItems = showArchived ? archivedPurchases : filteredItems;
 
     if (!targetGroups || targetGroups.length === 0) {
-      setMsg({ text: "No purchase data available to export.", type: "error" });
+      toast.error("No purchase data available to export.", { id: "app-feedback", duration: 3000 });
       return;
     }
 
@@ -406,14 +410,14 @@ export default function PurchaseHistoryPage() {
     const fileName = `Purchase_History_Report_${showArchived ? "Archived_" : ""}${new Date().toISOString().split("T")[0]}.xlsx`;
     XLSX.writeFile(workbook, fileName);
 
-    setMsg({ text: `Successfully generated Excel report: ${fileName}`, type: "success" });
+    toast.success(`Successfully generated Excel report: ${fileName}`, { id: "app-feedback", duration: 3000 });
   };
 
   // ── Copy helper ──────────────────────────────────────────────────
   const copyToClipboard = (text, label = "Text") => {
     if (!text) return;
     navigator.clipboard.writeText(text);
-    setMsg({ text: `Copied ${label} "${text}" to clipboard!`, type: "success" });
+    toast.success(`Copied ${label} "${text}" to clipboard!`, { id: "app-feedback", duration: 3000 });
   };
 
   // ── Archive flow ────────────────────────────────────────────────
@@ -441,13 +445,13 @@ export default function PurchaseHistoryPage() {
       if (res.ok && result.success) {
         setPurchases(prev => prev.filter(p => p._id !== archiveTarget._id));
         if (showArchived) fetchArchivedPurchases();
-        setMsg({ text: "Purchase archived successfully.", type: "success" });
+        toast.success("Purchase archived successfully.", { id: "app-feedback", duration: 3000 });
         closeArchiveModal();
       } else {
-        setMsg({ text: result.error || "Failed to archive", type: "error" });
+        toast.error(result.error || "Failed to archive", { id: "app-feedback", duration: 3000 });
       }
     } catch {
-      setMsg({ text: "Network error. Try again.", type: "error" });
+      toast.error("Network error. Try again.", { id: "app-feedback", duration: 3000 });
     } finally {
       setIsArchiving(false);
     }
@@ -478,13 +482,13 @@ export default function PurchaseHistoryPage() {
       if (res.ok && result.success) {
         setArchivedPurchases(prev => prev.filter(p => p._id !== restoreTarget._id));
         fetchPurchases();
-        setMsg({ text: "Purchase restored successfully.", type: "success" });
+        toast.success("Purchase restored successfully.", { id: "app-feedback", duration: 3000 });
         closeRestoreModal();
       } else {
-        setMsg({ text: result.error || "Failed to restore", type: "error" });
+        toast.error(result.error || "Failed to restore", { id: "app-feedback", duration: 3000 });
       }
     } catch {
-      setMsg({ text: "Network error. Try again.", type: "error" });
+      toast.error("Network error. Try again.", { id: "app-feedback", duration: 3000 });
     } finally {
       setIsRestoring(false);
     }
@@ -516,7 +520,7 @@ export default function PurchaseHistoryPage() {
       const result = await res.json();
       if (res.ok && result.success) {
         setArchivedPurchases(prev => prev.filter(p => p._id !== deleteTarget._id));
-        setMsg({ text: "Purchase permanently deleted.", type: "success" });
+        toast.success("Purchase permanently deleted.", { id: "app-feedback", duration: 3000 });
         closeDeleteModal();
       } else {
         setPinError(result.error || "Failed to delete.");
@@ -778,13 +782,13 @@ export default function PurchaseHistoryPage() {
       const result = await res.json();
       if (res.ok && result.success) {
         setPurchases(purchases.map(p => p._id === result.data._id ? result.data : p));
-        setMsg({ text: "Purchase updated successfully!", type: "success" });
+        toast.success("Purchase updated successfully!", { id: "app-feedback", duration: 3000 });
         closeEditModal();
       } else {
-        setMsg({ text: result.error || "Failed to update purchase", type: "error" });
+        toast.error(result.error || "Failed to update purchase", { id: "app-feedback", duration: 3000 });
       }
     } catch {
-      setMsg({ text: "Network error saving purchase", type: "error" });
+      toast.error("Network error saving purchase", { id: "app-feedback", duration: 3000 });
     } finally {
       setIsSaving(false);
     }
@@ -838,9 +842,7 @@ export default function PurchaseHistoryPage() {
                             onClick={() => toggleGroupExpand(group.groupKey, isArchived)}
                             title={isExpanded ? "Collapse group" : "Expand group"}
                           >
-                            <svg className={`${styles.chevronIcon} ${isExpanded ? styles.chevronRotated : ""}`} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="9 18 15 12 9 6"></polyline>
-                            </svg>
+                            <Icon name="icon-40639b2b" size={16} className={`${styles.chevronIcon} ${isExpanded?styles.chevronRotated:""}`} />
                           </button>
                         </td>
                         <td className={`${styles.td} ${styles.invoiceCell}`}>
@@ -852,10 +854,7 @@ export default function PurchaseHistoryPage() {
                                 onClick={(e) => { e.stopPropagation(); copyToClipboard(group.invoiceNo, "Invoice No"); }}
                                 title="Copy Invoice No"
                               >
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                </svg>
+                                <Icon name="copy-inventory-id" size={13} />
                               </button>
                             )}
                           </div>
@@ -887,10 +886,7 @@ export default function PurchaseHistoryPage() {
                             <div className={styles.nestedContainer}>
                               <div className={styles.nestedHeader}>
                                 <div className={styles.nestedHeaderTitle}>
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                    <polyline points="14 2 14 8 20 8"></polyline>
-                                  </svg>
+                                  <Icon name="pdf-preview" size={14} />
                                   Invoice Items ({group.items.length}) — {group.sellerName} [{group.invoiceNo}]
                                 </div>
                                 <div style={{ fontSize: "0.78rem", color: "#94a3b8" }}>
@@ -958,36 +954,20 @@ export default function PurchaseHistoryPage() {
                                             {!isArchived && (
                                               <>
                                                 <button className={styles.editBtn} onClick={() => openEditModal(p)} title="Edit record">
-                                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                                  </svg>
+                                                  <Icon name="edit-inventory" size={14} />
                                                 </button>
                                                 <button className={styles.archiveBtn} onClick={() => openArchiveModal(p)} title="Archive this record">
-                                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                    <polyline points="21 8 21 21 3 21 3 8"></polyline>
-                                                    <rect x="1" y="3" width="22" height="5"></rect>
-                                                    <line x1="10" y1="12" x2="14" y2="12"></line>
-                                                  </svg>
+                                                  <Icon name="archive-this-record" size={14} />
                                                 </button>
                                               </>
                                             )}
                                             {isArchived && (
                                               <>
                                                 <button className={styles.restoreBtn} onClick={() => openRestoreModal(p)} title="Restore record">
-                                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                    <polyline points="1 4 1 10 7 10"></polyline>
-                                                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-                                                  </svg>
+                                                  <Icon name="restore-invoice" size={14} />
                                                 </button>
                                                 <button className={styles.deleteBtn} onClick={() => openDeleteModal(p)} title="Delete permanently">
-                                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                                    <path d="M19 6l-1 14H6L5 6"></path>
-                                                    <path d="M10 11v6"></path>
-                                                    <path d="M14 11v6"></path>
-                                                    <path d="M9 6V4h6v2"></path>
-                                                  </svg>
+                                                  <Icon name="delete-permanently" size={14} />
                                                 </button>
                                               </>
                                             )}
@@ -1081,36 +1061,20 @@ export default function PurchaseHistoryPage() {
                       {!isArchived && (
                         <>
                           <button className={styles.editBtn} onClick={() => openEditModal(p)} title="Edit record">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
+                            <Icon name="edit-inventory" size={14} />
                           </button>
                           <button className={styles.archiveBtn} onClick={() => openArchiveModal(p)} title="Archive this record">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="21 8 21 21 3 21 3 8"></polyline>
-                              <rect x="1" y="3" width="22" height="5"></rect>
-                              <line x1="10" y1="12" x2="14" y2="12"></line>
-                            </svg>
+                            <Icon name="archive-this-record" size={14} />
                           </button>
                         </>
                       )}
                       {isArchived && (
                         <>
                           <button className={styles.restoreBtn} onClick={() => openRestoreModal(p)} title="Restore record">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="1 4 1 10 7 10"></polyline>
-                              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-                            </svg>
+                            <Icon name="restore-invoice" size={14} />
                           </button>
                           <button className={styles.deleteBtn} onClick={() => openDeleteModal(p)} title="Delete permanently">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="3 6 5 6 21 6"></polyline>
-                              <path d="M19 6l-1 14H6L5 6"></path>
-                              <path d="M10 11v6"></path>
-                              <path d="M14 11v6"></path>
-                              <path d="M9 6V4h6v2"></path>
-                            </svg>
+                            <Icon name="delete-permanently" size={14} />
                           </button>
                         </>
                       )}
@@ -1136,9 +1100,7 @@ export default function PurchaseHistoryPage() {
 
         <div className={styles.controls}>
           <div className={styles.searchWrapper}>
-            <svg className={styles.searchIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
+            <Icon name="icon-9c4a10ac" size={16} className={styles.searchIcon} />
             <input
               type="text"
               className={styles.searchInput}
@@ -1161,12 +1123,7 @@ export default function PurchaseHistoryPage() {
               onClick={() => setViewMode("grouped")}
               title="Group by Seller & Invoice"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="3" width="7" height="7"></rect>
-                <rect x="14" y="3" width="7" height="7"></rect>
-                <rect x="14" y="14" width="7" height="7"></rect>
-                <rect x="3" y="14" width="7" height="7"></rect>
-              </svg>
+              <Icon name="payment-qr-balance" size={14} />
               Grouped
             </button>
             <button
@@ -1174,14 +1131,7 @@ export default function PurchaseHistoryPage() {
               onClick={() => setViewMode("flat")}
               title="Flat List View"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="8" y1="6" x2="21" y2="6"></line>
-                <line x1="8" y1="12" x2="21" y2="12"></line>
-                <line x1="8" y1="18" x2="21" y2="18"></line>
-                <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                <line x1="3" y1="18" x2="3.01" y2="18"></line>
-              </svg>
+              <Icon name="icon-5d77ebc6" size={14} />
               Flat List
             </button>
           </div>
@@ -1193,10 +1143,7 @@ export default function PurchaseHistoryPage() {
               onClick={() => isAllExpanded(false) ? collapseAllGroups(false) : expandAllGroups(false)}
               title={isAllExpanded(false) ? "Collapse All Groups" : "Expand All Groups"}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="7 13 12 18 17 13"></polyline>
-                <polyline points="7 6 12 11 17 6"></polyline>
-              </svg>
+              <Icon name="icon-89725ea1" size={14} />
               {isAllExpanded(false) ? "Collapse All" : "Expand All"}
             </button>
           )}
@@ -1206,11 +1153,7 @@ export default function PurchaseHistoryPage() {
             onClick={exportGroupedToExcel}
             title="Download Grouped Purchase History Excel Sheet"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
+            <Icon name="download-invoices-excel-report" size={15} />
             Download Excel
           </button>
 
@@ -1219,18 +1162,12 @@ export default function PurchaseHistoryPage() {
             onClick={toggleShowArchived}
             title={showArchived ? "Hide archived records" : "Show archived records"}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="21 8 21 21 3 21 3 8"></polyline>
-              <rect x="1" y="3" width="22" height="5"></rect>
-              <line x1="10" y1="12" x2="14" y2="12"></line>
-            </svg>
+            <Icon name="archive-this-record" size={15} />
             {showArchived ? "Hide Archived" : "Show Archived"}
           </button>
 
           <button className={styles.refreshBtn} onClick={fetchPurchases} title="Refresh Data">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-            </svg>
+            <Icon name="refresh-data" />
           </button>
         </div>
       </div>
@@ -1240,10 +1177,7 @@ export default function PurchaseHistoryPage() {
         <div className={styles.statsGrid}>
           <div className={styles.statCard}>
             <div className={styles.statIconWrapper} style={{ background: "rgba(59, 130, 246, 0.12)", color: "#3b82f6" }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-              </svg>
+              <Icon name="pdf-preview" size={22} />
             </div>
             <div className={styles.statInfo}>
               <span className={styles.statLabel}>Invoices / Groups</span>
@@ -1253,14 +1187,7 @@ export default function PurchaseHistoryPage() {
 
           <div className={styles.statCard}>
             <div className={styles.statIconWrapper} style={{ background: "rgba(168, 85, 247, 0.12)", color: "#a855f7" }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="8" y1="6" x2="21" y2="6"></line>
-                <line x1="8" y1="12" x2="21" y2="12"></line>
-                <line x1="8" y1="18" x2="21" y2="18"></line>
-                <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                <line x1="3" y1="18" x2="3.01" y2="18"></line>
-              </svg>
+              <Icon name="icon-5d77ebc6" size={22} />
             </div>
             <div className={styles.statInfo}>
               <span className={styles.statLabel}>Line Items</span>
@@ -1270,9 +1197,7 @@ export default function PurchaseHistoryPage() {
 
           <div className={styles.statCard}>
             <div className={styles.statIconWrapper} style={{ background: "rgba(16, 185, 129, 0.12)", color: "#10b981" }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-              </svg>
+              <Icon name="icon-d0275ba0" size={22} />
             </div>
             <div className={styles.statInfo}>
               <span className={styles.statLabel}>Purchased Qty</span>
@@ -1282,10 +1207,7 @@ export default function PurchaseHistoryPage() {
 
           <div className={styles.statCard}>
             <div className={styles.statIconWrapper} style={{ background: "rgba(245, 158, 11, 0.12)", color: "#f59e0b" }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="12" y1="1" x2="12" y2="23"></line>
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-              </svg>
+              <Icon name="icon-7e710d4a" size={22} />
             </div>
             <div className={styles.statInfo}>
               <span className={styles.statLabel}>Total Procurement Cost</span>
@@ -1327,11 +1249,7 @@ export default function PurchaseHistoryPage() {
             <div className={styles.archivedSectionHeader} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <span className={styles.archivedSectionTitle}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="21 8 21 21 3 21 3 8"></polyline>
-                    <rect x="1" y="3" width="22" height="5"></rect>
-                    <line x1="10" y1="12" x2="14" y2="12"></line>
-                  </svg>
+                  <Icon name="archive-this-record" size={16} />
                   Archived Records
                   <span className={styles.archivedCount}>{archivedPurchases.length}</span>
                 </span>
@@ -1416,11 +1334,7 @@ export default function PurchaseHistoryPage() {
         <div className={styles.modalOverlay} onClick={closeArchiveModal}>
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
             <div className={styles.dangerModalIcon}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="21 8 21 21 3 21 3 8"></polyline>
-                <rect x="1" y="3" width="22" height="5"></rect>
-                <line x1="10" y1="12" x2="14" y2="12"></line>
-              </svg>
+              <Icon name="archive-this-record" size={28} />
             </div>
             <h2 className={styles.modalTitle}>Archive Purchase Record</h2>
             <p className={styles.modalDesc}>
@@ -1460,10 +1374,7 @@ export default function PurchaseHistoryPage() {
         <div className={styles.modalOverlay} onClick={closeRestoreModal}>
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
             <div className={`${styles.dangerModalIcon} ${styles.infoBlue}`}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="1 4 1 10 7 10"></polyline>
-                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-              </svg>
+              <Icon name="restore-invoice" size={28} />
             </div>
             <h2 className={styles.modalTitle}>Restore Purchase Record</h2>
             <p className={styles.modalDesc}>
@@ -1502,12 +1413,7 @@ export default function PurchaseHistoryPage() {
         <div className={styles.modalOverlay} onClick={closeDeleteModal}>
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
             <div className={`${styles.dangerModalIcon} ${styles.dangerRed}`}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6l-1 14H6L5 6"></path>
-                <path d="M10 11v6"></path><path d="M14 11v6"></path>
-                <path d="M9 6V4h6v2"></path>
-              </svg>
+              <Icon name="delete-permanently" size={28} />
             </div>
             <h2 className={styles.modalTitle}>Delete Permanently</h2>
             <p className={styles.modalDesc}>
@@ -1538,7 +1444,6 @@ export default function PurchaseHistoryPage() {
         </div>
       )}
 
-      <Toast message={message} onClose={() => setMsg({ text: "", type: "" })} />
 
       {hoveredImage && (
         <div 

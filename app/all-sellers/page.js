@@ -1,16 +1,20 @@
 "use client";
+import { toast } from "sonner";
+
+import Icon from "@/components/ui/Icon/Icon";
+
 
 import React, { useState, useEffect } from "react";
 import styles from "./page.module.css";
-import Toast from "../../components/Toast/Toast";
+
 import { useAuth } from "../../components/AuthProvider";
 import { parseSearchQuery, matchesArraySearchTerms } from "../../utils/searchUtils";
 
 /* ── Helper ──────────────────────────────────────────── */
 function copy(text, setMsg) {
   navigator.clipboard.writeText(text).then(
-    () => setMsg({ text: `Copied!`, type: "success" }),
-    () => setMsg({ text: "Failed to copy", type: "error" })
+    () => toast.success(`Copied!`, { id: "app-feedback", duration: 3000 }),
+    () => toast.error("Failed to copy", { id: "app-feedback", duration: 3000 })
   );
 }
 
@@ -44,10 +48,7 @@ function DetailRow({ icon, label, value, onCopy }) {
       </div>
       {onCopy && (
         <button className={styles.copyIconBtn} onClick={onCopy} title="Copy">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-          </svg>
+          <Icon name="copy-inventory-id" size={13} />
         </button>
       )}
     </div>
@@ -102,7 +103,7 @@ export default function AllSellersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [pageSize, setPageSize] = useState(50);
-  const [message, setMsg] = useState({ text: "", type: "" });
+
 
   // View States
   const [showArchived, setShowArchived] = useState(false);
@@ -137,10 +138,10 @@ export default function AllSellersPage() {
       if (res.ok && result.success) {
         setAllSellers(result.data || []);
       } else {
-        setMsg({ text: result.error || "Failed to load sellers.", type: "error" });
+        toast.error(result.error || "Failed to load sellers.", { id: "app-feedback", duration: 3000 });
       }
     } catch {
-      setMsg({ text: "Network error while loading sellers.", type: "error" });
+      toast.error("Network error while loading sellers.", { id: "app-feedback", duration: 3000 });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -172,7 +173,7 @@ export default function AllSellersPage() {
       const res = await fetch(`/api/employee/seller?id=${sellerToDelete}`, { method: "DELETE" });
       const result = await res.json();
       if (res.ok && result.success) {
-        setMsg({ text: "Seller archived successfully.", type: "success" });
+        toast.success("Seller archived successfully.", { id: "app-feedback", duration: 3000 });
         // Update local state
         setAllSellers((prev) => 
           showArchived 
@@ -181,10 +182,10 @@ export default function AllSellersPage() {
         );
         if (selectedSeller?._id === sellerToDelete) setSelectedSeller(null);
       } else {
-        setMsg({ text: result.error || "Failed to archive seller.", type: "error" });
+        toast.error(result.error || "Failed to archive seller.", { id: "app-feedback", duration: 3000 });
       }
     } catch {
-      setMsg({ text: "Network error. Please try again.", type: "error" });
+      toast.error("Network error. Please try again.", { id: "app-feedback", duration: 3000 });
     } finally {
       setDeleteLoading(false);
       setShowDeleteConfirm(false);
@@ -204,17 +205,17 @@ export default function AllSellersPage() {
       });
       const result = await res.json();
       if (res.ok && result.success) {
-        setMsg({ text: "Seller restored successfully.", type: "success" });
+        toast.success("Seller restored successfully.", { id: "app-feedback", duration: 3000 });
         // If we want them to disappear from the 'Archived' list, we can remove them.
         // Wait, if we are viewing 'Archived', restoring should perhaps keep it or remove it?
         // Let's remove it because it's no longer archived.
         setAllSellers((prev) => prev.filter((s) => s._id !== sellerToRestore));
         if (selectedSeller?._id === sellerToRestore) setSelectedSeller(null);
       } else {
-        setMsg({ text: result.error || "Failed to restore seller.", type: "error" });
+        toast.error(result.error || "Failed to restore seller.", { id: "app-feedback", duration: 3000 });
       }
     } catch {
-      setMsg({ text: "Network error. Please try again.", type: "error" });
+      toast.error("Network error. Please try again.", { id: "app-feedback", duration: 3000 });
     } finally {
       setRestoreLoading(false);
       setShowRestoreConfirm(false);
@@ -230,7 +231,7 @@ export default function AllSellersPage() {
   const submitEdit = async (e) => {
     e.preventDefault();
     if (!editFormData.businessName?.trim()) {
-      setMsg({ text: "Business Name is required.", type: "error" });
+      toast.error("Business Name is required.", { id: "app-feedback", duration: 3000 });
       return;
     }
 
@@ -243,7 +244,7 @@ export default function AllSellersPage() {
       });
       const result = await res.json();
       if (res.ok && result.success) {
-        setMsg({ text: "Seller updated successfully.", type: "success" });
+        toast.success("Seller updated successfully.", { id: "app-feedback", duration: 3000 });
         // Update local arrays
         setAllSellers(prev => prev.map(s => s._id === editFormData._id ? result.data : s));
         if (selectedSeller?._id === editFormData._id) {
@@ -251,10 +252,10 @@ export default function AllSellersPage() {
         }
         setShowEditModal(false);
       } else {
-        setMsg({ text: result.error || "Failed to update seller.", type: "error" });
+        toast.error(result.error || "Failed to update seller.", { id: "app-feedback", duration: 3000 });
       }
     } catch {
-      setMsg({ text: "Network error while updating seller.", type: "error" });
+      toast.error("Network error while updating seller.", { id: "app-feedback", duration: 3000 });
     } finally {
       setEditLoading(false);
     }
@@ -263,12 +264,12 @@ export default function AllSellersPage() {
   const totalPages = Math.ceil(totalItems / pageSize) || 1;
 
   /* ── Icons ── */
-  const iconPhone = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12 19.79 19.79 0 0 1 1.07 3.4 2 2 0 0 1 3 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16z" /></svg>;
-  const iconMail = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>;
-  const iconMap = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>;
-  const iconBank = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>;
-  const iconShip = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></svg>;
-  const iconGst = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>;
+  const iconPhone = <Icon name="icon-2d625620" size={14} />;
+  const iconMail = <Icon name="icon-4d0b16f6" size={14} />;
+  const iconMap = <Icon name="icon-28f62de3" size={14} />;
+  const iconBank = <Icon name="icon-208b8f70" size={14} />;
+  const iconShip = <Icon name="icon-d4e3f44f" size={14} />;
+  const iconGst = <Icon name="pdf-preview" size={14} />;
 
   return (
     <div className={styles.container}>
@@ -281,9 +282,7 @@ export default function AllSellersPage() {
 
         <div className={styles.controls}>
           <div className={styles.searchBox}>
-            <svg className={styles.searchIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
+            <Icon name="icon-9c4a10ac" size={16} className={styles.searchIcon} />
             <input
               type="text"
               placeholder="Search by name, GST, phone, email..."
@@ -293,9 +292,7 @@ export default function AllSellersPage() {
             />
             {searchQuery && (
               <button className={styles.clearSearch} onClick={() => { setSearchQuery(""); setCurrentPage(1); }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
+                <Icon name="remove-this-product" size={14} />
               </button>
             )}
           </div>
@@ -306,10 +303,7 @@ export default function AllSellersPage() {
             disabled={refreshing}
             title="Refresh"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-            </svg>
+            <Icon name="refresh" size={16} />
             Refresh
           </button>
 
@@ -326,11 +320,7 @@ export default function AllSellersPage() {
               title={showArchived ? "Hide Archived" : "Show Archived"}
               style={showArchived ? { backgroundColor: "#3b82f6", color: "white", borderColor: "#3b82f6" } : {}}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 8v13H3V8"></path>
-                <polyline points="1 3 23 3 23 8 1 8 1 3"></polyline>
-                <path d="M10 12h4"></path>
-              </svg>
+              <Icon name="icon-fb9fc010" size={16} />
               {showArchived ? "Hide Archived" : "Show Archived"}
             </button>
           )}
@@ -345,9 +335,7 @@ export default function AllSellersPage() {
         </div>
       ) : sellers.length === 0 ? (
         <div className={styles.emptyState}>
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#334155" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-          </svg>
+          <Icon name="icon-d5851a0c" size={48} />
           <p>{searchQuery ? "No sellers match your search." : "No sellers found. Add one to get started."}</p>
         </div>
       ) : (
@@ -364,10 +352,7 @@ export default function AllSellersPage() {
                       title="Restore Seller"
                       style={{ color: '#10b981', background: 'rgba(16, 185, 129, 0.15)' }}
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="9 14 4 9 9 4"></polyline>
-                        <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
-                      </svg>
+                      <Icon name="restore-inventory" size={14} />
                     </button>
                   ) : (
                     !seller.isArchived && (
@@ -376,9 +361,7 @@ export default function AllSellersPage() {
                         onClick={(e) => { e.stopPropagation(); setSellerToDelete(seller._id); setShowDeleteConfirm(true); }}
                         title="Archive Seller"
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        </svg>
+                        <Icon name="trash" size={14} />
                       </button>
                     )
                   )}
@@ -472,9 +455,7 @@ export default function AllSellersPage() {
         <div className={styles.modalOverlay} onClick={() => setSelectedSeller(null)}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <button className={styles.closeBtn} onClick={() => setSelectedSeller(null)}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+              <Icon name="remove-this-product" />
             </button>
 
             <div className={styles.modalScroll}>
@@ -560,9 +541,7 @@ export default function AllSellersPage() {
                     className={styles.modalRestoreBtn}
                     onClick={() => { setSellerToRestore(selectedSeller._id); setShowRestoreConfirm(true); }}
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="9 14 4 9 9 4"></polyline><path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
-                    </svg>
+                    <Icon name="restore-inventory" size={16} />
                     Restore Seller
                   </button>
                 ) : (
@@ -576,19 +555,14 @@ export default function AllSellersPage() {
                           setSelectedSeller(null);
                         }}
                       >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                        </svg>
+                        <Icon name="edit-inventory" size={16} />
                         Edit Seller
                       </button>
                       <button
                         className={styles.modalDeleteBtn}
                         onClick={() => { setSellerToDelete(selectedSeller._id); setShowDeleteConfirm(true); }}
                       >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        </svg>
+                        <Icon name="trash" size={16} />
                         Archive Seller
                       </button>
                     </>
@@ -605,10 +579,7 @@ export default function AllSellersPage() {
         <div className={styles.confirmOverlay} onClick={() => { setShowDeleteConfirm(false); setSellerToDelete(null); }}>
           <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.confirmIcon}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
-              </svg>
+              <Icon name="icon-cfd589e1" size={28} />
             </div>
             <h3 className={styles.confirmTitle}>Archive Seller?</h3>
             <p className={styles.confirmMsg}>Are you sure you want to archive this seller? They will be hidden from the active list.</p>
@@ -627,10 +598,7 @@ export default function AllSellersPage() {
         <div className={styles.confirmOverlay} onClick={() => { setShowRestoreConfirm(false); setSellerToRestore(null); }}>
           <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.confirmIcon} style={{ background: "rgba(16, 185, 129, 0.1)" }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 14 4 9 9 4"></polyline>
-                <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
-              </svg>
+              <Icon name="restore-inventory" size={28} />
             </div>
             <h3 className={styles.confirmTitle}>Restore Seller?</h3>
             <p className={styles.confirmMsg}>Are you sure you want to restore this seller? They will become active again.</p>
@@ -649,9 +617,7 @@ export default function AllSellersPage() {
         <div className={styles.modalOverlay} onClick={() => setShowEditModal(false)}>
           <div className={`${styles.modal} ${styles.editModal}`} onClick={(e) => e.stopPropagation()}>
             <button className={styles.closeBtn} onClick={() => setShowEditModal(false)}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+              <Icon name="remove-this-product" />
             </button>
             <div className={styles.modalScroll}>
               <h2 className={styles.modalTitle} style={{ marginBottom: "1.5rem" }}>Edit Seller Details</h2>
@@ -660,10 +626,7 @@ export default function AllSellersPage() {
                 {/* ── Section: Basic Info ── */}
                 <div className={styles.section}>
                   <div className={styles.sectionHeader}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="2" y="3" width="20" height="14" rx="2" />
-                      <path d="M8 21h8M12 17v4" />
-                    </svg>
+                    <Icon name="icon-4c39cef6" size={18} />
                     <h3 className={styles.sectionTitle}>Business Information</h3>
                   </div>
                   <div className={styles.grid2}>
@@ -678,9 +641,7 @@ export default function AllSellersPage() {
                 {/* ── Section: Contact ── */}
                 <div className={styles.section}>
                   <div className={styles.sectionHeader}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12 19.79 19.79 0 0 1 1.07 3.4 2 2 0 0 1 3 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16z" />
-                    </svg>
+                    <Icon name="icon-2d625620" size={18} />
                     <h3 className={styles.sectionTitle}>Contact Numbers</h3>
                   </div>
                   <div className={styles.grid2}>
@@ -694,10 +655,7 @@ export default function AllSellersPage() {
                 {/* ── Section: Address ── */}
                 <div className={styles.section}>
                   <div className={styles.sectionHeader}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
+                    <Icon name="icon-28f62de3" size={18} />
                     <h3 className={styles.sectionTitle}>Address</h3>
                   </div>
                   <div className={styles.grid1}>
@@ -713,10 +671,7 @@ export default function AllSellersPage() {
                 {/* ── Section: Primary Bank ── */}
                 <div className={styles.section}>
                   <div className={styles.sectionHeader}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-                      <line x1="1" y1="10" x2="23" y2="10" />
-                    </svg>
+                    <Icon name="icon-208b8f70" size={18} />
                     <h3 className={styles.sectionTitle}>Primary Banking Details</h3>
                   </div>
                   <div className={styles.grid2}>
@@ -732,10 +687,7 @@ export default function AllSellersPage() {
                 {/* ── Section: Alternate Bank ── */}
                 <div className={styles.section}>
                   <div className={styles.sectionHeader}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-                      <line x1="1" y1="10" x2="23" y2="10" />
-                    </svg>
+                    <Icon name="icon-208b8f70" size={18} />
                     <h3 className={styles.sectionTitle}>Alternate Banking Details</h3>
                     <span className={styles.optionalBadge}>Optional</span>
                   </div>
@@ -761,7 +713,6 @@ export default function AllSellersPage() {
         </div>
       )}
 
-      <Toast message={message} onClose={() => setMsg({ text: "", type: "" })} />
-    </div>
+          </div>
   );
 }
