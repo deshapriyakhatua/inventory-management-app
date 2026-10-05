@@ -1,0 +1,240 @@
+.skuCard {
+    background-color: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: border-color 0.2s;
+}
+
+.skuCard:hover {
+    border-color: #3b82f6;
+}
+
+.inactiveSku {
+    background-color: rgb(73, 12, 12);
+    opacity: 0.5;
+}
+
+.blockedSku {
+    background-color: rgb(63, 28, 8);
+    opacity: 0.5;
+}
+
+.skuInfo {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.25rem;
+}
+
+.skuMain {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.skuIdLabel {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: #94a3b8;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.skuIdValue {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.skuIdWithCopy {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.copyButtonSmall {
+    background: transparent;
+    border: none;
+    color: #b1bed1;
+    padding: 0.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.copyButtonSmall:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #f8fafc;
+}
+
+
+.statusBadge {
+    padding: 0.25rem 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.activeStatus {
+    color: rgb(16, 185, 129);
+}
+
+.inactiveStatus {
+    color: rgb(239, 68, 68);
+}
+
+.blockedStatus {
+    color: rgb(245, 159, 11);
+}
+
+.skuBadges {
+    display: flex;
+    gap: 0.5rem;
+    flex-direction: column;
+}
+
+.marketplaceBadge {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.netSoldBadge {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: #45a71f;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.comboSection {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.comboLabel {
+    font-size: 0.85rem;
+    color: #cbd5e1;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 0.75rem;
+}
+
+.comboGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 1rem;
+}
+
+.comboItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: rgba(30, 41, 59, 0.5);
+    padding: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.comboImageWrapper {
+    width: 60px;
+    height: 60px;
+    position: relative;
+    border-radius: 6px;
+    overflow: hidden;
+    background-color: #020617;
+}
+
+.comboImg {
+    object-fit: cover;
+}
+
+.comboPlaceholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: #475569;
+}
+
+.comboIdContainer {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    width: 100%;
+    justify-content: center;
+}
+
+.comboId {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #94a3b8;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80px;
+}
+
+.copyButtonTiny {
+    background: transparent;
+    border: none;
+    color: #94a6c0;
+    padding: 2px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 2px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.copyButtonTiny:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #94a3b8;
+}
+
+.comboQuantity {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    width: 100%;
+    justify-content: center;
+}
+
+.comboQtyLabel {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #94a3b8;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80px;
+}
+
+.comboQtyValue {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #94a3b8;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80px;
+}
