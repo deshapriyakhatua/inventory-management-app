@@ -13,7 +13,7 @@
   border: 0.125rem solid currentColor;
   border-right-color: transparent;
   border-radius: var(--radius-pill);
-  animation: spin 0.8s linear infinite;
+  animation: var(--keyframes-spin) 0.8s linear infinite;
 }
 
 .sizeSm .indicator {

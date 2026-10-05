@@ -110,6 +110,10 @@
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  /* Global keyframe names from base.css. CSS Modules rename bare keyframe
+     names in `animation`, so modules reference these via var() instead. */
+  --keyframes-spin: spin;
+  --keyframes-fade-in: fadeIn;
 
   --z-sticky: 100;
   --z-sidebar: 200;

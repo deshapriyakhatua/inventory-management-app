@@ -23,7 +23,7 @@
     background: var(--color-surface-raised);
     box-shadow: var(--shadow-md);
     transform-origin: top right;
-    animation: fadeIn var(--duration-fast) var(--ease-out);
+    animation: var(--keyframes-fade-in) var(--duration-fast) var(--ease-out);
 }
 
 .item {
