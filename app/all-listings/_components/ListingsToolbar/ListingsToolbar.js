@@ -1,5 +1,35 @@
+import Button from "@/components/ui/Button/Button";
 import Icon from "@/components/ui/Icon/Icon";
+import IconButton from "@/components/ui/IconButton/IconButton";
+import Input from "@/components/ui/Input/Input";
+import PageHeader from "@/components/ui/PageHeader/PageHeader";
+import Select from "@/components/ui/Select/Select";
 import styles from "./ListingsToolbar.module.css";
+
+function SearchInput({ placeholder, value, onChange, onKeyDown, onSearch, searchLabel }) {
+    return (
+        <div className={styles.search}>
+            <Input
+                type="text"
+                aria-label={placeholder}
+                placeholder={placeholder}
+                value={value}
+                onChange={onChange}
+                onKeyDown={onKeyDown}
+                leading={
+                    <IconButton
+                        name="icon-9c4a10ac"
+                        size="sm"
+                        aria-label={searchLabel}
+                        title={searchLabel}
+                        className={styles.searchButton}
+                        onClick={onSearch}
+                    />
+                }
+            />
+        </div>
+    );
+}
 
 export default function ListingsToolbar({
     searchQuery,
@@ -26,92 +56,69 @@ export default function ListingsToolbar({
     onReset,
 }) {
     return (
-        <div className={styles.header}>
-            <h1 className={styles.title}>SKU</h1>
-
-            <div className={styles.controlsRow}>
-                {/* Row 1: Search Inputs & Refresh Button */}
-                <div className={styles.controlsGroup}>
-                    <div className={styles.searchBox}>
-                        <input
-                            type="text"
+        <>
+            <PageHeader
+                title="SKU"
+                actions={
+                    <div className={styles.root}>
+                        <SearchInput
                             placeholder="Search SKU ID..."
                             value={searchQuery}
                             onChange={onSearchQueryChange}
                             onKeyDown={onSearch}
-                            className={styles.searchInput}
+                            onSearch={onSearch}
+                            searchLabel="Search"
                         />
-                        <button className={styles.searchBtn} onClick={onSearch} title="Search">
-                            <Icon name="icon-9c4a10ac" size={15} />
-                        </button>
-                    </div>
-
-                    <div className={styles.searchBox}>
-                        <input
-                            type="text"
+                        <SearchInput
                             placeholder="Search Inventory ID..."
                             value={inventoryIdQuery}
                             onChange={onInventoryIdQueryChange}
-                            className={styles.searchInput}
+                            onSearch={onSearchClick}
+                            searchLabel="Search"
                         />
-                        <button className={styles.searchBtn} onClick={onSearchClick} title="Search">
-                            <Icon name="icon-9c4a10ac" size={15} />
-                        </button>
-                    </div>
-
-                    <div className={styles.searchBox}>
-                        <input
-                            type="text"
+                        <SearchInput
                             placeholder="Search Style ID..."
                             value={styleIdQuery}
                             onChange={onStyleIdQueryChange}
-                            className={styles.searchInput}
+                            onSearch={onSearchClick}
+                            searchLabel="Search Style ID"
                         />
-                        <button className={styles.searchBtn} onClick={onSearchClick} title="Search Style ID">
-                            <Icon name="icon-9c4a10ac" size={15} />
-                        </button>
+
+                        <IconButton
+                            name="refresh"
+                            variant="secondary"
+                            onClick={onRefresh}
+                            loading={refreshing}
+                            title="Refresh Data"
+                            aria-label="Refresh Data"
+                        />
+
+                        <Button
+                            variant="secondary"
+                            leftIcon={<Icon name="download-invoices-excel-report" size={16} />}
+                            onClick={onDownload}
+                            disabled={totalItems === 0}
+                            title={`Download all ${totalItems} filtered SKUs as Excel`}
+                        >
+                            Download
+                        </Button>
                     </div>
+                }
+            />
 
-                    <button
-                        className={`${styles.refreshBtn} ${refreshing ? styles.spinning : ''}`}
-                        onClick={onRefresh}
-                        disabled={refreshing}
-                        title="Refresh Data"
-                    >
-                        <Icon name="refresh" size={15} />
-                        Refresh
-                    </button>
-
-                    <button
-                        className={styles.downloadBtn}
-                        onClick={onDownload}
-                        disabled={totalItems === 0}
-                        title={`Download all ${totalItems} filtered SKUs as Excel`}
-                    >
-                        <Icon name="download-invoices-excel-report" size={15} />
-                        Download
-                    </button>
-                </div>
-
-                {/* Row 2: Filter Selects & Reset Button */}
-                <div className={styles.controlsGroup}>
-                    <select
-                        className={styles.filterSelect}
-                        value={selectedVertical}
-                        onChange={onVerticalChange}
-                    >
+            <div className={styles.filters}>
+                <div className={styles.filter}>
+                    <Select aria-label="Vertical" value={selectedVertical} onChange={onVerticalChange}>
                         <option value="">All Verticals</option>
                         {verticals.map(v => (
                             <option key={v.verticalShort} value={v.verticalName}>{v.verticalName}</option>
                         ))}
                         <option key="combo" value="Combo">Combo</option>
-                    </select>
+                    </Select>
+                </div>
 
-                    <select
-                        className={styles.filterSelect}
-                        value={selectedMarketplace}
-                        onChange={onMarketplaceChange}
-                    >
+                <div className={styles.filter}>
+                    <Select aria-label="Marketplace" value={selectedMarketplace} onChange={onMarketplaceChange}>
                         <option value="">All Marketplaces</option>
                         <option value="Amazon">Amazon</option>
                         <option value="Flipkart">Flipkart</option>
@@ -121,39 +128,35 @@ export default function ListingsToolbar({
                         <option value="Ajio">Ajio</option>
                         <option value="Website">Website</option>
                         <option value="Other">Other</option>
-                    </select>
+                    </Select>
+                </div>
 
-                    <select
-                        className={styles.filterSelect}
-                        value={selectedStatus}
-                        onChange={onStatusChange}
-                    >
+                <div className={styles.filter}>
+                    <Select aria-label="Status" value={selectedStatus} onChange={onStatusChange}>
                         <option value="">All Statuses</option>
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                         <option value="blocked">Blocked</option>
                         <option value="archived">Archived</option>
-                    </select>
+                    </Select>
+                </div>
 
-                    <select
-                        className={styles.filterSelect}
-                        value={sortOrder}
-                        onChange={onSortOrderChange}
-                    >
+                <div className={styles.filter}>
+                    <Select aria-label="Sort order" value={sortOrder} onChange={onSortOrderChange}>
                         <option value="newest_first">Newest First</option>
                         <option value="oldest_first">Oldest First</option>
-                    </select>
-
-                    <button
-                        className={styles.resetBtn}
-                        onClick={onReset}
-                        title="Reset Filters"
-                    >
-                        <Icon name="reset-filters-listings" size={15} />
-                        Reset
-                    </button>
+                    </Select>
                 </div>
+
+                <Button
+                    variant="secondary"
+                    leftIcon={<Icon name="reset-filters-listings" size={16} />}
+                    onClick={onReset}
+                    title="Reset Filters"
+                >
+                    Reset
+                </Button>
             </div>
-        </div>
+        </>
     );
 }

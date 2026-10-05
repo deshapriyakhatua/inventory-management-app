@@ -1,8 +1,10 @@
 import Image from "next/image";
+import Card from "@/components/ui/Card/Card";
 import Icon from "@/components/ui/Icon/Icon";
-import MarketplaceLogo from "../../../../components/MarketplaceLogo/MarketplaceLogo";
+import IconButton from "@/components/ui/IconButton/IconButton";
+import cx from "@/components/ui/cx";
+import MarketplaceLogo from "@/components/MarketplaceLogo/MarketplaceLogo";
 import StatusDot from "../StatusDot/StatusDot";
-import { STATUS_COLORS } from "../../allListingsConfig";
 import styles from "./ListingCard.module.css";
 
 export default function ListingCard({
@@ -16,97 +18,92 @@ export default function ListingCard({
 }) {
     const validImages = item.inventoryItems?.filter(inv => inv.imageUrl) || [];
     const displayImages = validImages.slice(0, 4);
+    const isDeleting = deleteButtonLoading && deletingListingId === item.skuId;
 
     return (
-        <div
-            className={styles.gridCard}
-            onClick={() => onSelect(item)}
-            style={{ cursor: 'pointer' }}
-        >
+        <Card as="article" padding="sm" className={styles.root}>
             <button
                 type="button"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(item);
-                }}
-                className={styles.deleteBtn}
+                className={styles.open}
+                aria-label={item.skuId}
+                onClick={() => onSelect(item)}
+            />
+
+            <IconButton
+                name="trash"
+                size="sm"
+                onClick={() => onDelete(item)}
+                className={cx(styles.action, styles.actionStart, styles.isDanger)}
                 title="Delete Listing"
-                disabled={deleteButtonLoading && deletingListingId === item.skuId}
-            >
-                {deleteButtonLoading && deletingListingId === item.skuId
-                    ? <Icon name="refresh-loop" size={16} className={styles.deleteLoadingIcon} />
-                    : <Icon name="trash" size={16} className={styles.deleteIcon} />
-                }
-            </button>
-            {/* Edit button – sits top-right on the card */}
-            <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onEdit(item); }}
-                className={styles.editCardBtn}
+                aria-label="Delete Listing"
+                disabled={isDeleting}
+                loading={isDeleting}
+            />
+            <IconButton
+                name="edit-inventory"
+                size="sm"
+                onClick={() => onEdit(item)}
+                className={cx(styles.action, styles.actionEnd)}
                 title="Edit Listing"
-            >
-                <Icon name="edit-inventory" size={14} />
-            </button>
-            <div className={styles.imageContainer} data-count={displayImages.length}>
+                aria-label="Edit Listing"
+            />
+
+            <div className={styles.media} data-count={displayImages.length}>
                 {displayImages.length > 0 ? (
                     displayImages.map((inv, idx) => (
-                        <div key={idx} className={styles.multiImageCell}>
+                        <div key={idx} className={styles.cell}>
                             <Image
                                 src={inv.imageUrl}
                                 alt={item.skuId}
                                 referrerPolicy="no-referrer"
                                 fill
-                                className={styles.itemImage}
+                                sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                                className={styles.image}
                                 unoptimized
                             />
                             {idx === 3 && validImages.length > 4 && (
-                                <div className={styles.moreImagesOverlay}>
+                                <div className={styles.more}>
                                     +{validImages.length - 4}
                                 </div>
                             )}
                         </div>
                     ))
                 ) : (
-                    <div className={styles.imagePlaceholder}>
-                        <Icon name="icon-b99b6c9f" size={32} style={{opacity:0.5,marginBottom:'0.5rem'}} />
-                        <br />No Images
+                    <div className={styles.placeholder}>
+                        <Icon name="icon-b99b6c9f" size={32} className={styles.placeholderIcon} />
+                        No Images
                     </div>
                 )}
             </div>
-            <div className={styles.cardInfo}>
-                <div className={styles.skuHeaderRow}>
-                    <p className={styles.itemId}>{item.skuId}</p>
-                    <button
-                        className={styles.smallCopyBtn}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onCopy(item.skuId, "SKU ID");
-                        }}
+
+            <div className={styles.info}>
+                <div className={styles.idRow}>
+                    <p className={styles.id} title={item.skuId}>{item.skuId}</p>
+                    <IconButton
+                        name="copy-inventory-id"
+                        size="sm"
+                        className={styles.copy}
+                        onClick={() => onCopy(item.skuId, "SKU ID")}
                         title="Copy SKU ID"
-                    >
-                        <Icon name="copy-inventory-id" size={14} />
-                    </button>
+                        aria-label="Copy SKU ID"
+                    />
                 </div>
-                <div className={styles.metaInfoRow}>
-                    <StatusDot status={item.status} />
-                    <p
-                        className={styles.itemStatus}
-                        style={{ color: STATUS_COLORS[item.status?.toLowerCase()]?.label || '#94a3b8' }}
-                    >
+                <div className={styles.meta}>
+                    <StatusDot status={item.status} className={styles.status}>
                         {item.status?.toUpperCase() || "ACTIVE"}
-                    </p>
-                    <span className={styles.dotSeparator}>•</span>
-                    <div className={styles.marketplaceBadge}>
+                    </StatusDot>
+                    <span aria-hidden="true" className={styles.separator}>•</span>
+                    <span className={styles.marketplace}>
                         <MarketplaceLogo marketplace={item.marketplace} size={16} />
-                        <p className={styles.itemMarketplace}>{item.marketplace || 'Direct'}</p>
-                    </div>
+                        {item.marketplace || 'Direct'}
+                    </span>
                 </div>
-                <p className={styles.itemDate}>
+                <p className={styles.date}>
                     {new Date(item.createdAt).toLocaleDateString('en-US', {
                         month: 'short', day: 'numeric', year: 'numeric'
                     })}
                 </p>
             </div>
-        </div>
+        </Card>
     );
 }

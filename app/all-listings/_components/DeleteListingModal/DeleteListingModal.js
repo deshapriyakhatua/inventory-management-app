@@ -1,4 +1,8 @@
+import Button from "@/components/ui/Button/Button";
+import FormField from "@/components/ui/FormField/FormField";
 import Icon from "@/components/ui/Icon/Icon";
+import Input from "@/components/ui/Input/Input";
+import Modal from "@/components/ui/Modal/Modal";
 import styles from "./DeleteListingModal.module.css";
 
 export default function DeleteListingModal({
@@ -11,55 +15,48 @@ export default function DeleteListingModal({
     onClose,
 }) {
     return (
-        <div className={styles.modalOverlay} onClick={onClose}>
-            <div className={styles.deleteConfirmModalContent} onClick={e => e.stopPropagation()}>
-                <div className={styles.modalHeader}>
-                    <h2 style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                        <Icon name="icon-cfd589e1" size={22} />
-                        Confirm Deletion
-                    </h2>
-                    <button className={styles.closeBtn} onClick={onClose}>
-                        <Icon name="remove-this-product" />
-                    </button>
-                </div>
+        <Modal
+            open
+            onClose={onClose}
+            size="sm"
+            title={
+                <span className={styles.title}>
+                    <Icon name="icon-cfd589e1" size={22} />
+                    Confirm Deletion
+                </span>
+            }
+        >
+            <div className={styles.root}>
+                <p className={styles.message}>
+                    Are you sure you want to delete listing <strong className={styles.sku}>{deletingListing.skuId}</strong>? This action cannot be undone.
+                </p>
+                <FormField
+                    label={<>To confirm, type <span className={styles.keyword}>delete</span> below:</>}
+                >
+                    <Input
+                        type="text"
+                        placeholder="Type 'delete' to confirm"
+                        value={deleteInputText}
+                        onChange={onInputChange}
+                        onKeyDown={onInputKeyDown}
+                        data-autofocus
+                    />
+                </FormField>
 
-                <div className={styles.deleteModalBody}>
-                    <p style={{ margin: 0, color: '#e2e8f0', fontSize: '0.95rem', lineHeight: '1.5' }}>
-                        Are you sure you want to delete listing <strong style={{ color: '#f8fafc', wordBreak: 'break-all' }}>{deletingListing.skuId}</strong>? This action cannot be undone.
-                    </p>
-                    <div className={styles.deleteInputGroup}>
-                        <label className={styles.deleteInputLabel}>
-                            To confirm, type <span className={styles.deleteHighlight}>delete</span> below:
-                        </label>
-                        <input
-                            type="text"
-                            className={styles.deleteInput}
-                            placeholder="Type 'delete' to confirm"
-                            value={deleteInputText}
-                            onChange={onInputChange}
-                            autoFocus
-                            onKeyDown={onInputKeyDown}
-                        />
-                    </div>
-                </div>
-
-                <div className={styles.editModalFooter}>
-                    <button
-                        className={styles.cancelBtn}
-                        onClick={onClose}
-                        disabled={deleteButtonLoading}
-                    >
+                <div className={styles.actions}>
+                    <Button variant="secondary" onClick={onClose} disabled={deleteButtonLoading}>
                         Cancel
-                    </button>
-                    <button
-                        className={styles.deleteConfirmBtn}
+                    </Button>
+                    <Button
+                        variant="danger"
                         onClick={onConfirm}
-                        disabled={deleteInputText.trim().toLowerCase() !== "delete" || deleteButtonLoading}
+                        disabled={deleteInputText.trim().toLowerCase() !== "delete"}
+                        loading={deleteButtonLoading}
                     >
                         {deleteButtonLoading ? "Deleting..." : "Delete Listing"}
-                    </button>
+                    </Button>
                 </div>
             </div>
-        </div>
+        </Modal>
     );
 }

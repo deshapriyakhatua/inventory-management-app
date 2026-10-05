@@ -1,7 +1,10 @@
 "use client";
 import { toast } from "sonner";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useEffectEvent } from "react";
+import EmptyState from "@/components/ui/EmptyState/EmptyState";
+import PageShell from "@/components/ui/PageShell/PageShell";
+import Skeleton from "@/components/ui/Skeleton/Skeleton";
 import styles from "./page.module.css";
 
 import { fetchVerticalsData } from "../../utils/apiUtils";
@@ -59,14 +62,17 @@ export default function AllListingsPage() {
         loadInitialData();
     }, []);
 
-    useEffect(() => {
+    // Mount-only load; useEffectEvent keeps it from re-running when the loaders change identity
+    const loadOnMount = useEffectEvent(() => {
         loadInitialData();
         fetchListings(false); // Try loading from local storage first
-    }, []);
+    });
+    useEffect(() => { loadOnMount(); }, []);
 
-    // Apply Filters, Sort, and Pagination locally whenever dependencies change
+    // Apply Filters, Sort, and Pagination locally whenever dependencies change (useEffectEvent reads the latest processLocalData)
+    const onLocalDataInputsChange = useEffectEvent(() => processLocalData());
     useEffect(() => {
-        processLocalData();
+        onLocalDataInputsChange();
     }, [allListingsData, currentPage, sortOrder, selectedVertical, selectedMarketplace, selectedStatus, searchQuery, inventoryIdQuery, styleIdQuery, pageSize]);
 
     const getFilteredListings = () => {
@@ -443,7 +449,7 @@ export default function AllListingsPage() {
     };
 
     return (
-        <div className={styles.container}>
+        <PageShell>
             <ListingsToolbar
                 searchQuery={searchQuery}
                 inventoryIdQuery={inventoryIdQuery}
@@ -470,33 +476,35 @@ export default function AllListingsPage() {
             />
 
             {loading ? (
-                <div className={styles.loadingContainer}>
-                    <div className={styles.spinner}></div>
-                    <p>Loading Listings...</p>
+                <div className={styles.grid} role="status" aria-busy="true">
+                    <span className="srOnly">Loading Listings...</span>
+                    {Array.from({ length: 8 }, (_, i) => (
+                        <div key={i} className={styles.skeletonCard}>
+                            <Skeleton className={styles.skeletonMedia} />
+                            <Skeleton variant="text" width="70%" />
+                            <Skeleton variant="text" width="40%" />
+                        </div>
+                    ))}
                 </div>
             ) : listings.length === 0 ? (
-                <div className={styles.emptyState}>
-                    <p>No listings found.</p>
-                </div>
+                <EmptyState title="No listings found." />
             ) : (
-                <div className={styles.contentArea}>
-                    <div className={styles.scrollWrapper}>
-                        <div className={styles.gridContainer}>
-                                {listings.map((item, index) => (
-                                    <ListingCard
-                                        key={index}
-                                        item={item}
-                                        deleteButtonLoading={deleteButtonLoading}
-                                        deletingListingId={deletingListingId}
-                                        onSelect={setSelectedListing}
-                                        onDelete={openDeleteModal}
-                                        onEdit={openEditModal}
-                                        onCopy={copyToClipboard}
-                                    />
-                                ))}
-                            </div>
+                <>
+                    <div className={styles.grid}>
+                        {listings.map((item, index) => (
+                            <ListingCard
+                                key={index}
+                                item={item}
+                                deleteButtonLoading={deleteButtonLoading}
+                                deletingListingId={deletingListingId}
+                                onSelect={setSelectedListing}
+                                onDelete={openDeleteModal}
+                                onEdit={openEditModal}
+                                onCopy={copyToClipboard}
+                            />
+                        ))}
                     </div>
-                    {/* Pagination */}
+
                     {totalItems > 0 && (
                         <ListingsPagination
                             currentPage={currentPage}
@@ -507,10 +515,8 @@ export default function AllListingsPage() {
                             onNextPage={handleNextPage}
                         />
                     )}
-                </div>
+                </>
             )}
-
-            {/* Listing Details Modal */}
             {selectedListing && (
                 <ListingDetailModal
                     selectedListing={selectedListing}
@@ -518,14 +524,13 @@ export default function AllListingsPage() {
                     onCopy={copyToClipboard}
                 />
             )}
-
-            {/* ── EDIT MODAL ─────────────────────────────────────── */}
             {editingListing && (
                 <EditListingModal
                     editingListing={editingListing}
                     editForm={editForm}
                     verticals={verticals}
                     editSaving={editSaving}
+                    pickerOpen={showInventoryPicker}
                     onStatusChange={handleEditStatusChange}
                     onMarketplaceChange={handleEditMarketplaceChange}
                     onStyleIdChange={handleEditStyleIdChange}
@@ -536,8 +541,6 @@ export default function AllListingsPage() {
                     onClose={closeEditModal}
                 />
             )}
-
-            {/* ── INVENTORY PICKER MODAL ──────────────────────────── */}
             {showInventoryPicker && (
                 <InventoryPickerModal
                     selectedInventoryIds={editForm.inventoryItems}
@@ -550,8 +553,6 @@ export default function AllListingsPage() {
                     onClose={closeInventoryPicker}
                 />
             )}
-
-            {/* Delete Confirmation Modal */}
             {deletingListing && (
                 <DeleteListingModal
                     deletingListing={deletingListing}
@@ -563,7 +564,6 @@ export default function AllListingsPage() {
                     onClose={closeDeleteModal}
                 />
             )}
-
-                </div>
+        </PageShell>
     );
 }
