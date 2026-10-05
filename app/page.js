@@ -1,91 +1,76 @@
 "use client";
-import Icon from "@/components/ui/Icon/Icon";
-
 
 import React, { useState, useEffect, useMemo } from "react";
-import Link from "next/link";
-import styles from "./page.module.css";
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
     ResponsiveContainer, BarChart, Bar, Legend,
     PieChart, Pie, Cell
 } from "recharts";
+import Button from "@/components/ui/Button/Button";
+import Icon from "@/components/ui/Icon/Icon";
+import PageHeader from "@/components/ui/PageHeader/PageHeader";
+import PageShell from "@/components/ui/PageShell/PageShell";
+import SegmentedControl from "@/components/ui/SegmentedControl/SegmentedControl";
+import Skeleton from "@/components/ui/Skeleton/Skeleton";
+import { useChartColors } from "@/components/ui/chartTheme";
+import ChartCard from "./_components/ChartCard/ChartCard";
+import ChartTooltip from "./_components/ChartTooltip/ChartTooltip";
+import NavCardGrid from "./_components/NavCardGrid/NavCardGrid";
+import RecentActivity from "./_components/RecentActivity/RecentActivity";
+import StatCard from "./_components/StatCard/StatCard";
+import styles from "./page.module.css";
 
-const CHART_COLORS = ["#38bdf8", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#f97316"];
+const RANGE_OPTIONS = [
+    { value: "7", label: "Last 7 Days" },
+    { value: "30", label: "Last 30 Days" },
+    { value: "90", label: "Last 90 Days" },
+    { value: "all", label: "All Time" },
+];
 
 const NAV_CARDS = [
     {
         href: "/add-inventory",
-        icon: (
-            <Icon name="add-inventory" size={24} />
-        ),
+        icon: "add-inventory",
         label: "Add Inventory",
         desc: "Add a new inventory item",
-        color: "#38bdf8",
+        tone: 1,
     },
     {
         href: "/all-inventory",
-        icon: (
-            <Icon name="all-inventory" size={24} />
-        ),
+        icon: "all-inventory",
         label: "All Inventory",
         desc: "Browse all inventory items",
-        color: "#10b981",
+        tone: 2,
     },
     {
         href: "/add-listing",
-        icon: (
-            <Icon name="add-another-product" size={24} />
-        ),
+        icon: "add-another-product",
         label: "Create Listing",
         desc: "Generate a marketplace listing",
-        color: "#f59e0b",
+        tone: 4,
     },
     {
         href: "/all-listings",
-        icon: (
-            <Icon name="icon-5d77ebc6" size={24} />
-        ),
+        icon: "icon-5d77ebc6",
         label: "All Listings",
         desc: "View and manage all listings",
-        color: "#8b5cf6",
+        tone: 5,
     },
     {
         href: "/add-sales-log",
-        icon: (
-            <Icon name="log-sales" size={24} />
-        ),
+        icon: "log-sales",
         label: "Log Sales",
         desc: "Record sales & returns",
-        color: "#ec4899",
+        tone: 3,
     },
     {
         href: "/sales-data",
-        icon: (
-            <Icon name="sales-data" size={24} />
-        ),
+        icon: "sales-data",
         label: "Sales Data",
         desc: "Browse monthly sales records",
-        color: "#f97316",
+        tone: 6,
     },
 ];
-
-const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-        return (
-            <div className={styles.tooltip}>
-                <p className={styles.tooltipLabel}>{label}</p>
-                {payload.map((entry, idx) => (
-                    <div key={idx} className={styles.tooltipItem}>
-                        <span className={styles.tooltipDot} style={{ background: entry.color }} />
-                        <span>{entry.name}: <strong>{entry.value}</strong></span>
-                    </div>
-                ))}
-            </div>
-        );
-    }
-    return null;
-};
 
 export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
@@ -98,6 +83,9 @@ export default function DashboardPage() {
 
     // UI
     const [salesRange, setSalesRange] = useState("30");
+    const chart = useChartColors();
+    const tick = { fill: chart.axisText, fontSize: 12 };
+    const legendStyle = { color: chart.axisText, fontSize: "13px" };
 
     useEffect(() => {
         loadAllData();
@@ -290,251 +278,136 @@ export default function DashboardPage() {
     const totalInventory = safeInventoryData.length;
     const totalListings = safeListingsData.length;
 
-    if (loading) {
-        return (
-            <div className={styles.loadingScreen}>
-                <div className={styles.loadingSpinner} />
-                <p className={styles.loadingText}>Loading Dashboard…</p>
-            </div>
-        );
-    }
+    const stats = [
+        { icon: "icon-d0275ba0", tone: 1, label: "Total Inventory", value: (totalInventory ?? 0).toLocaleString(), sub: "Items in stock" },
+        { icon: "icon-5d77ebc6", tone: 5, label: "Total Listings", value: (totalListings ?? 0).toLocaleString(), sub: "Active marketplace SKUs" },
+        { icon: "icon-a312377a", tone: 2, label: "Total Sales", value: (totalSalesUnits ?? 0).toLocaleString(), sub: `Units sold (${salesRange === "all" ? "all time" : `last ${salesRange}d`})` },
+        { icon: "sales-data", tone: 6, label: "Net Sales", value: (netSales ?? 0).toLocaleString(), sub: `After ${totalReturnsUnits} returns` },
+        {
+            icon: "icon-d347fd9b", tone: 4, label: "Return Rate", value: `${returnRate}%`,
+            valueTone: Number(returnRate) >= 10 ? "danger" : "success",
+            sub: Number(returnRate) < 10 ? "Healthy" : "Needs attention",
+        },
+    ];
 
     return (
-        <div className={styles.page}>
-            {/* ── Header ── */}
-            <div className={styles.header}>
-                <div>
-                    <h1 className={styles.title}>Dashboard</h1>
-                    <p className={styles.subtitle}>Welcome back! Here's your inventory & sales overview.</p>
-                </div>
-                <div className={styles.headerRight}>
-                    <select
-                        className={styles.rangeSelect}
-                        value={salesRange}
-                        onChange={e => setSalesRange(e.target.value)}
-                    >
-                        <option value="7">Last 7 Days</option>
-                        <option value="30">Last 30 Days</option>
-                        <option value="90">Last 90 Days</option>
-                        <option value="all">All Time</option>
-                    </select>
-                    <button className={`${styles.refreshBtn} ${refreshing ? styles.spinning : ''}`} onClick={() => loadAllData(true)} disabled={refreshing} title="Refresh all data">
-                        <Icon name="refresh" size={16} />
-                        Refresh
-                    </button>
-                </div>
-            </div>
+        <PageShell>
+            <PageHeader
+                title="Dashboard"
+                subtitle="Welcome back! Here's your inventory & sales overview."
+                actions={
+                    <>
+                        <SegmentedControl
+                            aria-label="Sales range"
+                            options={RANGE_OPTIONS}
+                            value={salesRange}
+                            onValueChange={setSalesRange}
+                        />
+                        <Button
+                            variant="secondary"
+                            leftIcon={<Icon name="refresh" size={16} />}
+                            loading={refreshing}
+                            disabled={loading}
+                            onClick={() => loadAllData(true)}
+                            title="Refresh all data"
+                        >
+                            Refresh
+                        </Button>
+                    </>
+                }
+            />
 
-            {/* ── KPI Strip ── */}
-            <div className={styles.kpiStrip}>
-                <div className={`${styles.kpiCard} ${styles.kpiBlue}`}>
-                    <div className={styles.kpiIcon}>
-                        <Icon name="icon-d0275ba0" />
+            {loading ? (
+                <div className={styles.loading} aria-busy="true" aria-label="Loading Dashboard…">
+                    <div className={styles.statGrid}>
+                        {Array.from({ length: 5 }, (_, i) => <Skeleton key={i} className={styles.skeletonStat} />)}
                     </div>
-                    <div className={styles.kpiBody}>
-                        <span className={styles.kpiLabel}>Total Inventory</span>
-                        <span className={styles.kpiValue}>{(totalInventory ?? 0).toLocaleString()}</span>
-                        <span className={styles.kpiSub}>Items in stock</span>
+                    <div className={styles.chartsRow}>
+                        <Skeleton className={styles.skeletonChart} />
+                        <Skeleton className={styles.skeletonChart} />
                     </div>
                 </div>
-                <div className={`${styles.kpiCard} ${styles.kpiPurple}`}>
-                    <div className={styles.kpiIcon}>
-                        <Icon name="icon-5d77ebc6" />
+            ) : (
+                <>
+                    <div className={styles.statGrid}>
+                        {stats.map(stat => <StatCard key={stat.label} {...stat} />)}
                     </div>
-                    <div className={styles.kpiBody}>
-                        <span className={styles.kpiLabel}>Total Listings</span>
-                        <span className={styles.kpiValue}>{(totalListings ?? 0).toLocaleString()}</span>
-                        <span className={styles.kpiSub}>Active marketplace SKUs</span>
-                    </div>
-                </div>
-                <div className={`${styles.kpiCard} ${styles.kpiGreen}`}>
-                    <div className={styles.kpiIcon}>
-                        <Icon name="icon-a312377a" />
-                    </div>
-                    <div className={styles.kpiBody}>
-                        <span className={styles.kpiLabel}>Total Sales</span>
-                        <span className={styles.kpiValue}>{(totalSalesUnits ?? 0).toLocaleString()}</span>
-                        <span className={styles.kpiSub}>Units sold ({salesRange === "all" ? "all time" : `last ${salesRange}d`})</span>
-                    </div>
-                </div>
-                <div className={`${styles.kpiCard} ${styles.kpiCyan}`}>
-                    <div className={styles.kpiIcon}>
-                        <Icon name="sales-data" />
-                    </div>
-                    <div className={styles.kpiBody}>
-                        <span className={styles.kpiLabel}>Net Sales</span>
-                        <span className={styles.kpiValue}>{(netSales ?? 0).toLocaleString()}</span>
-                        <span className={styles.kpiSub}>After {totalReturnsUnits} returns</span>
-                    </div>
-                </div>
-                <div className={`${styles.kpiCard} ${styles.kpiAmber}`}>
-                    <div className={styles.kpiIcon}>
-                        <Icon name="icon-d347fd9b" />
-                    </div>
-                    <div className={styles.kpiBody}>
-                        <span className={styles.kpiLabel}>Return Rate</span>
-                        <span className={`${styles.kpiValue} ${Number(returnRate) >= 10 ? styles.kpiDanger : styles.kpiGood}`}>{returnRate}%</span>
-                        <span className={styles.kpiSub}>{Number(returnRate) < 10 ? "Healthy" : "Needs attention"}</span>
-                    </div>
-                </div>
-            </div>
 
-            {/* ── Charts Row 1: Trend + Platform ── */}
-            <div className={styles.chartsRow}>
-                <div className={`${styles.chartCard} ${styles.chartWide}`}>
-                    <h2 className={styles.chartTitle}>Sales &amp; Returns Trend</h2>
-                    {trendData.length > 0 ? (
-                        <div className={styles.chartArea}>
+                    <div className={styles.chartsRow}>
+                        <ChartCard title="Sales & Returns Trend" empty={trendData.length === 0} emptyText="No sales data for this period">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={trendData} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="gradSales" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.35} />
-                                            <stop offset="95%" stopColor="#38bdf8" stopOpacity={0} />
+                                            <stop offset="5%" stopColor={chart.series[0]} stopOpacity={0.35} />
+                                            <stop offset="95%" stopColor={chart.series[0]} stopOpacity={0} />
                                         </linearGradient>
                                         <linearGradient id="gradReturns" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.35} />
-                                            <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                                            <stop offset="5%" stopColor={chart.series[2]} stopOpacity={0.35} />
+                                            <stop offset="95%" stopColor={chart.series[2]} stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                                    <XAxis dataKey="date" stroke="#475569" tick={{ fill: "#94a3b8", fontSize: 12 }} tickLine={false} />
-                                    <YAxis stroke="#475569" tick={{ fill: "#94a3b8", fontSize: 12 }} tickLine={false} axisLine={false} />
-                                    <Tooltip content={<CustomTooltip />} />
-                                    <Legend wrapperStyle={{ color: "#94a3b8", fontSize: "13px", paddingTop: "12px" }} />
-                                    <Area type="monotone" dataKey="sales" name="Sales" stroke="#38bdf8" strokeWidth={2} fill="url(#gradSales)" />
-                                    <Area type="monotone" dataKey="returns" name="Returns" stroke="#f43f5e" strokeWidth={2} fill="url(#gradReturns)" />
+                                    <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} vertical={false} />
+                                    <XAxis dataKey="date" stroke={chart.axis} tick={tick} tickLine={false} />
+                                    <YAxis stroke={chart.axis} tick={tick} tickLine={false} axisLine={false} />
+                                    <Tooltip content={<ChartTooltip />} />
+                                    <Legend wrapperStyle={{ ...legendStyle, paddingTop: "12px" }} />
+                                    <Area type="monotone" dataKey="sales" name="Sales" stroke={chart.series[0]} strokeWidth={2} fill="url(#gradSales)" />
+                                    <Area type="monotone" dataKey="returns" name="Returns" stroke={chart.series[2]} strokeWidth={2} fill="url(#gradReturns)" />
                                 </AreaChart>
                             </ResponsiveContainer>
-                        </div>
-                    ) : (
-                        <div className={styles.emptyChart}>No sales data for this period</div>
-                    )}
-                </div>
+                        </ChartCard>
 
-                <div className={styles.chartCard}>
-                    <h2 className={styles.chartTitle}>Platform Performance</h2>
-                    {platformData.length > 0 ? (
-                        <div className={styles.chartArea}>
+                        <ChartCard title="Platform Performance" empty={platformData.length === 0} emptyText="No platform data">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={platformData} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
-                                    <XAxis type="number" stroke="#475569" tick={{ fill: "#94a3b8", fontSize: 12 }} tickLine={false} />
-                                    <YAxis dataKey="name" type="category" stroke="#475569" tick={{ fill: "#94a3b8", fontSize: 12 }} tickLine={false} axisLine={false} width={70} />
-                                    <Tooltip content={<CustomTooltip />} />
-                                    <Legend wrapperStyle={{ color: "#94a3b8", fontSize: "13px", paddingTop: "12px" }} />
-                                    <Bar dataKey="sales" name="Sales" fill="#10b981" radius={[0, 4, 4, 0]} />
-                                    <Bar dataKey="returns" name="Returns" fill="#f43f5e" radius={[0, 4, 4, 0]} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} horizontal={false} />
+                                    <XAxis type="number" stroke={chart.axis} tick={tick} tickLine={false} />
+                                    <YAxis dataKey="name" type="category" stroke={chart.axis} tick={tick} tickLine={false} axisLine={false} width={70} />
+                                    <Tooltip content={<ChartTooltip />} />
+                                    <Legend wrapperStyle={{ ...legendStyle, paddingTop: "12px" }} />
+                                    <Bar dataKey="sales" name="Sales" fill={chart.series[1]} radius={[0, 4, 4, 0]} />
+                                    <Bar dataKey="returns" name="Returns" fill={chart.series[2]} radius={[0, 4, 4, 0]} />
                                 </BarChart>
                             </ResponsiveContainer>
-                        </div>
-                    ) : (
-                        <div className={styles.emptyChart}>No platform data</div>
-                    )}
-                </div>
-            </div>
+                        </ChartCard>
+                    </div>
 
-            {/* ── Charts Row 2: Pie charts + Recent Activity ── */}
-            <div className={styles.chartsRow2}>
-                <div className={styles.chartCard}>
-                    <h2 className={styles.chartTitle}>Sales by Vertical</h2>
-                    {verticalData.length > 0 ? (
-                        <div className={styles.chartAreaPie}>
+                    <div className={styles.chartsRow2}>
+                        <ChartCard title="Sales by Vertical" size="pie" empty={verticalData.length === 0} emptyText="No vertical data">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie data={verticalData} cx="50%" cy="45%" innerRadius={55} outerRadius={90} paddingAngle={4} dataKey="value">
                                         {verticalData.map((_, idx) => (
-                                            <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
+                                            <Cell key={idx} fill={chart.series[idx % chart.series.length]} />
                                         ))}
                                     </Pie>
-                                    <Tooltip content={<CustomTooltip />} />
-                                    <Legend wrapperStyle={{ color: "#94a3b8", fontSize: "13px" }} />
+                                    <Tooltip content={<ChartTooltip />} />
+                                    <Legend wrapperStyle={legendStyle} />
                                 </PieChart>
                             </ResponsiveContainer>
-                        </div>
-                    ) : (
-                        <div className={styles.emptyChart}>No vertical data</div>
-                    )}
-                </div>
+                        </ChartCard>
 
-                <div className={styles.chartCard}>
-                    <h2 className={styles.chartTitle}>Inventory by Vertical</h2>
-                    {inventoryByVertical.length > 0 ? (
-                        <div className={styles.chartAreaPie}>
+                        <ChartCard title="Inventory by Vertical" size="pie" empty={inventoryByVertical.length === 0} emptyText="No inventory data">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie data={inventoryByVertical} cx="50%" cy="45%" innerRadius={55} outerRadius={90} paddingAngle={4} dataKey="value">
                                         {inventoryByVertical.map((_, idx) => (
-                                            <Cell key={idx} fill={CHART_COLORS[(idx + 2) % CHART_COLORS.length]} />
+                                            <Cell key={idx} fill={chart.series[(idx + 2) % chart.series.length]} />
                                         ))}
                                     </Pie>
-                                    <Tooltip content={<CustomTooltip />} />
-                                    <Legend wrapperStyle={{ color: "#94a3b8", fontSize: "13px" }} />
+                                    <Tooltip content={<ChartTooltip />} />
+                                    <Legend wrapperStyle={legendStyle} />
                                 </PieChart>
                             </ResponsiveContainer>
-                        </div>
-                    ) : (
-                        <div className={styles.emptyChart}>No inventory data</div>
-                    )}
-                </div>
+                        </ChartCard>
 
-                {/* Recent Activity Feed */}
-                <div className={styles.activityCard}>
-                    <h2 className={styles.chartTitle}>Recent Activity</h2>
-                    {recentActivity.length > 0 ? (
-                        <div className={styles.activityList}>
-                            {recentActivity.map((item, idx) => {
-                                const isSale = item.grossUnits != null ? (item.grossUnits >= 0) : (item.type === "Sale");
-                                const qty = item.grossUnits != null ? (item.netUnits ?? item.grossUnits ?? 0) : Math.abs(Number(item.quantity) || 0);
-                                const platform = item.salesChannel || item.platform || "—";
-                                const date = item.createdAt ? new Date(item.createdAt) : (item.year && item.month ? new Date(item.year, item.month - 1, 15) : new Date(item.date));
-                                const dateStr = isNaN(date.getTime()) ? "—" : date.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
-                                const activityLabel = item.type || (item.grossUnits != null ? "Sales Record" : "Sale");
-                                return (
-                                    <div key={idx} className={styles.activityItem}>
-                                        <span className={`${styles.activityDot} ${isSale ? styles.dotSale : styles.dotReturn}`} />
-                                        <div className={styles.activityContent}>
-                                            <span className={styles.activitySku}>{item.skuId || "—"}</span>
-                                            <span className={styles.activityMeta}>
-                                                {isSale ? "+" : "-"}{qty} unit{qty !== 1 ? "s" : ""} · {platform} · {dateStr}
-                                            </span>
-                                        </div>
-                                        <span className={`${styles.activityBadge} ${isSale ? styles.badgeSale : styles.badgeReturn}`}>
-                                            {activityLabel}
-                                        </span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        <div className={styles.emptyChart}>No recent activity</div>
-                    )}
-                    {filteredSales.length > 8 && (
-                        <Link href="/sales-records" className={styles.viewAllLink}>
-                            View all {filteredSales.length} records →
-                        </Link>
-                    )}
-                </div>
-            </div>
+                        <RecentActivity items={recentActivity} totalCount={filteredSales.length} />
+                    </div>
 
-            {/* ── Quick Navigation Cards ── */}
-            <div className={styles.navSection}>
-                <h2 className={styles.sectionTitle}>Quick Navigation</h2>
-                <div className={styles.navGrid}>
-                    {NAV_CARDS.map(card => (
-                        <Link key={card.href} href={card.href} className={styles.navCard} style={{ "--accent": card.color }}>
-                            <div className={styles.navIcon} style={{ color: card.color, background: `${card.color}18` }}>
-                                {card.icon}
-                            </div>
-                            <div className={styles.navText}>
-                                <span className={styles.navLabel}>{card.label}</span>
-                                <span className={styles.navDesc}>{card.desc}</span>
-                            </div>
-                            <Icon name="icon-8a780677" size={16} className={styles.navArrow} />
-                        </Link>
-                    ))}
-                </div>
-            </div>
-        </div>
+                    <NavCardGrid title="Quick Navigation" cards={NAV_CARDS} />
+                </>
+            )}
+        </PageShell>
     );
 }

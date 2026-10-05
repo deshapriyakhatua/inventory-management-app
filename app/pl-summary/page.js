@@ -3,6 +3,15 @@ import { toast } from "sonner";
 
 
 import React, { useState, useCallback, useEffect } from "react";
+import Badge from "@/components/ui/Badge/Badge";
+import Button from "@/components/ui/Button/Button";
+import Card from "@/components/ui/Card/Card";
+import EmptyState from "@/components/ui/EmptyState/EmptyState";
+import PageHeader from "@/components/ui/PageHeader/PageHeader";
+import PageShell from "@/components/ui/PageShell/PageShell";
+import Select from "@/components/ui/Select/Select";
+import Spinner from "@/components/ui/Spinner/Spinner";
+import Table from "@/components/ui/Table/Table";
 import styles from "./page.module.css";
 
 
@@ -67,50 +76,46 @@ export default function PLSummaryPage() {
     }, [fetchSummary]);
 
     return (
-        <div className={styles.container}>
-            <div className={styles.header}>
-                <div>
-                    <h1 className={styles.title}>P&amp;L Summary</h1>
-                    <p className={styles.subtitle}>
-                        Monthly profit &amp; loss based on bank settlement and FIFO buying cost
-                    </p>
-                </div>
-            </div>
+        <PageShell>
+            <PageHeader
+                title="P&L Summary"
+                subtitle="Monthly profit & loss based on bank settlement and FIFO buying cost"
+            />
 
-            <div className={styles.filtersRow}>
-                <select className={styles.filterSelect} value={month} onChange={e => setMonth(e.target.value)}>
+            <Card className={styles.filters}>
+                <Select aria-label="Month" value={month} onChange={e => setMonth(e.target.value)}>
                     {MONTHS.map(m => (
                         <option key={m.value} value={m.value}>{m.label}</option>
                     ))}
-                </select>
+                </Select>
 
-                <select className={styles.filterSelect} value={year} onChange={e => setYear(e.target.value)}>
+                <Select aria-label="Year" value={year} onChange={e => setYear(e.target.value)}>
                     {yearOptions.map(y => (
                         <option key={y} value={y}>{y}</option>
                     ))}
-                </select>
+                </Select>
 
-                <select className={styles.filterSelect} value={salesChannel} onChange={e => setSalesChannel(e.target.value)}>
+                <Select aria-label="Sales channel" value={salesChannel} onChange={e => setSalesChannel(e.target.value)}>
                     {SALES_CHANNELS.map(c => (
                         <option key={c} value={c}>{c}</option>
                     ))}
-                </select>
+                </Select>
 
-                <button className={styles.refreshBtn} onClick={fetchSummary} disabled={loading}>
+                <Button onClick={fetchSummary} loading={loading}>
                     {loading ? "Calculating…" : "Refresh"}
-                </button>
-            </div>
+                </Button>
+            </Card>
 
             {loading && !summary && (
-                <div className={styles.loadingContainer}>
-                    <div className={styles.spinner}></div>
+                <div className={styles.loading}>
+                    <Spinner size="lg" label="Calculating P&L" />
                     <p>Calculating P&amp;L…</p>
                 </div>
             )}
 
             {summary && (
                 <>
-                    <div className={styles.periodBadge}>
+                    <div className={styles.period}>
                         {getMonthLabel(summary.filters.month)} {summary.filters.year} · {summary.filters.salesChannel}
                         {summary.skuCount > 0 && (
                             <span className={styles.periodMeta}>{summary.skuCount} SKU record{summary.skuCount !== 1 ? "s" : ""}</span>
@@ -118,27 +123,27 @@ export default function PLSummaryPage() {
                     </div>
 
                     <div className={styles.kpiGrid}>
-                        <div className={styles.kpiCard}>
+                        <Card className={styles.kpi}>
                             <span className={styles.kpiLabel}>Total Sales</span>
                             <span className={`${styles.kpiValue} ${styles.positive}`}>{formatCurrency(summary.totalSales)}</span>
                             <span className={styles.kpiHint}>Sum of projected bank settlement</span>
-                        </div>
-                        <div className={styles.kpiCard}>
+                        </Card>
+                        <Card className={styles.kpi}>
                             <span className={styles.kpiLabel}>Total Buying Price</span>
                             <span className={`${styles.kpiValue} ${styles.negative}`}>{formatCurrency(summary.totalBuyingPrice)}</span>
                             <span className={styles.kpiHint}>FIFO cost incl. customer returns</span>
-                        </div>
-                        <div className={styles.kpiCard}>
+                        </Card>
+                        <Card className={styles.kpi}>
                             <span className={styles.kpiLabel}>Gross Profit</span>
                             <span className={`${styles.kpiValue} ${summary.grossProfit >= 0 ? styles.positive : styles.negative}`}>
                                 {formatCurrency(summary.grossProfit)}
                             </span>
                             <span className={styles.kpiHint}>Sales minus buying price</span>
-                        </div>
+                        </Card>
                     </div>
 
                     {summary.warnings?.length > 0 && (
-                        <div className={styles.warningsBox}>
+                        <div className={styles.warnings}>
                             <strong>Notes</strong>
                             <ul>
                                 {summary.warnings.map((w, i) => (
@@ -149,75 +154,68 @@ export default function PLSummaryPage() {
                     )}
 
                     {summary.skuBreakdown?.length > 0 ? (
-                        <div className={styles.section}>
+                        <section className={styles.section}>
                             <h2 className={styles.sectionTitle}>SKU Breakdown</h2>
-                            <div className={styles.tableWrapper}>
-                                <table className={styles.table}>
-                                    <thead>
-                                        <tr>
-                                            <th>SKU ID</th>
-                                            <th>Channel</th>
-                                            <th>Units Sold</th>
-                                            <th>Net Units</th>
-                                            <th>Cust. Returns</th>
-                                            <th>Settlement (₹)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {summary.skuBreakdown.map((row, i) => (
-                                            <tr key={`${row.skuId}-${i}`}>
-                                                <td><span className={styles.skuText}>{row.skuId}</span></td>
-                                                <td>{row.salesChannel || "—"}</td>
-                                                <td>{row.unitsSold}</td>
-                                                <td>{row.netUnits}</td>
-                                                <td>{row.customerReturns}</td>
-                                                <td className={styles.currencyCell}>{formatCurrency(row.projectedBankSettlement)}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                            <Table columns={6}>
+                                <Table.Head>
+                                    <Table.Row hover={false}>
+                                        <Table.Cell as="th">SKU ID</Table.Cell>
+                                        <Table.Cell as="th">Channel</Table.Cell>
+                                        <Table.Cell as="th" numeric>Units Sold</Table.Cell>
+                                        <Table.Cell as="th" numeric>Net Units</Table.Cell>
+                                        <Table.Cell as="th" numeric>Cust. Returns</Table.Cell>
+                                        <Table.Cell as="th" numeric>Settlement (₹)</Table.Cell>
+                                    </Table.Row>
+                                </Table.Head>
+                                <Table.Body>
+                                    {summary.skuBreakdown.map((row, i) => (
+                                        <Table.Row key={`${row.skuId}-${i}`}>
+                                            <Table.Cell><Badge tone="accent">{row.skuId}</Badge></Table.Cell>
+                                            <Table.Cell>{row.salesChannel || "—"}</Table.Cell>
+                                            <Table.Cell numeric>{row.unitsSold}</Table.Cell>
+                                            <Table.Cell numeric>{row.netUnits}</Table.Cell>
+                                            <Table.Cell numeric>{row.customerReturns}</Table.Cell>
+                                            <Table.Cell numeric className={styles.currency}>{formatCurrency(row.projectedBankSettlement)}</Table.Cell>
+                                        </Table.Row>
+                                    ))}
+                                </Table.Body>
+                            </Table>
+                        </section>
                     ) : (
                         !loading && (
-                            <div className={styles.emptyState}>
-                                No sales records found for the selected period and channel.
-                            </div>
+                            <EmptyState title="No sales records found for the selected period and channel." />
                         )
                     )}
 
                     {summary.inventoryBreakdown?.length > 0 && (
-                        <div className={styles.section}>
+                        <section className={styles.section}>
                             <h2 className={styles.sectionTitle}>Inventory COGS (FIFO)</h2>
-                            <div className={styles.tableWrapper}>
-                                <table className={styles.table}>
-                                    <thead>
-                                        <tr>
-                                            <th>Inventory ID</th>
-                                            <th>Units This Month</th>
-                                            <th>Prior Units Consumed</th>
-                                            <th>Units Costed</th>
-                                            <th>Buying Price (₹)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {summary.inventoryBreakdown.map((row) => (
-                                            <tr key={row.inventoryId}>
-                                                <td><span className={styles.skuText}>{row.inventoryId}</span></td>
-                                                <td>{row.units}</td>
-                                                <td>{row.priorUnits}</td>
-                                                <td>{row.unitsCosted}</td>
-                                                <td className={styles.currencyCell}>{formatCurrency(row.buyingPrice)}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                            <Table columns={5}>
+                                <Table.Head>
+                                    <Table.Row hover={false}>
+                                        <Table.Cell as="th">Inventory ID</Table.Cell>
+                                        <Table.Cell as="th" numeric>Units This Month</Table.Cell>
+                                        <Table.Cell as="th" numeric>Prior Units Consumed</Table.Cell>
+                                        <Table.Cell as="th" numeric>Units Costed</Table.Cell>
+                                        <Table.Cell as="th" numeric>Buying Price (₹)</Table.Cell>
+                                    </Table.Row>
+                                </Table.Head>
+                                <Table.Body>
+                                    {summary.inventoryBreakdown.map((row) => (
+                                        <Table.Row key={row.inventoryId}>
+                                            <Table.Cell><Badge tone="accent">{row.inventoryId}</Badge></Table.Cell>
+                                            <Table.Cell numeric>{row.units}</Table.Cell>
+                                            <Table.Cell numeric>{row.priorUnits}</Table.Cell>
+                                            <Table.Cell numeric>{row.unitsCosted}</Table.Cell>
+                                            <Table.Cell numeric className={styles.currency}>{formatCurrency(row.buyingPrice)}</Table.Cell>
+                                        </Table.Row>
+                                    ))}
+                                </Table.Body>
+                            </Table>
+                        </section>
                     )}
                 </>
             )}
-
-                </div>
+        </PageShell>
     );
 }

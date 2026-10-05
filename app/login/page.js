@@ -4,15 +4,31 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
+import Button from "@/components/ui/Button/Button";
+import Card from "@/components/ui/Card/Card";
+import FormField from "@/components/ui/FormField/FormField";
+import Input from "@/components/ui/Input/Input";
 import styles from "./page.module.css";
 
 export default function LoginPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({ identifier: "", pin: "" });
   const [isLoading, setIsLoading] = useState(false);
+  const [touched, setTouched] = useState({});
+
+  const errors = {
+    identifier: formData.identifier.trim() ? "" : "Phone number is required",
+    pin: /^\d{4}$/.test(formData.pin) ? "" : "Enter your 4-digit PIN",
+  };
+  const showError = (name) => (touched[name] ? errors[name] : undefined);
+  const markTouched = (e) => setTouched((prev) => ({ ...prev, [e.target.name]: true }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (errors.identifier || errors.pin) {
+      setTouched({ identifier: true, pin: true });
+      return;
+    }
     setIsLoading(true);
 
     try {
@@ -53,35 +69,29 @@ export default function LoginPage() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.card}>
-        <div>
+      <Card variant="raised" padding="lg" className={styles.card}>
+        <div className={styles.header}>
           <h1 className={styles.title}>Welcome Back</h1>
           <p className={styles.subtitle}>Sign in to access your inventory</p>
         </div>
 
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.inputGroup}>
-            <label htmlFor="identifier" className={styles.label}>
-              Phone Number
-            </label>
-            <input
+        <form onSubmit={handleSubmit} className={styles.form} noValidate>
+          <FormField label="Phone Number" error={showError("identifier")}>
+            <Input
               id="identifier"
               name="identifier"
               type="text"
               required
-              className={styles.input}
               placeholder="Enter phone number"
               value={formData.identifier}
               onChange={handleChange}
+              onBlur={markTouched}
               disabled={isLoading}
             />
-          </div>
+          </FormField>
 
-          <div className={styles.inputGroup}>
-            <label htmlFor="pin" className={styles.label}>
-              4-Digit PIN
-            </label>
-            <input
+          <FormField label="4-Digit PIN" error={showError("pin")}>
+            <Input
               id="pin"
               name="pin"
               type="password"
@@ -89,30 +99,27 @@ export default function LoginPage() {
               pattern="\d{4}"
               maxLength={4}
               required
-              className={`${styles.input} ${styles.pinInput}`}
+              className={styles.pinInput}
               placeholder="••••"
               value={formData.pin}
               onChange={(e) => setFormData(prev => ({ ...prev, pin: e.target.value.replace(/\D/g, '') }))}
+              onBlur={markTouched}
               disabled={isLoading}
             />
-          </div>
+          </FormField>
 
-          <button type="submit" className={styles.submitBtn} disabled={isLoading}>
-            {isLoading ? (
-              <><div className={styles.spinner}></div> Signing in...</>
-            ) : (
-              "Sign In"
-            )}
-          </button>
+          <Button type="submit" size="lg" loading={isLoading}>
+            {isLoading ? "Signing in..." : "Sign In"}
+          </Button>
         </form>
 
         <p className={styles.linkText}>
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link href="/register" className={styles.link}>
             Create one
           </Link>
         </p>
-      </div>
+      </Card>
     </div>
   );
 }

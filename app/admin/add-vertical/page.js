@@ -1,10 +1,19 @@
 "use client";
 import { toast } from "sonner";
 
-import Icon from "@/components/ui/Icon/Icon";
 
 
 import { useState, useEffect } from "react";
+import Badge from "@/components/ui/Badge/Badge";
+import Button from "@/components/ui/Button/Button";
+import Card from "@/components/ui/Card/Card";
+import EmptyState from "@/components/ui/EmptyState/EmptyState";
+import FormField from "@/components/ui/FormField/FormField";
+import IconButton from "@/components/ui/IconButton/IconButton";
+import Input from "@/components/ui/Input/Input";
+import PageHeader from "@/components/ui/PageHeader/PageHeader";
+import PageShell from "@/components/ui/PageShell/PageShell";
+import Skeleton from "@/components/ui/Skeleton/Skeleton";
 import styles from "./page.module.css";
 
 
@@ -15,6 +24,14 @@ export default function AddVertical() {
     const [verticals, setVerticals] = useState([]);
     const [loadingVerticals, setLoadingVerticals] = useState(true);
     const [refreshingVerticals, setRefreshingVerticals] = useState(false);
+    const [touched, setTouched] = useState({});
+
+    const errors = {
+        name: name ? "" : "Vertical name is required",
+        shortName: shortName ? "" : "Short name is required",
+    };
+    const showError = (field) => (touched[field] ? errors[field] : undefined);
+    const markTouched = (field) => () => setTouched((prev) => ({ ...prev, [field]: true }));
 
 
     useEffect(() => {
@@ -47,6 +64,7 @@ export default function AddVertical() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!name || !shortName) {
+            setTouched({ name: true, shortName: true });
             toast.error("Please fill in all fields.", { id: "app-feedback", duration: 3000 });
             return;
         }
@@ -67,6 +85,7 @@ export default function AddVertical() {
                 toast.success("Vertical added successfully!", { id: "app-feedback", duration: 3000 });
                 setName("");
                 setShortName("");
+                setTouched({});
                 fetchVerticals();
             } else {
                 toast.error(result.error || "Failed to add vertical.", { id: "app-feedback", duration: 3000 });
@@ -80,77 +99,74 @@ export default function AddVertical() {
     };
 
     return (
-        <div className={styles.container}>
-            <div className={styles.card}>
-                <h1 className={styles.title}>Manage Verticals</h1>
+        <PageShell className={styles.shell}>
+            <PageHeader title="Manage Verticals" />
 
-                <form onSubmit={handleSubmit} className={styles.form}>
-                    <div className={styles.inputGroup}>
-                        <label htmlFor="name" className={styles.label}>Vertical Name</label>
-                        <input
+            <Card padding="lg">
+                <form onSubmit={handleSubmit} className={styles.form} noValidate>
+                    <FormField label="Vertical Name" error={showError("name")}>
+                        <Input
                             type="text"
                             id="name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
+                            onBlur={markTouched("name")}
                             placeholder="e.g., Earring"
-                            className={styles.input}
                             disabled={isLoading}
                         />
-                    </div>
+                    </FormField>
 
-                    <div className={styles.inputGroup}>
-                        <label htmlFor="shortName" className={styles.label}>Short Name (Code)</label>
-                        <input
+                    <FormField label="Short Name (Code)" error={showError("shortName")}>
+                        <Input
                             type="text"
                             id="shortName"
                             value={shortName}
                             onChange={(e) => setShortName(e.target.value.toUpperCase())}
+                            onBlur={markTouched("shortName")}
                             placeholder="e.g., ER"
-                            className={styles.input}
                             disabled={isLoading}
                         />
+                    </FormField>
+
+                    <div className={styles.actions}>
+                        <Button type="submit" loading={isLoading}>
+                            {isLoading ? "Adding..." : "Add Vertical"}
+                        </Button>
                     </div>
-
-                    <button
-                        type="submit"
-                        className={styles.submitBtn}
-                        disabled={isLoading || !name || !shortName}
-                    >
-                        {isLoading ? "Adding..." : "Add Vertical"}
-                    </button>
                 </form>
+            </Card>
 
-                        </div>
-
-            <div className={styles.listSection}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                    <h2 className={styles.listTitle} style={{ marginBottom: 0 }}>Existing Verticals ({verticals.length})</h2>
-                    <button
-                        type="button"
-                        className={`${styles.refreshBtn} ${refreshingVerticals ? styles.spinning : ''}`}
-                        onClick={() => fetchVerticals(true)}
-                        disabled={loadingVerticals || refreshingVerticals}
+            <section className={styles.list}>
+                <div className={styles.listHeader}>
+                    <h2 className={styles.listTitle}>Existing Verticals ({verticals.length})</h2>
+                    <IconButton
+                        name="refresh"
+                        aria-label="Refresh Verticals"
                         title="Refresh Verticals"
-                    >
-                        <Icon name="refresh" size={18} />
-                    </button>
+                        onClick={() => fetchVerticals(true)}
+                        disabled={loadingVerticals}
+                        loading={refreshingVerticals}
+                    />
                 </div>
                 {loadingVerticals ? (
-                    <div className={styles.loading}>Loading verticals...</div>
+                    <div className={styles.grid} aria-busy="true" aria-label="Loading verticals...">
+                        {Array.from({ length: 6 }, (_, i) => (
+                            <Skeleton key={i} className={styles.skeleton} />
+                        ))}
+                    </div>
+                ) : verticals.length === 0 ? (
+                    <EmptyState title="No verticals found." />
                 ) : (
                     <div className={styles.grid}>
                         {verticals.map((v) => (
-                            <div key={v._id} className={styles.verticalCard}>
-                                <div className={styles.verticalInfo}>
-                                    <h3 className={styles.verticalName}>{v.name}</h3>
-                                    <span className={styles.verticalCode}>{v.shortName}</span>
-                                </div>
-                            </div>
+                            <Card key={v._id} padding="sm" className={styles.vertical}>
+                                <h3 className={styles.verticalName}>{v.name}</h3>
+                                <Badge tone="accent">{v.shortName}</Badge>
+                            </Card>
                         ))}
-                        {verticals.length === 0 && <p className={styles.empty}>No verticals found.</p>}
                     </div>
                 )}
-            </div>
-        </div>
+            </section>
+        </PageShell>
     );
 }

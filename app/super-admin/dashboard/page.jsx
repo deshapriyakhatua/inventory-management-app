@@ -1,9 +1,12 @@
-import React from 'react'
+import EmptyState from "@/components/ui/EmptyState/EmptyState";
+import PageHeader from "@/components/ui/PageHeader/PageHeader";
+import PageShell from "@/components/ui/PageShell/PageShell";
 
-function page() {
+export default function SuperAdminDashboardPage() {
   return (
-    <div>Super Admin Dashboard</div>
-  )
+    <PageShell>
+      <PageHeader title="Super Admin Dashboard" />
+      <EmptyState title="Nothing here yet" />
+    </PageShell>
+  );
 }
-
-export default page

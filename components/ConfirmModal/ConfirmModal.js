@@ -1,7 +1,19 @@
 "use client";
 
-import React, { useEffect } from "react";
+import { Button, Badge, Icon, Modal } from "@/components/ui";
 import styles from "./ConfirmModal.module.css";
+
+const toneMap = {
+  danger: "danger",
+  warning: "warning",
+  info: "info",
+};
+
+const iconMap = {
+  danger: "trash",
+  warning: "icon-cfd589e1",
+  info: "icon-fe5d7d4f",
+};
 
 export default function ConfirmModal({
   isOpen,
@@ -9,98 +21,52 @@ export default function ConfirmModal({
   message = "Are you sure you want to proceed?",
   confirmLabel = "Confirm",
   cancelLabel = "Cancel",
-  variant = "danger", // "danger" | "warning" | "info"
+  variant = "danger",
   isLoading = false,
   onConfirm,
   onClose,
 }) {
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape" && isOpen && !isLoading) {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, isLoading, onClose]);
-
-  if (!isOpen) return null;
-
-  const getIcon = () => {
-    switch (variant) {
-      case "warning":
-        return "📦";
-      case "info":
-        return "🔄";
-      case "danger":
-      default:
-        return "⚠️";
-    }
-  };
-
-  const getBadgeClass = () => {
-    switch (variant) {
-      case "warning":
-        return styles.badgeWarning;
-      case "info":
-        return styles.badgeInfo;
-      case "danger":
-      default:
-        return styles.badgeDanger;
-    }
-  };
-
-  const getBtnClass = () => {
-    switch (variant) {
-      case "warning":
-        return styles.btnWarning;
-      case "info":
-        return styles.btnInfo;
-      case "danger":
-      default:
-        return styles.btnDanger;
-    }
-  };
+  const tone = toneMap[variant] || "danger";
+  const iconName = iconMap[tone] || "trash";
 
   return (
-    <div className={styles.overlay} onClick={() => !isLoading && onClose()}>
-      <div
-        className={styles.modalCard}
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
-      >
-        <div className={styles.iconHeader}>
-          <div className={`${styles.iconBadge} ${getBadgeClass()}`}>
-            {getIcon()}
-          </div>
-          <h3 id="modal-title" className={styles.title}>
-            {title}
-          </h3>
+    <Modal
+      open={isOpen}
+      onClose={isLoading ? undefined : onClose}
+      title={title}
+      size="sm"
+      closeOnScrim={!isLoading}
+    >
+      <div className={styles.content}>
+        <div className={styles.summary}>
+          <Badge tone={tone} className={styles.iconBadge}>
+            <Icon name={iconName} size={18} />
+          </Badge>
         </div>
-
         <p className={styles.message}>{message}</p>
-
-        <div className={styles.actions}>
-          <button
-            type="button"
-            className={styles.cancelBtn}
-            onClick={onClose}
-            disabled={isLoading}
-          >
-            {cancelLabel}
-          </button>
-          <button
-            type="button"
-            className={`${styles.confirmBtn} ${getBtnClass()}`}
-            onClick={onConfirm}
-            disabled={isLoading}
-          >
-            {isLoading ? "Processing..." : confirmLabel}
-          </button>
-        </div>
       </div>
-    </div>
+
+      <div className={styles.actions}>
+        <Button
+          type="button"
+          variant="secondary"
+          size="md"
+          onClick={onClose}
+          disabled={isLoading}
+        >
+          {cancelLabel}
+        </Button>
+        <Button
+          type="button"
+          variant={tone === "danger" ? "danger" : "primary"}
+          size="md"
+          loading={isLoading}
+          onClick={onConfirm}
+          disabled={isLoading}
+        >
+          {confirmLabel}
+        </Button>
+      </div>
+    </Modal>
   );
 }

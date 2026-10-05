@@ -352,13 +352,13 @@ Each primitive task includes the same Definition of Done (**DoD-P**):
     7. Respect reduced motion/transparency/contrast.
   - Acceptance: DoD-P; no horizontal scroll at 360px; collapse is interruptible; navigation items and routes unchanged.
 
-- [ ] **T-2.3 `ConfirmModal` → built on `Modal`** · S · Dep: T-1.5
+- [x] **T-2.3 `ConfirmModal` → built on `Modal`** · S · Dep: T-1.5
   - Keep its public props unchanged. Replace internals with `Modal`, `Button`, `Icon`. Tones `danger|warning|info` map to `Badge`-tone tokens. Delete `@keyframes` copies.
 
-- [ ] **T-2.4 `PaymentQrModal`, `SmoothImage`, `MarketplaceLogo`** · M · Dep: T-1.5
+- [x] **T-2.4 `PaymentQrModal`, `SmoothImage`, `MarketplaceLogo`** · M · Dep: T-1.5
   - PaymentQrModal → `Modal`. Keep QR rendering logic and any white QR background (print/scan exception, section 8). SmoothImage: tokenized placeholder, opacity fade only. MarketplaceLogo: keep brand colors (exception), remove inline styles where static.
 
-- [ ] **T-2.5 Chart theming helper** · S · Dep: T-0.1
+- [x] **T-2.5 Chart theming helper** · S · Dep: T-0.1
   - `components/ui/chartTheme.js` exporting `useChartColors()` reading `--chart-1…6`, axis/grid/tooltip colors from tokens via `getComputedStyle` (re-reads on theme change). Replace hard-coded `CHART_COLORS` in `app/page.js` and any recharts usage in `pl-summary`.
 
 ### PHASE 3 — Small pages (tier S)
@@ -371,18 +371,18 @@ For **every page task** the checklist **DoD-PG** applies:
 5. Behavior identical: same API calls, same validation, same text, same routes. Functional smoke test of the main action performed and listed in the PR.
 6. Loading uses `Spinner`/`Skeleton`, empty uses `EmptyState`, errors inline + toast (R10).
 
-- [ ] **T-3.1 `/login`, `/register`** · M · Dep: Phase 1
+- [x] **T-3.1 `/login`, `/register`** · M · Dep: Phase 1
   - Centered `Card` on `--color-bg`, no gradient background/title (R13). Inline field validation (R10). Submit `Button loading`. Respect Enter-to-submit.
-- [ ] **T-3.2 `/pl-summary`** · S · Dep: T-2.5
+- [x] **T-3.2 `/pl-summary`** · S · Dep: T-2.5
   - Stat tiles via `Card`, tabular numbers, recharts themed via T-2.5, table via `Table`.
-- [ ] **T-3.3 `/add-seller`, `/admin/add-vertical`** · M · Dep: Phase 1
+- [x] **T-3.3 `/add-seller`, `/admin/add-vertical`** · M · Dep: Phase 1
   - Standard "form page" pattern (see 7.1).
-- [ ] **T-3.4 `/admin/dashboard`, `/super-admin/dashboard`** · S · Dep: T-1.4
+- [x] **T-3.4 `/admin/dashboard`, `/super-admin/dashboard`** · S · Dep: T-1.4
   - Wrap in `PageShell` + `PageHeader` + `EmptyState`. No new features.
 
 ### PHASE 4 — Medium pages (tier M)
 
-- [ ] **T-4.1 Dashboard `/` (`app/page.js`)** · L · Dep: T-2.5, Phase 1
+- [x] **T-4.1 Dashboard `/` (`app/page.js`)** · L · Dep: T-2.5, Phase 1
   - Remove gradient title. `NAV_CARDS` become a responsive grid of `Card variant="raised"` links (press feedback R1, hover lift via `transform`). Move static card color to tokens (`--chart-*`/status), not inline hex. Stat cards + 3 charts themed; range select → `SegmentedControl`/`Select`. Skeletons for loading.
   - Split: `app/_components/` → `StatCard`, `NavCardGrid`, `RevenueChart`, etc. only if `page.js` > 400 lines after cleanup.
 - [ ] **T-4.2 `/add-inventory`, `/add-listing`, `/add-purchase`** · L · Dep: Phase 1
