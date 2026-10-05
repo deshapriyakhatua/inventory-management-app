@@ -1,41 +1,19 @@
 "use client";
 import { toast } from "sonner";
 
-import Icon from "@/components/ui/Icon/Icon";
-
-
 import React, { useState, useEffect } from "react";
-import Image from "next/image";
 import styles from "./page.module.css";
 
 import { fetchVerticalsData } from "../../utils/apiUtils";
-import MarketplaceLogo from "../../components/MarketplaceLogo/MarketplaceLogo";
 import * as XLSX from "xlsx";
 import { parseSearchQuery, matchesSearchTerms, matchesArraySearchTerms } from "../../utils/searchUtils";
-
-const STATUS_COLORS = {
-    active: { dot: '#22c55e', label: '#22c55e' },   // green
-    inactive: { dot: '#f59e0b', label: '#f59e0b' },   // amber
-    blocked: { dot: '#ef4444', label: '#ef4444' },   // red
-    archived: { dot: '#94a3b8', label: '#94a3b8' },   // slate
-};
-
-function StatusDot({ status, size = 8 }) {
-    const color = STATUS_COLORS[status?.toLowerCase()]?.dot || '#94a3b8';
-    return (
-        <span
-            style={{
-                display: 'inline-block',
-                width: size,
-                height: size,
-                borderRadius: '50%',
-                backgroundColor: color,
-                flexShrink: 0,
-                boxShadow: `0 0 5px ${color}88`,
-            }}
-        />
-    );
-}
+import ListingsToolbar from "./_components/ListingsToolbar/ListingsToolbar";
+import ListingCard from "./_components/ListingCard/ListingCard";
+import ListingsPagination from "./_components/ListingsPagination/ListingsPagination";
+import ListingDetailModal from "./_components/ListingDetailModal/ListingDetailModal";
+import EditListingModal from "./_components/EditListingModal/EditListingModal";
+import InventoryPickerModal from "./_components/InventoryPickerModal/InventoryPickerModal";
+import DeleteListingModal from "./_components/DeleteListingModal/DeleteListingModal";
 
 export default function AllListingsPage() {
     const [allListingsData, setAllListingsData] = useState([]); // All data from API/Local Storage
@@ -421,149 +399,75 @@ export default function AllListingsPage() {
     const handleNextPage = () => setCurrentPage(prev => Math.min(Math.ceil(totalItems / pageSize) || 1, prev + 1));
     const handlePrevPage = () => setCurrentPage(prev => Math.max(1, prev - 1));
 
+    const handleSearchQueryChange = (e) => { setSearchQuery(e.target.value); setCurrentPage(1); };
+    const handleInventoryIdQueryChange = (e) => { setInventoryIdQuery(e.target.value); setCurrentPage(1); };
+    const handleStyleIdQueryChange = (e) => { setStyleIdQuery(e.target.value); setCurrentPage(1); };
+    const handleSearchClick = () => setCurrentPage(1);
+    const handleVerticalChange = (e) => {
+        setSelectedVertical(e.target.value);
+        setCurrentPage(1);
+    };
+    const handleMarketplaceChange = (e) => {
+        setSelectedMarketplace(e.target.value);
+        setCurrentPage(1);
+    };
+    const handleStatusChange = (e) => {
+        setSelectedStatus(e.target.value);
+        setCurrentPage(1);
+    };
+    const handleSortOrderChange = (e) => {
+        setSortOrder(e.target.value);
+        setCurrentPage(1);
+    };
+    const handlePageSizeChange = e => {
+        setPageSize(Number(e.target.value));
+        setCurrentPage(1);
+    };
+
+    const closeDetailModal = () => setSelectedListing(null);
+    const closeEditModal = () => setEditingListing(null);
+    const handleEditStatusChange = (s) => setEditForm(f => ({ ...f, status: s }));
+    const handleEditMarketplaceChange = (mp) => setEditForm(f => ({ ...f, marketplace: mp }));
+    const handleEditStyleIdChange = e => setEditForm(f => ({ ...f, styleId: e.target.value }));
+    const handleEditVerticalChange = (verticalName) => setEditForm(f => ({ ...f, vertical: verticalName }));
+    const handleRemoveInventoryItem = (id) => setEditForm(f => ({ ...f, inventoryItems: f.inventoryItems.filter(i => i !== id) }));
+    const closeInventoryPicker = () => setShowInventoryPicker(false);
+    const handleInventoryPickerSearchChange = e => setInventoryPickerSearch(e.target.value.toUpperCase());
+    const clearInventoryPickerSearch = () => setInventoryPickerSearch('');
+    const closeDeleteModal = () => setDeletingListing(null);
+    const handleDeleteInputChange = (e) => setDeleteInputText(e.target.value);
+    const handleDeleteInputKeyDown = (e) => {
+        if (e.key === 'Enter' && deleteInputText.trim().toLowerCase() === 'delete' && !deleteButtonLoading) {
+            confirmDelete();
+        }
+    };
+
     return (
         <div className={styles.container}>
-            <div className={styles.header}>
-                <h1 className={styles.title}>SKU</h1>
-
-                <div className={styles.controlsRow}>
-                    {/* Row 1: Search Inputs & Refresh Button */}
-                    <div className={styles.controlsGroup}>
-                        <div className={styles.searchBox}>
-                            <input
-                                type="text"
-                                placeholder="Search SKU ID..."
-                                value={searchQuery}
-                                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                                onKeyDown={handleSearch}
-                                className={styles.searchInput}
-                            />
-                            <button className={styles.searchBtn} onClick={handleSearch} title="Search">
-                                <Icon name="icon-9c4a10ac" size={15} />
-                            </button>
-                        </div>
-
-                        <div className={styles.searchBox}>
-                            <input
-                                type="text"
-                                placeholder="Search Inventory ID..."
-                                value={inventoryIdQuery}
-                                onChange={(e) => { setInventoryIdQuery(e.target.value); setCurrentPage(1); }}
-                                className={styles.searchInput}
-                            />
-                            <button className={styles.searchBtn} onClick={() => setCurrentPage(1)} title="Search">
-                                <Icon name="icon-9c4a10ac" size={15} />
-                            </button>
-                        </div>
-
-                        <div className={styles.searchBox}>
-                            <input
-                                type="text"
-                                placeholder="Search Style ID..."
-                                value={styleIdQuery}
-                                onChange={(e) => { setStyleIdQuery(e.target.value); setCurrentPage(1); }}
-                                className={styles.searchInput}
-                            />
-                            <button className={styles.searchBtn} onClick={() => setCurrentPage(1)} title="Search Style ID">
-                                <Icon name="icon-9c4a10ac" size={15} />
-                            </button>
-                        </div>
-
-                        <button
-                            className={`${styles.refreshBtn} ${refreshing ? styles.spinning : ''}`}
-                            onClick={handleRefresh}
-                            disabled={refreshing}
-                            title="Refresh Data"
-                        >
-                            <Icon name="refresh" size={15} />
-                            Refresh
-                        </button>
-
-                        <button
-                            className={styles.downloadBtn}
-                            onClick={handleDownloadExcel}
-                            disabled={totalItems === 0}
-                            title={`Download all ${totalItems} filtered SKUs as Excel`}
-                        >
-                            <Icon name="download-invoices-excel-report" size={15} />
-                            Download
-                        </button>
-                    </div>
-
-                    {/* Row 2: Filter Selects & Reset Button */}
-                    <div className={styles.controlsGroup}>
-                        <select
-                            className={styles.filterSelect}
-                            value={selectedVertical}
-                            onChange={(e) => {
-                                setSelectedVertical(e.target.value);
-                                setCurrentPage(1);
-                            }}
-                        >
-                            <option value="">All Verticals</option>
-                            {verticals.map(v => (
-                                <option key={v.verticalShort} value={v.verticalName}>{v.verticalName}</option>
-                            ))}
-                            <option key="combo" value="Combo">Combo</option>
-                        </select>
-
-                        <select
-                            className={styles.filterSelect}
-                            value={selectedMarketplace}
-                            onChange={(e) => {
-                                setSelectedMarketplace(e.target.value);
-                                setCurrentPage(1);
-                            }}
-                        >
-                            <option value="">All Marketplaces</option>
-                            <option value="Amazon">Amazon</option>
-                            <option value="Flipkart">Flipkart</option>
-                            <option value="Shopsy">Shopsy</option>
-                            <option value="Myntra">Myntra</option>
-                            <option value="Meesho">Meesho</option>
-                            <option value="Ajio">Ajio</option>
-                            <option value="Website">Website</option>
-                            <option value="Other">Other</option>
-                        </select>
-
-                        <select
-                            className={styles.filterSelect}
-                            value={selectedStatus}
-                            onChange={(e) => {
-                                setSelectedStatus(e.target.value);
-                                setCurrentPage(1);
-                            }}
-                        >
-                            <option value="">All Statuses</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                            <option value="blocked">Blocked</option>
-                            <option value="archived">Archived</option>
-                        </select>
-
-                        <select
-                            className={styles.filterSelect}
-                            value={sortOrder}
-                            onChange={(e) => {
-                                setSortOrder(e.target.value);
-                                setCurrentPage(1);
-                            }}
-                        >
-                            <option value="newest_first">Newest First</option>
-                            <option value="oldest_first">Oldest First</option>
-                        </select>
-
-                        <button
-                            className={styles.resetBtn}
-                            onClick={handleReset}
-                            title="Reset Filters"
-                        >
-                            <Icon name="reset-filters-listings" size={15} />
-                            Reset
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <ListingsToolbar
+                searchQuery={searchQuery}
+                inventoryIdQuery={inventoryIdQuery}
+                styleIdQuery={styleIdQuery}
+                selectedVertical={selectedVertical}
+                selectedMarketplace={selectedMarketplace}
+                selectedStatus={selectedStatus}
+                sortOrder={sortOrder}
+                verticals={verticals}
+                refreshing={refreshing}
+                totalItems={totalItems}
+                onSearchQueryChange={handleSearchQueryChange}
+                onSearch={handleSearch}
+                onInventoryIdQueryChange={handleInventoryIdQueryChange}
+                onStyleIdQueryChange={handleStyleIdQueryChange}
+                onSearchClick={handleSearchClick}
+                onRefresh={handleRefresh}
+                onDownload={handleDownloadExcel}
+                onVerticalChange={handleVerticalChange}
+                onMarketplaceChange={handleMarketplaceChange}
+                onStatusChange={handleStatusChange}
+                onSortOrderChange={handleSortOrderChange}
+                onReset={handleReset}
+            />
 
             {loading ? (
                 <div className={styles.loadingContainer}>
@@ -578,544 +482,86 @@ export default function AllListingsPage() {
                 <div className={styles.contentArea}>
                     <div className={styles.scrollWrapper}>
                         <div className={styles.gridContainer}>
-                                {listings.map((item, index) => {
-                                    const validImages = item.inventoryItems?.filter(inv => inv.imageUrl) || [];
-                                    const displayImages = validImages.slice(0, 4);
-
-                                    return (
-                                        <div
-                                            key={index}
-                                            className={styles.gridCard}
-                                            onClick={() => setSelectedListing(item)}
-                                            style={{ cursor: 'pointer' }}
-                                        >
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    openDeleteModal(item);
-                                                }}
-                                                className={styles.deleteBtn}
-                                                title="Delete Listing"
-                                                disabled={deleteButtonLoading && deletingListingId === item.skuId}
-                                            >
-                                                {deleteButtonLoading && deletingListingId === item.skuId
-                                                    ? <Icon name="refresh-loop" size={16} className={styles.deleteLoadingIcon} />
-                                                    : <Icon name="trash" size={16} className={styles.deleteIcon} />
-                                                }
-                                            </button>
-                                            {/* Edit button – sits top-right on the card */}
-                                            <button
-                                                type="button"
-                                                onClick={(e) => { e.stopPropagation(); openEditModal(item); }}
-                                                className={styles.editCardBtn}
-                                                title="Edit Listing"
-                                            >
-                                                <Icon name="edit-inventory" size={14} />
-                                            </button>
-                                            <div className={styles.imageContainer} data-count={displayImages.length}>
-                                                {displayImages.length > 0 ? (
-                                                    displayImages.map((inv, idx) => (
-                                                        <div key={idx} className={styles.multiImageCell}>
-                                                            <Image
-                                                                src={inv.imageUrl}
-                                                                alt={item.skuId}
-                                                                referrerPolicy="no-referrer"
-                                                                fill
-                                                                className={styles.itemImage}
-                                                                unoptimized
-                                                            />
-                                                            {idx === 3 && validImages.length > 4 && (
-                                                                <div className={styles.moreImagesOverlay}>
-                                                                    +{validImages.length - 4}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    ))
-                                                ) : (
-                                                    <div className={styles.imagePlaceholder}>
-                                                        <Icon name="icon-b99b6c9f" size={32} style={{opacity:0.5,marginBottom:'0.5rem'}} />
-                                                        <br />No Images
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className={styles.cardInfo}>
-                                                <div className={styles.skuHeaderRow}>
-                                                    <p className={styles.itemId}>{item.skuId}</p>
-                                                    <button
-                                                        className={styles.smallCopyBtn}
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            copyToClipboard(item.skuId, "SKU ID");
-                                                        }}
-                                                        title="Copy SKU ID"
-                                                    >
-                                                        <Icon name="copy-inventory-id" size={14} />
-                                                    </button>
-                                                </div>
-                                                <div className={styles.metaInfoRow}>
-                                                    <StatusDot status={item.status} />
-                                                    <p
-                                                        className={styles.itemStatus}
-                                                        style={{ color: STATUS_COLORS[item.status?.toLowerCase()]?.label || '#94a3b8' }}
-                                                    >
-                                                        {item.status?.toUpperCase() || "ACTIVE"}
-                                                    </p>
-                                                    <span className={styles.dotSeparator}>•</span>
-                                                    <div className={styles.marketplaceBadge}>
-                                                        <MarketplaceLogo marketplace={item.marketplace} size={16} />
-                                                        <p className={styles.itemMarketplace}>{item.marketplace || 'Direct'}</p>
-                                                    </div>
-                                                </div>
-                                                <p className={styles.itemDate}>
-                                                    {new Date(item.createdAt).toLocaleDateString('en-US', {
-                                                        month: 'short', day: 'numeric', year: 'numeric'
-                                                    })}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    )
-                                })}
+                                {listings.map((item, index) => (
+                                    <ListingCard
+                                        key={index}
+                                        item={item}
+                                        deleteButtonLoading={deleteButtonLoading}
+                                        deletingListingId={deletingListingId}
+                                        onSelect={setSelectedListing}
+                                        onDelete={openDeleteModal}
+                                        onEdit={openEditModal}
+                                        onCopy={copyToClipboard}
+                                    />
+                                ))}
                             </div>
                     </div>
                     {/* Pagination */}
                     {totalItems > 0 && (
-                        <div className={styles.pagination}>
-                            <div className={styles.paginationLeft}>
-                                <span className={styles.pageInfo}>
-                                    Showing {Math.min((currentPage - 1) * pageSize + 1, totalItems)}–{Math.min(currentPage * pageSize, totalItems)} of {totalItems} entries
-                                </span>
-
-                                <div className={styles.pageSizeWrapper}>
-                                    <label htmlFor="pageSizeSelect" className={styles.pageSizeLabel}>Rows per page:</label>
-                                    <select
-                                        id="pageSizeSelect"
-                                        className={styles.pageSizeSelect}
-                                        value={pageSize}
-                                        onChange={e => {
-                                            setPageSize(Number(e.target.value));
-                                            setCurrentPage(1);
-                                        }}
-                                    >
-                                        {[20, 50, 100, 500, 5000].map(size => (
-                                            <option key={size} value={size}>{size}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-                            <div className={styles.pageControls}>
-                                <button className={styles.pageBtn} disabled={currentPage === 1}
-                                    onClick={handlePrevPage}>
-                                    Previous
-                                </button>
-                                <span className={styles.pageDisplay}>Page {currentPage} of {Math.ceil(totalItems / pageSize) || 1}</span>
-                                <button className={styles.pageBtn} disabled={currentPage >= (Math.ceil(totalItems / pageSize) || 1)}
-                                    onClick={handleNextPage}>
-                                    Next
-                                </button>
-                            </div>
-                        </div>
+                        <ListingsPagination
+                            currentPage={currentPage}
+                            pageSize={pageSize}
+                            totalItems={totalItems}
+                            onPageSizeChange={handlePageSizeChange}
+                            onPrevPage={handlePrevPage}
+                            onNextPage={handleNextPage}
+                        />
                     )}
                 </div>
             )}
 
             {/* Listing Details Modal */}
             {selectedListing && (
-                <div className={styles.modalOverlay} onClick={() => setSelectedListing(null)}>
-                    <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-                        <div className={styles.modalHeader}>
-                            <h2>Listing Details</h2>
-                            <button className={styles.closeBtn} onClick={() => setSelectedListing(null)}>
-                                <Icon name="remove-this-product" size={24} />
-                            </button>
-                        </div>
-
-                        <div className={styles.modalBody}>
-                            <div className={styles.modalSection}>
-                                <div className={styles.skuHeaderRow}>
-                                    <h3>{selectedListing.skuId}</h3>
-                                    <button
-                                        className={styles.iconCopyBtn}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            copyToClipboard(selectedListing.skuId, "SKU ID");
-                                        }}
-                                        title="Copy SKU ID"
-                                    >
-                                        <Icon name="copy-inventory-id" size={18} />
-                                    </button>
-                                </div>
-                                <div className={styles.metaGrid}>
-                                    <div className={styles.metaItem}>
-                                        <span className={styles.metaLabel}>Status</span>
-                                        <div className={styles.metaValueBadge}>
-                                            <StatusDot status={selectedListing.status} size={10} />
-                                            <span
-                                                className={styles.metaValue}
-                                                style={{ color: STATUS_COLORS[selectedListing.status?.toLowerCase()]?.label || '#94a3b8' }}
-                                            >
-                                                {selectedListing.status?.charAt(0).toUpperCase() + selectedListing.status?.slice(1) || 'Active'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className={styles.metaItem}>
-                                        <span className={styles.metaLabel}>Vertical</span>
-                                        <span className={styles.metaValue}>{selectedListing.vertical}</span>
-                                    </div>
-                                    <div className={styles.metaItem}>
-                                        <span className={styles.metaLabel}>Marketplace</span>
-                                        <div className={styles.metaValueBadge}>
-                                            <MarketplaceLogo marketplace={selectedListing.marketplace} size={22} />
-                                            <span className={styles.metaValue}>{selectedListing.marketplace || 'Direct'}</span>
-                                        </div>
-                                    </div>
-                                    {selectedListing.styleId && (
-                                        <div className={styles.metaItem}>
-                                            <span className={styles.metaLabel}>Style ID</span>
-                                            <span className={styles.metaValue}>{selectedListing.styleId}</span>
-                                        </div>
-                                    )}
-                                    <div className={styles.metaItem}>
-                                        <span className={styles.metaLabel}>Date Created</span>
-                                        <span className={styles.metaValue}>
-                                            {selectedListing?.createdAt ? new Date(selectedListing.createdAt).toLocaleString('en-US', {
-                                                month: 'long', day: 'numeric', year: 'numeric',
-                                                hour: '2-digit', minute: '2-digit'
-                                            }) : '—'}
-                                        </span>
-                                    </div>
-                                    <div className={styles.metaItem}>
-                                        <span className={styles.metaLabel}>Total Items</span>
-                                        <span className={styles.metaValue}>{selectedListing.inventoryItems?.length || 0}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className={styles.modalSection}>
-                                <h4 className={styles.inventoryTitle}>Associated Inventory</h4>
-                                {selectedListing.inventoryItems && selectedListing.inventoryItems.length > 0 ? (
-                                    <div className={styles.modalInventoryGrid}>
-                                        {selectedListing.inventoryItems.map((inv, idx) => (
-                                            <div key={idx} className={styles.modalInventoryCard}>
-                                                <div className={styles.modalImageWrapper}>
-                                                    {inv.imageUrl ? (
-                                                        <Image
-                                                            src={inv.imageUrl}
-                                                            alt={inv.inventoryId}
-                                                            referrerPolicy="no-referrer"
-                                                            fill
-                                                            style={{ objectFit: 'cover' }}
-                                                            unoptimized
-                                                        />
-                                                    ) : (
-                                                        <div className={styles.modalImagePlaceholder}>No Image</div>
-                                                    )}
-                                                </div>
-                                                <div className={styles.modalCardFooter}>
-                                                    <span className={styles.modalInventoryId}>{inv.inventoryId}</span>
-                                                    <button
-                                                        className={styles.smallCopyBtn}
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            copyToClipboard(inv.inventoryId, "Inventory ID");
-                                                        }}
-                                                        title="Copy ID"
-                                                    >
-                                                        <Icon name="copy-inventory-id" size={14} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className={styles.modalEmpty}>No inventory associated with this SKU.</p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <ListingDetailModal
+                    selectedListing={selectedListing}
+                    onClose={closeDetailModal}
+                    onCopy={copyToClipboard}
+                />
             )}
 
             {/* ── EDIT MODAL ─────────────────────────────────────── */}
             {editingListing && (
-                <div className={styles.modalOverlay} onClick={() => setEditingListing(null)}>
-                    <div className={styles.editModalContent} onClick={(e) => e.stopPropagation()}>
-                        <div className={styles.modalHeader}>
-                            <div>
-                                <h2>Edit Listing</h2>
-                                <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>{editingListing.skuId}</p>
-                            </div>
-                            <button className={styles.closeBtn} onClick={() => setEditingListing(null)}>
-                                <Icon name="remove-this-product" />
-                            </button>
-                        </div>
-
-                        <div className={styles.editModalBody}>
-                            {/* Status */}
-                            <div className={styles.editField}>
-                                <label className={styles.editLabel}>Status</label>
-                                <div className={styles.editStatusGrid}>
-                                    {['active', 'inactive', 'blocked', 'archived'].map(s => (
-                                        <button
-                                            key={s}
-                                            type="button"
-                                            className={`${styles.statusPill} ${editForm.status === s ? styles.statusPillActive : ''}`}
-                                            style={editForm.status === s ? { borderColor: STATUS_COLORS[s]?.dot, color: STATUS_COLORS[s]?.label, backgroundColor: `${STATUS_COLORS[s]?.dot}18` } : {}}
-                                            onClick={() => setEditForm(f => ({ ...f, status: s }))}
-                                        >
-                                            <StatusDot status={s} size={7} />
-                                            {s.charAt(0).toUpperCase() + s.slice(1)}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Marketplace */}
-                            <div className={styles.editField}>
-                                <label className={styles.editLabel}>Marketplace</label>
-                                <div className={styles.editMarketplaceGrid}>
-                                    {['Amazon', 'Flipkart', 'Myntra', 'Meesho', 'Ajio', 'Shopsy', 'Website', 'Direct'].map(mp => (
-                                        <button
-                                            key={mp}
-                                            type="button"
-                                            className={`${styles.marketplacePill} ${editForm.marketplace === mp ? styles.marketplacePillActive : ''}`}
-                                            onClick={() => setEditForm(f => ({ ...f, marketplace: mp }))}
-                                        >
-                                            <MarketplaceLogo marketplace={mp} size={18} />
-                                            <span>{mp}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Style ID (Myntra) */}
-                            {editForm.marketplace === "Myntra" && (
-                                <div className={styles.editField}>
-                                    <label className={styles.editLabel}>Style ID (Myntra)</label>
-                                    <input
-                                        type="text"
-                                        className={styles.editInput}
-                                        value={editForm.styleId || ""}
-                                        onChange={e => setEditForm(f => ({ ...f, styleId: e.target.value }))}
-                                        placeholder="e.g., 29481052"
-                                    />
-                                </div>
-                            )}
-
-                            {/* Vertical */}
-                            <div className={styles.editField}>
-                                <label className={styles.editLabel}>Vertical</label>
-                                <div className={styles.editVerticalGrid}>
-                                    {verticals.map(v => {
-                                        const isSelected = editForm.vertical === v.verticalName;
-                                        return (
-                                            <button
-                                                key={v.verticalShort || v.verticalName}
-                                                type="button"
-                                                className={`${styles.verticalPill} ${isSelected ? styles.verticalPillActive : ''}`}
-                                                onClick={() => setEditForm(f => ({ ...f, vertical: v.verticalName }))}
-                                            >
-                                                <span className={styles.verticalBadge}>{v.verticalShort}</span>
-                                                <span className={styles.verticalName}>{v.verticalName}</span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* Inventory Items */}
-                            <div className={styles.editField}>
-                                <label className={styles.editLabel}>Inventory IDs</label>
-                                <div className={styles.editInventoryTags}>
-                                    {editForm.inventoryItems.map((id) => (
-                                        <span key={id} className={styles.inventoryTag}>
-                                            {id}
-                                            <button
-                                                type="button"
-                                                className={styles.removeTagBtn}
-                                                onClick={() => setEditForm(f => ({ ...f, inventoryItems: f.inventoryItems.filter(i => i !== id) }))}
-                                            >
-                                                ×
-                                            </button>
-                                        </span>
-                                    ))}
-                                    {editForm.inventoryItems.length === 0 && (
-                                        <span className={styles.inventoryTagEmpty}>No items selected</span>
-                                    )}
-                                </div>
-                                <button
-                                    type="button"
-                                    className={styles.addTagBtn}
-                                    onClick={openInventoryPicker}
-                                >
-                                    <Icon name="add-another-product" size={14} />
-                                    Select from Inventory
-                                </button>
-                            </div>
-
-                        </div>
-
-                        <div className={styles.editModalFooter}>
-                            <button className={styles.cancelBtn} onClick={() => setEditingListing(null)}>Cancel</button>
-                            <button className={styles.saveBtn} onClick={handleEditSave} disabled={editSaving}>
-                                {editSaving ? 'Saving...' : 'Save Changes'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <EditListingModal
+                    editingListing={editingListing}
+                    editForm={editForm}
+                    verticals={verticals}
+                    editSaving={editSaving}
+                    onStatusChange={handleEditStatusChange}
+                    onMarketplaceChange={handleEditMarketplaceChange}
+                    onStyleIdChange={handleEditStyleIdChange}
+                    onVerticalChange={handleEditVerticalChange}
+                    onRemoveInventoryItem={handleRemoveInventoryItem}
+                    onOpenInventoryPicker={openInventoryPicker}
+                    onSave={handleEditSave}
+                    onClose={closeEditModal}
+                />
             )}
 
             {/* ── INVENTORY PICKER MODAL ──────────────────────────── */}
             {showInventoryPicker && (
-                <div className={styles.modalOverlay} style={{ zIndex: 1100 }} onClick={() => setShowInventoryPicker(false)}>
-                    <div className={styles.inventoryPickerModal} onClick={e => e.stopPropagation()}>
-                        <div className={styles.modalHeader}>
-                            <div>
-                                <h2>Select Inventory</h2>
-                                <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem' }}>
-                                    {editForm.inventoryItems.length} selected
-                                </p>
-                            </div>
-                            <button className={styles.closeBtn} onClick={() => setShowInventoryPicker(false)}>
-                                <Icon name="remove-this-product" />
-                            </button>
-                        </div>
-
-                        <div className={styles.inventoryPickerSearch}>
-                            <Icon name="icon-9c4a10ac" size={16} style={{flexShrink:0,color:'#64748b'}} />
-                            <input
-                                type="text"
-                                placeholder="Search inventory ID..."
-                                className={styles.inventoryPickerSearchInput}
-                                value={inventoryPickerSearch}
-                                onChange={e => setInventoryPickerSearch(e.target.value.toUpperCase())}
-                                autoFocus
-                            />
-                            {inventoryPickerSearch && (
-                                <button className={styles.pickerSearchClear} onClick={() => setInventoryPickerSearch('')}>×</button>
-                            )}
-                        </div>
-
-                        <div className={styles.inventoryPickerGridContainer}>
-                            <div className={styles.inventoryPickerGrid}>
-                                {inventoryPickerLoading ? (
-                                    <div className={styles.inventoryPickerLoading}>
-                                        <div className={styles.spinner} />
-                                        <p>Loading inventory...</p>
-                                    </div>
-                                ) : (() => {
-                                    const filtered = inventoryPickerItems.filter(inv => {
-                                        if (!inventoryPickerSearch) return true;
-                                        const { includeTerms, excludeTerms } = parseSearchQuery(inventoryPickerSearch);
-                                        return matchesSearchTerms(inv.inventoryId, includeTerms, excludeTerms);
-                                    });
-                                    return filtered.length === 0 ? (
-                                        <p className={styles.inventoryPickerEmpty}>No inventory items found.</p>
-                                    ) : filtered.map(inv => {
-                                        const isSelected = editForm.inventoryItems.includes(inv.inventoryId);
-                                        return (
-                                            <div
-                                                key={inv.inventoryId}
-                                                className={`${styles.inventoryPickerCard} ${isSelected ? styles.inventoryPickerCardSelected : ''}`}
-                                                onClick={() => toggleInventoryItem(inv.inventoryId)}
-                                            >
-                                                <div className={styles.inventoryPickerImageWrap}>
-                                                    {inv.imageUrl ? (
-                                                        <Image
-                                                            src={inv.imageUrl}
-                                                            alt={inv.inventoryId}
-                                                            referrerPolicy="no-referrer"
-                                                            fill
-                                                            className={styles.inventoryPickerImage}
-                                                            unoptimized
-                                                        />
-                                                    ) : (
-                                                        <div className={styles.inventoryPickerNoImage}>
-                                                            <Icon name="icon-a992d83c" />
-                                                        </div>
-                                                    )}
-                                                    {isSelected && (
-                                                        <div className={styles.inventoryPickerCheckmark}>
-                                                            <Icon name="icon-5ab11cbf" size={14} />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <p className={styles.inventoryPickerCardId}>{inv.inventoryId}</p>
-                                            </div>
-                                        );
-                                    });
-                                })()}
-                            </div>
-                        </div>
-
-                        <div className={styles.inventoryPickerFooter}>
-                            <span className={styles.inventoryPickerCount}>
-                                {editForm.inventoryItems.length} item{editForm.inventoryItems.length !== 1 ? 's' : ''} selected
-                            </span>
-                            <button className={styles.saveBtn} onClick={() => setShowInventoryPicker(false)}>
-                                Done
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <InventoryPickerModal
+                    selectedInventoryIds={editForm.inventoryItems}
+                    inventoryPickerItems={inventoryPickerItems}
+                    inventoryPickerLoading={inventoryPickerLoading}
+                    inventoryPickerSearch={inventoryPickerSearch}
+                    onSearchChange={handleInventoryPickerSearchChange}
+                    onClearSearch={clearInventoryPickerSearch}
+                    onToggleItem={toggleInventoryItem}
+                    onClose={closeInventoryPicker}
+                />
             )}
 
             {/* Delete Confirmation Modal */}
             {deletingListing && (
-                <div className={styles.modalOverlay} onClick={() => setDeletingListing(null)}>
-                    <div className={styles.deleteConfirmModalContent} onClick={e => e.stopPropagation()}>
-                        <div className={styles.modalHeader}>
-                            <h2 style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                                <Icon name="icon-cfd589e1" size={22} />
-                                Confirm Deletion
-                            </h2>
-                            <button className={styles.closeBtn} onClick={() => setDeletingListing(null)}>
-                                <Icon name="remove-this-product" />
-                            </button>
-                        </div>
-
-                        <div className={styles.deleteModalBody}>
-                            <p style={{ margin: 0, color: '#e2e8f0', fontSize: '0.95rem', lineHeight: '1.5' }}>
-                                Are you sure you want to delete listing <strong style={{ color: '#f8fafc', wordBreak: 'break-all' }}>{deletingListing.skuId}</strong>? This action cannot be undone.
-                            </p>
-                            <div className={styles.deleteInputGroup}>
-                                <label className={styles.deleteInputLabel}>
-                                    To confirm, type <span className={styles.deleteHighlight}>delete</span> below:
-                                </label>
-                                <input
-                                    type="text"
-                                    className={styles.deleteInput}
-                                    placeholder="Type 'delete' to confirm"
-                                    value={deleteInputText}
-                                    onChange={(e) => setDeleteInputText(e.target.value)}
-                                    autoFocus
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && deleteInputText.trim().toLowerCase() === 'delete' && !deleteButtonLoading) {
-                                            confirmDelete();
-                                        }
-                                    }}
-                                />
-                            </div>
-                        </div>
-
-                        <div className={styles.editModalFooter}>
-                            <button
-                                className={styles.cancelBtn}
-                                onClick={() => setDeletingListing(null)}
-                                disabled={deleteButtonLoading}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                className={styles.deleteConfirmBtn}
-                                onClick={confirmDelete}
-                                disabled={deleteInputText.trim().toLowerCase() !== "delete" || deleteButtonLoading}
-                            >
-                                {deleteButtonLoading ? "Deleting..." : "Delete Listing"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <DeleteListingModal
+                    deletingListing={deletingListing}
+                    deleteInputText={deleteInputText}
+                    deleteButtonLoading={deleteButtonLoading}
+                    onInputChange={handleDeleteInputChange}
+                    onInputKeyDown={handleDeleteInputKeyDown}
+                    onConfirm={confirmDelete}
+                    onClose={closeDeleteModal}
+                />
             )}
 
                 </div>
