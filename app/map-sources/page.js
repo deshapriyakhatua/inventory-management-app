@@ -1,11 +1,23 @@
 "use client";
 import { toast } from "sonner";
 
-import Icon from "@/components/ui/Icon/Icon";
-
-
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import Badge from "@/components/ui/Badge/Badge";
+import Button from "@/components/ui/Button/Button";
+import Card from "@/components/ui/Card/Card";
+import EmptyState from "@/components/ui/EmptyState/EmptyState";
+import FormField from "@/components/ui/FormField/FormField";
+import Icon from "@/components/ui/Icon/Icon";
+import IconButton from "@/components/ui/IconButton/IconButton";
+import Input from "@/components/ui/Input/Input";
+import PageHeader from "@/components/ui/PageHeader/PageHeader";
+import PageShell from "@/components/ui/PageShell/PageShell";
+import Select from "@/components/ui/Select/Select";
+import Spinner from "@/components/ui/Spinner/Spinner";
+import Table from "@/components/ui/Table/Table";
+import cx from "@/components/ui/cx";
+import ConfirmModal from "@/components/ConfirmModal/ConfirmModal";
 import styles from "./page.module.css";
 
 import { parseSearchQuery, matchesSearchTerms } from "../../utils/searchUtils";
@@ -15,21 +27,20 @@ export default function MapSourcesPage() {
   const [inventories, setInventories] = useState([]);
   const [filteredInventories, setFilteredInventories] = useState([]);
   const [sellers, setSellers] = useState([]);
-  
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedInventory, setSelectedInventory] = useState(null);
-  
+
   // Form State
   const [formSellerId, setFormSellerId] = useState("");
   const [formSellerSku, setFormSellerSku] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  
+  const [sellerError, setSellerError] = useState("");
+
   // Unmap Confirm State
   const [showUnmapConfirm, setShowUnmapConfirm] = useState(false);
   const [sourceToRemove, setSourceToRemove] = useState(null);
   const [unmapLoading, setUnmapLoading] = useState(false);
-
-
 
   useEffect(() => {
     fetchMappingData();
@@ -39,7 +50,7 @@ export default function MapSourcesPage() {
     try {
       const res = await fetch("/api/employee/inventory/map-source");
       const result = await res.json();
-      
+
       if (res.ok && result.success) {
         setInventories(result.inventory || []);
         setFilteredInventories(result.inventory || []);
@@ -69,11 +80,13 @@ export default function MapSourcesPage() {
     // Reset form
     setFormSellerId("");
     setFormSellerSku("");
+    setSellerError("");
   };
 
   const handleAddSource = async (e) => {
     e.preventDefault();
     if (!selectedInventory || !formSellerId) {
+      setSellerError("Please select an inventory item and a seller");
       toast.error("Please select an inventory item and a seller", { id: "app-feedback", duration: 3000 });
       return;
     }
@@ -95,12 +108,12 @@ export default function MapSourcesPage() {
 
       if (res.ok && result.success) {
         toast.success("Source mapped successfully", { id: "app-feedback", duration: 3000 });
-        
+
         // Update local state arrays seamlessly
         const updatedInventory = result.data;
         setSelectedInventory(updatedInventory);
         setInventories(prev => prev.map(inv => inv._id === updatedInventory._id ? updatedInventory : inv));
-        
+
         // Reset form
         setFormSellerId("");
         setFormSellerSku("");
@@ -116,15 +129,15 @@ export default function MapSourcesPage() {
 
   const confirmRemoveSource = async () => {
     if (!selectedInventory || !sourceToRemove) return;
-    
+
     setUnmapLoading(true);
     try {
       const res = await fetch(
-        `/api/employee/inventory/map-source?inventoryId=${selectedInventory._id}&sellerId=${sourceToRemove}`, 
+        `/api/employee/inventory/map-source?inventoryId=${selectedInventory._id}&sellerId=${sourceToRemove}`,
         { method: "DELETE" }
       );
       const result = await res.json();
-      
+
       if (res.ok && result.success) {
         toast.success("Source removed", { id: "app-feedback", duration: 3000 });
         const updatedInventory = result.data;
@@ -142,142 +155,163 @@ export default function MapSourcesPage() {
     }
   };
 
+  const closeUnmapConfirm = () => {
+    setShowUnmapConfirm(false);
+    setSourceToRemove(null);
+  };
+
   if (loading) {
     return (
-      <div className={styles.container}>
-        <div className={styles.loadingSpinner}>
-          <div className={styles.spinner}></div>
+      <PageShell>
+        <div className={styles.loading}>
+          <Spinner size="lg" label="Loading your inventory catalog" />
           <p>Loading your inventory catalog...</p>
         </div>
-      </div>
+      </PageShell>
     );
   }
 
-  return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>Map Inventory Sources</h1>
-        <p className={styles.subtitle}>Attach multiple sellers and pricing to your internal inventory items.</p>
-      </div>
+  const hasSources = selectedInventory?.sources?.length > 0;
 
-      <div className={styles.contentWrapper}>
-        
+  return (
+    <PageShell>
+      <PageHeader
+        title="Map Inventory Sources"
+        subtitle="Attach multiple sellers and pricing to your internal inventory items."
+      />
+
+      <div className={styles.layout}>
+
         {/* Left Panel: Inventory Selection */}
-        <div className={`${styles.panel} ${styles.selectionPanel}`}>
+        <Card padding="lg" className={styles.selectionPanel}>
           <h2 className={styles.panelTitle}>
-            <Icon name="icon-5d77ebc6" />
+            <Icon name="icon-5d77ebc6" size={18} />
             Select Inventory
           </h2>
-          
-          <input
+
+          <Input
             type="text"
-            className={styles.searchInput}
+            aria-label="Search by Inventory ID"
             placeholder="Search by Inventory ID..."
+            leading={<Icon name="icon-9c4a10ac" size={16} />}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
 
           <div className={styles.inventoryList}>
             {filteredInventories.length === 0 ? (
-              <p style={{ textAlign: "center", color: "#64748b", padding: "2rem" }}>No items found.</p>
+              <EmptyState title="No items found." className={styles.listEmpty} />
             ) : (
               filteredInventories.map(inv => (
-                <div 
+                <button
+                  type="button"
                   key={inv._id}
-                  className={`${styles.inventoryCard} ${selectedInventory?._id === inv._id ? styles.selected : ""}`}
+                  aria-pressed={selectedInventory?._id === inv._id}
+                  className={cx(styles.inventoryItem, selectedInventory?._id === inv._id && styles.isSelected)}
                   onClick={() => handleSelectInventory(inv)}
                 >
-                  <div className={styles.cardLeft}>
+                  <span className={styles.itemLeft}>
                     {inv.imageUrl ? (
-                      <img src={inv.imageUrl} alt={inv.inventoryId} className={styles.itemImage} />
+                      <Image src={inv.imageUrl} alt={inv.inventoryId} width={44} height={44} className={styles.itemImage} />
                     ) : (
-                      <div className={styles.imagePlaceholder}>NA</div>
+                      <span className={styles.imagePlaceholder}>NA</span>
                     )}
-                    <div>
-                      <h4 className={styles.itemId}>{inv.inventoryId}</h4>
+                    <span className={styles.itemText}>
+                      <span className={styles.itemId}>{inv.inventoryId}</span>
                       {inv.sources?.length > 0 && (
-                        <span className={styles.sourcesCount}>{inv.sources.length} mapped sources</span>
+                        <Badge tone="info">{inv.sources.length} mapped sources</Badge>
                       )}
-                    </div>
-                  </div>
+                    </span>
+                  </span>
                   <Icon name="icon-40639b2b" size={18} />
-                </div>
+                </button>
               ))
             )}
           </div>
-        </div>
+        </Card>
 
         {/* Right Panel: Mapping details */}
-        <div className={`${styles.panel} ${styles.mappingPanel}`}>
+        <Card padding="lg" className={styles.mappingPanel}>
           {!selectedInventory ? (
-            <div className={styles.emptySelection}>
-              <Icon name="icon-b99b6c9f" size={48} />
-              <p>Select an inventory item from the left to view and edit its sources.</p>
-            </div>
+            <EmptyState
+              icon={<Icon name="icon-b99b6c9f" size={48} />}
+              title="Select an inventory item from the left to view and edit its sources."
+              className={styles.emptySelection}
+            />
           ) : (
-            <>
+            <div className={styles.details}>
               {/* Selected Item header */}
-              <div className={styles.selectedItemHeader}>
+              <div className={styles.selectedHeader}>
                 {selectedInventory.imageUrl ? (
-                  <img src={selectedInventory.imageUrl} alt={selectedInventory.inventoryId} className={styles.selectedItemImage} />
+                  <Image src={selectedInventory.imageUrl} alt={selectedInventory.inventoryId} width={80} height={80} className={styles.selectedImage} />
                 ) : (
-                  <div className={styles.selectedItemImage} style={{ background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>No IMG</div>
+                  <span className={cx(styles.selectedImage, styles.selectedPlaceholder)}>No IMG</span>
                 )}
-                <div>
-                  <h3 className={styles.selectedItemId}>{selectedInventory.inventoryId}</h3>
-                  <span style={{ color: "#94a3b8", fontSize: "0.95rem" }}>
+                <div className={styles.selectedText}>
+                  <h3 className={styles.selectedId}>{selectedInventory.inventoryId}</h3>
+                  <span className={styles.muted}>
                     Total linked sources: {selectedInventory.sources?.length || 0}
                   </span>
                 </div>
               </div>
 
               {/* Current Sources */}
-              <div className={styles.sourcesSection}>
+              <section className={styles.section}>
                 <h4 className={styles.sectionHeading}>Currently Mapped Suppliers</h4>
-                
-                {(!selectedInventory.sources || selectedInventory.sources.length === 0) ? (
-                  <div className={styles.noSources}>This item currently has no sellers mapped to it.</div>
-                ) : (
-                  <div className={styles.sourcesGrid}>
-                    {selectedInventory.sources.map((src, idx) => (
-                      <div key={idx} className={styles.sourceCard}>
-                        <button 
-                          type="button" 
-                          className={styles.removeSourceBtn}
-                          onClick={() => {
-                            setSourceToRemove(src.sellerId?._id);
-                            setShowUnmapConfirm(true);
-                          }}
-                          title="Unmap this seller"
-                        >
-                          <Icon name="remove-this-product" size={14} />
-                        </button>
-                        
-                        <h4 className={styles.sellerName}>
+
+                <Table
+                  columns={3}
+                  empty={hasSources ? undefined : "This item currently has no sellers mapped to it."}
+                >
+                  <Table.Head>
+                    <Table.Row hover={false}>
+                      <Table.Cell as="th">Seller</Table.Cell>
+                      <Table.Cell as="th">Their SKU</Table.Cell>
+                      <Table.Cell as="th" className={styles.actionCell}>
+                        <span className="srOnly">Unmap this seller</span>
+                      </Table.Cell>
+                    </Table.Row>
+                  </Table.Head>
+                  <Table.Body>
+                    {hasSources && selectedInventory.sources.map((src, idx) => (
+                      <Table.Row key={idx}>
+                        <Table.Cell className={styles.sellerName}>
                           {src.sellerId ? src.sellerId.businessName : "Unknown Seller"}
-                        </h4>
-                        
-                        <div className={styles.sourceDetailRow}>
-                          <span className={styles.sourceDetailLabel}>Their SKU:</span>
-                          <span className={styles.sourceDetailValue}>{src.sellerProductId || <span style={{color: '#64748b'}}>Not provided</span>}</span>
-                        </div>
-                      </div>
+                        </Table.Cell>
+                        <Table.Cell>
+                          {src.sellerProductId || <span className={styles.subtle}>Not provided</span>}
+                        </Table.Cell>
+                        <Table.Cell className={styles.actionCell}>
+                          <IconButton
+                            name="remove-this-product"
+                            size="sm"
+                            aria-label="Unmap this seller"
+                            title="Unmap this seller"
+                            className={styles.removeButton}
+                            onClick={() => {
+                              setSourceToRemove(src.sellerId?._id);
+                              setShowUnmapConfirm(true);
+                            }}
+                          />
+                        </Table.Cell>
+                      </Table.Row>
                     ))}
-                  </div>
-                )}
-              </div>
+                  </Table.Body>
+                </Table>
+              </section>
 
               {/* Add new Source Form */}
-              <div className={styles.mappingForm}>
+              <section className={styles.section}>
                 <h4 className={styles.sectionHeading}>Add / Update Supplier</h4>
-                
+
                 <form onSubmit={handleAddSource} className={styles.formGrid}>
-                  <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-                    <label className={styles.label}>Select Seller *</label>
-                    <select 
-                      className={styles.select}
+                  <FormField label="Select Seller" error={sellerError} className={styles.fullWidth}>
+                    <Select
                       value={formSellerId}
-                      onChange={(e) => setFormSellerId(e.target.value)}
+                      onChange={(e) => {
+                        setFormSellerId(e.target.value);
+                        setSellerError("");
+                      }}
                       required
                     >
                       <option value="">-- Choose a Seller --</option>
@@ -286,77 +320,46 @@ export default function MapSourcesPage() {
                           {s.businessName} {s.contactPerson ? `(${s.contactPerson})` : ""}
                         </option>
                       ))}
-                    </select>
-                  </div>
+                    </Select>
+                  </FormField>
 
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Seller's Product ID / SKU</label>
-                    <input 
-                      type="text" 
-                      className={styles.input}
+                  <FormField label="Seller's Product ID / SKU">
+                    <Input
+                      type="text"
                       placeholder="e.g. WH-TSH-01"
                       value={formSellerSku}
                       onChange={(e) => setFormSellerSku(e.target.value)}
                     />
-                  </div>
+                  </FormField>
 
-                  <div className={styles.fullWidth}>
-                    <button type="submit" className={styles.submitBtn} disabled={submitting}>
-                      {submitting ? "Mapping..." : (
-                        <>
-                          <Icon name="add-another-product" size={18} />
-                          Map Source
-                        </>
-                      )}
-                    </button>
+                  <div className={cx(styles.fullWidth, styles.actions)}>
+                    <Button
+                      type="submit"
+                      loading={submitting}
+                      leftIcon={<Icon name="add-another-product" size={18} />}
+                    >
+                      Map Source
+                    </Button>
                   </div>
                 </form>
-              </div>
-
-            </>
+              </section>
+            </div>
           )}
-        </div>
+        </Card>
       </div>
-      
-      {/* ── Unmap Confirm Modal ── */}
-      {showUnmapConfirm && (
-        <div 
-          className={styles.confirmOverlay} 
-          onClick={() => { setShowUnmapConfirm(false); setSourceToRemove(null); }}
-          style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}
-        >
-          <div 
-            className={styles.confirmModal} 
-            onClick={(e) => e.stopPropagation()}
-            style={{ background: "#1e293b", padding: "2rem", borderRadius: "12px", border: "1px solid #334155", maxWidth: "420px", textAlign: "center", boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.5)" }}
-          >
-            <div style={{ background: "rgba(239, 68, 68, 0.1)", width: "60px", height: "60px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.5rem" }}>
-              <Icon name="icon-cfd589e1" size={28} />
-            </div>
-            <h3 style={{ color: "#fff", fontSize: "1.3rem", margin: "0 0 0.8rem 0" }}>Unmap Seller?</h3>
-            <p style={{ color: "#94a3b8", margin: "0 0 2rem 0", lineHeight: "1.5" }}>
-              Are you sure you want to remove this seller from your source mappings? This action cannot be undone.
-            </p>
-            <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
-              <button 
-                onClick={() => { setShowUnmapConfirm(false); setSourceToRemove(null); }} 
-                disabled={unmapLoading}
-                style={{ background: "transparent", color: "#cbd5e1", border: "1px solid #475569", padding: "0.6rem 1.4rem", borderRadius: "8px", cursor: "pointer", transition: "all 0.2s" }}
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={confirmRemoveSource} 
-                disabled={unmapLoading}
-                style={{ background: "#ef4444", color: "white", border: "none", padding: "0.6rem 1.4rem", borderRadius: "8px", cursor: "pointer", fontWeight: "600", transition: "all 0.2s" }}
-              >
-                {unmapLoading ? "Removing..." : "Confirm Removal"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
-          </div>
+      {/* ── Unmap Confirm Modal ── */}
+      <ConfirmModal
+        isOpen={showUnmapConfirm}
+        title="Unmap Seller?"
+        message="Are you sure you want to remove this seller from your source mappings? This action cannot be undone."
+        confirmLabel="Confirm Removal"
+        cancelLabel="Cancel"
+        variant="danger"
+        isLoading={unmapLoading}
+        onConfirm={confirmRemoveSource}
+        onClose={closeUnmapConfirm}
+      />
+    </PageShell>
   );
 }

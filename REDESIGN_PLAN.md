@@ -387,9 +387,9 @@ For **every page task** the checklist **DoD-PG** applies:
   - Split: `app/_components/` → `StatCard`, `NavCardGrid`, `RevenueChart`, etc. only if `page.js` > 400 lines after cleanup.
 - [x] **T-4.2 `/add-inventory`, `/add-listing`, `/add-purchase`** · L · Dep: Phase 1
   - Form page pattern (7.1). Two-column field grids collapse to one column < 768px. `add-listing` has 19 inline styles → move to CSS. Split sections into `_components/` per form section when file > 400 lines.
-- [ ] **T-4.3 `/upload-sales-log`, `/map-sources`, `/custom-qr`** · L · Dep: Phase 1
+- [x] **T-4.3 `/upload-sales-log`, `/map-sources`, `/custom-qr`** · L · Dep: Phase 1
   - Dropzone via `FileInput`; progress/status via `Badge` + `Spinner`. `/custom-qr` keeps white QR canvas background (exception 8.3).
-- [ ] **T-4.4 `/sales-records` (`SalesRecordsView`)** · M · Dep: T-1.6
+- [x] **T-4.4 `/sales-records` (`SalesRecordsView`)** · M · Dep: T-1.6
   - Table + filters + toolbar migration. Component keeps its props (`title`, `archivedTitle`). Split `_components/` if > 400 lines.
 
 ### PHASE 5 — Large pages (tier L/XL): restyle + split (D-4)

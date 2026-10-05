@@ -1,10 +1,17 @@
 "use client";
-import Icon from "@/components/ui/Icon/Icon";
-
 
 import { useState, useEffect, useRef } from "react";
-import styles from "./page.module.css";
+import Image from "next/image";
 import { toast } from "sonner";
+import Button from "@/components/ui/Button/Button";
+import Card from "@/components/ui/Card/Card";
+import FormField from "@/components/ui/FormField/FormField";
+import Icon from "@/components/ui/Icon/Icon";
+import Input from "@/components/ui/Input/Input";
+import PageHeader from "@/components/ui/PageHeader/PageHeader";
+import PageShell from "@/components/ui/PageShell/PageShell";
+import Spinner from "@/components/ui/Spinner/Spinner";
+import styles from "./page.module.css";
 
 export default function CustomQrPage() {
   const [amount, setAmount] = useState("500");
@@ -60,7 +67,7 @@ export default function CustomQrPage() {
         scale: 3, // High quality render
         useCORS: true,
         logging: false,
-        backgroundColor: "#ffffff",
+        backgroundColor: "#ffffff", // QR scan exception: export background stays white
       });
 
       const imgData = canvas.toDataURL("image/jpeg", 0.95);
@@ -92,7 +99,7 @@ export default function CustomQrPage() {
         scale: 3,
         useCORS: true,
         logging: false,
-        backgroundColor: "#ffffff",
+        backgroundColor: "#ffffff", // QR scan exception: export background stays white
       });
 
       const imgData = canvas.toDataURL("image/png");
@@ -118,107 +125,97 @@ export default function CustomQrPage() {
   };
 
   return (
-    <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.headerRow}>
-        <div>
-          <h1 className={styles.title}>Custom Payment QR Generator</h1>
-          <p className={styles.subtitle}>
-            Generate custom amount UPI QR codes and download as high-res JPG or PNG images.
-          </p>
-        </div>
-      </div>
+    <PageShell className={styles.shell}>
+      <PageHeader
+        title="Custom Payment QR Generator"
+        subtitle="Generate custom amount UPI QR codes and download as high-res JPG or PNG images."
+      />
 
-      <div className={styles.grid}>
+      <div className={styles.layout}>
         {/* Left: Input Controls */}
-        <div className={styles.card}>
-          <div className={styles.sectionTitle}>
-            <Icon name="payment-qr-balance" />
-            Payment Details
+        <Card padding="lg" className={styles.formCard}>
+          <div className={styles.sectionHeader}>
+            <Icon name="payment-qr-balance" size={18} />
+            <h2 className={styles.sectionTitle}>Payment Details</h2>
           </div>
 
-          <div className={styles.formGrid}>
+          <div className={styles.fields}>
             {/* Amount Field */}
-            <div className={styles.inputGroup}>
-              <label className={styles.label}>Custom Amount (₹)</label>
-              <div className={styles.amountInputWrapper}>
-                <span className={styles.currencyPrefix}>₹</span>
-                <input
+            <div className={styles.amountGroup}>
+              <FormField label="Custom Amount (₹)">
+                <Input
                   type="number"
                   step="any"
-                  className={`${styles.input} ${styles.amountInput}`}
+                  leading={<span className={styles.currencyPrefix}>₹</span>}
+                  className={styles.amountInput}
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="Enter amount (e.g. 500)"
                   min="0"
                 />
-              </div>
+              </FormField>
 
               {/* Quick Preset Buttons */}
               <div className={styles.quickPills}>
-                {PRESET_AMOUNTS.map((amt) => (
-                  <button
-                    key={amt}
-                    type="button"
-                    className={`${styles.pillBtn} ${
-                      String(amount) === String(amt) ? styles.pillBtnActive : ""
-                    }`}
-                    onClick={() => setAmount(String(amt))}
-                  >
-                    + ₹{amt}
-                  </button>
-                ))}
+                {PRESET_AMOUNTS.map((amt) => {
+                  const isActive = String(amount) === String(amt);
+                  return (
+                    <Button
+                      key={amt}
+                      size="sm"
+                      variant={isActive ? "primary" : "secondary"}
+                      aria-pressed={isActive}
+                      onClick={() => setAmount(String(amt))}
+                    >
+                      + ₹{amt}
+                    </Button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* UPI ID Field */}
-            <div className={styles.inputGroup}>
-              <label className={styles.label}>Payee UPI ID / VPA</label>
-              <input
-                type="text"
-                className={styles.input}
-                value={upiId}
-                onChange={(e) => setUpiId(e.target.value)}
-                placeholder="e.g. 033311501063323@slice"
-              />
-            </div>
+            <div className={styles.grid2}>
+              {/* UPI ID Field */}
+              <FormField label="Payee UPI ID / VPA">
+                <Input
+                  type="text"
+                  value={upiId}
+                  onChange={(e) => setUpiId(e.target.value)}
+                  placeholder="e.g. 033311501063323@slice"
+                />
+              </FormField>
 
-            {/* Payee Name Field */}
-            <div className={styles.inputGroup}>
-              <label className={styles.label}>Payee / Business Name</label>
-              <input
-                type="text"
-                className={styles.input}
-                value={payeeName}
-                onChange={(e) => setPayeeName(e.target.value)}
-                placeholder="e.g. CRAZYKUDI"
-              />
+              {/* Payee Name Field */}
+              <FormField label="Payee / Business Name">
+                <Input
+                  type="text"
+                  value={payeeName}
+                  onChange={(e) => setPayeeName(e.target.value)}
+                  placeholder="e.g. CRAZYKUDI"
+                />
+              </FormField>
             </div>
 
             {/* Payment Note / Remarks */}
-            <div className={styles.inputGroup}>
-              <label className={styles.label}>Payment Note / Remarks</label>
-              <input
+            <FormField label="Payment Note / Remarks">
+              <Input
                 type="text"
-                className={styles.input}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="e.g. Custom Payment / Order #104"
               />
-            </div>
+            </FormField>
 
-            <div className={styles.actionBtnRow}>
-              <button
-                type="button"
-                className={styles.copyLinkBtn}
-                onClick={handleCopyLink}
-              >
-                <Icon name="copy-inventory-id" size={18} />
-                Copy UPI Payment Link
-              </button>
-            </div>
+            <Button
+              variant="secondary"
+              className={styles.fullWidth}
+              onClick={handleCopyLink}
+              leftIcon={<Icon name="copy-inventory-id" size={18} />}
+            >
+              Copy UPI Payment Link
+            </Button>
           </div>
-        </div>
+        </Card>
 
         {/* Right: Live Preview & Download Card */}
         <div className={styles.previewWrapper}>
@@ -240,9 +237,13 @@ export default function CustomQrPage() {
 
             {/* QR Image */}
             <div className={styles.qrFrame}>
-              <img
+              <Image
                 src={qrImageUrl}
                 alt="Payment QR Code"
+                width={300}
+                height={300}
+                unoptimized
+                loading="eager"
                 className={styles.qrImage}
                 crossOrigin="anonymous"
               />
@@ -260,28 +261,29 @@ export default function CustomQrPage() {
 
           {/* Download Action Buttons */}
           <div className={styles.downloadGroup}>
-            <button
-              type="button"
-              className={styles.downloadJpgBtn}
+            <Button
+              size="lg"
+              className={styles.fullWidth}
               onClick={handleDownloadJpg}
               disabled={isDownloadingJpg}
+              leftIcon={isDownloadingJpg ? <Spinner size="sm" className={styles.buttonSpinner} /> : <Icon name="download-invoices-excel-report" size={18} />}
             >
-              <Icon name="download-invoices-excel-report" />
               {isDownloadingJpg ? "Generating JPG..." : "Download QR Code (JPG)"}
-            </button>
+            </Button>
 
-            <button
-              type="button"
-              className={styles.downloadPngBtn}
+            <Button
+              variant="secondary"
+              size="lg"
+              className={styles.fullWidth}
               onClick={handleDownloadPng}
               disabled={isDownloadingPng}
+              leftIcon={isDownloadingPng ? <Spinner size="sm" className={styles.buttonSpinner} /> : <Icon name="download-invoices-excel-report" size={18} />}
             >
-              <Icon name="download-invoices-excel-report" size={18} />
               {isDownloadingPng ? "Generating PNG..." : "Download QR Code (PNG)"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

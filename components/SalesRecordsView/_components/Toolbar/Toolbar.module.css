@@ -1,0 +1,33 @@
+.root {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.search,
+.filter {
+    width: 100%;
+}
+
+.isSpinning svg {
+    animation: spin 1s linear infinite;
+}
+
+@media (min-width: 768px) {
+    .root {
+        justify-content: flex-end;
+    }
+
+    .search {
+        flex: 1;
+        width: auto;
+        min-width: 12.5rem;
+        max-width: 18.75rem;
+    }
+
+    .filter {
+        width: auto;
+        min-width: 8.125rem;
+    }
+}

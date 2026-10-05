@@ -1,0 +1,72 @@
+.root {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.sortButton {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color var(--duration-fast) var(--ease-out);
+}
+
+.sortButton:hover {
+    color: var(--color-text);
+}
+
+.sortButton:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+}
+
+.checkboxCell {
+    width: 2.5rem;
+    text-align: center;
+}
+
+.rowSelected > td {
+    background: var(--color-accent-subtle);
+}
+
+.highlightText {
+    color: var(--color-text);
+    font-weight: var(--weight-medium);
+}
+
+.skuText {
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-xs);
+    background: var(--color-accent-subtle);
+    color: var(--color-accent);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.currencyText {
+    color: var(--color-success);
+    font-weight: var(--weight-semibold);
+}
+
+.na {
+    color: var(--color-text-subtle);
+    font-style: italic;
+}
+
+.dateText {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    white-space: nowrap;
+}

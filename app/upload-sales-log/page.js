@@ -4,10 +4,30 @@ import { toast } from "sonner";
 import Icon from "@/components/ui/Icon/Icon";
 
 
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef } from "react";
+import Badge from "@/components/ui/Badge/Badge";
+import Button from "@/components/ui/Button/Button";
+import Card from "@/components/ui/Card/Card";
+import Checkbox from "@/components/ui/Checkbox/Checkbox";
+import FormField from "@/components/ui/FormField/FormField";
+import IconButton from "@/components/ui/IconButton/IconButton";
+import PageHeader from "@/components/ui/PageHeader/PageHeader";
+import PageShell from "@/components/ui/PageShell/PageShell";
+import Select from "@/components/ui/Select/Select";
+import Spinner from "@/components/ui/Spinner/Spinner";
+import Table from "@/components/ui/Table/Table";
+import cx from "@/components/ui/cx";
 import styles from "./page.module.css";
 
 import { parseCSV } from "../../utils/csvParser";
+
+const STATUS_TONES = {
+    ordered: "info",
+    dispatched: "success",
+    cancelled: "danger",
+    logistics_return: "warning",
+    returned: "warning",
+};
 
 export default function UploadSalesLog() {
     const [marketplace, setMarketplace] = useState("Flipkart");
@@ -15,6 +35,7 @@ export default function UploadSalesLog() {
     const [parsedData, setParsedData] = useState([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isParsing, setIsParsing] = useState(false);
+    const [fileError, setFileError] = useState("");
 
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef(null);
@@ -62,10 +83,12 @@ export default function UploadSalesLog() {
 
     const processFile = async (selectedFile) => {
         if (!selectedFile.name.endsWith('.csv')) {
+            setFileError("Please select a valid CSV file.");
             toast.error("Please select a valid CSV file.", { id: "app-feedback", duration: 3000 });
             return;
         }
 
+        setFileError("");
         setFile(selectedFile);
         setIsParsing(true);
         try {
@@ -80,6 +103,7 @@ export default function UploadSalesLog() {
             toast.success(`Parsed ${data.length} rows successfully.`, { id: "app-feedback", duration: 3000 });
         } catch (error) {
             console.error("Parsing error:", error);
+            setFileError("Failed to parse CSV file.");
             toast.error("Failed to parse CSV file.", { id: "app-feedback", duration: 3000 });
             setFile(null);
             setParsedData([]);
@@ -109,13 +133,14 @@ export default function UploadSalesLog() {
     const removeFile = () => {
         setFile(null);
         setParsedData([]);
+        setFileError("");
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
     const removeRow = (index) => {
         setParsedData(prev => prev.filter((_, i) => i !== index));
     };
- 
+
     const toggleRowStatus = (index) => {
         setParsedData(prev => prev.map((item, i) => {
             if (i !== index) return item;
@@ -125,7 +150,7 @@ export default function UploadSalesLog() {
             };
         }));
     };
- 
+
     const toggleAllRows = (checked) => {
         setParsedData(prev => prev.map(item => ({
             ...item,
@@ -135,6 +160,7 @@ export default function UploadSalesLog() {
 
     const handleSubmit = async () => {
         if (!file || parsedData.length === 0) {
+            setFileError("No data to submit.");
             toast.error("No data to submit.", { id: "app-feedback", duration: 3000 });
             return;
         }
@@ -152,6 +178,7 @@ export default function UploadSalesLog() {
         })).filter(item => item.orderId && item.skuId && item.quantity > 0);
 
         if (salesItems.length === 0) {
+            setFileError("No valid sales items found in the file.");
             toast.error("No valid sales items found in the file.", { id: "app-feedback", duration: 3000 });
             setIsSubmitting(false);
             return;
@@ -179,147 +206,167 @@ export default function UploadSalesLog() {
         }
     };
 
-    return (
-        <div className={styles.container}>
-            <h1 className={styles.title}>Bulk Sales Upload</h1>
+    const allDispatched = parsedData.length > 0 && parsedData.every(item => item.status === 'DISPATCHED');
+    const allDispatchedTitle = parsedData.every(item => item.status === 'DISPATCHED') ? "Revert all to original status" : "Mark all as Dispatched";
 
-            <div className={styles.card}>
-                <div className={styles.inputGroup}>
-                    <label className={styles.inputLabel}>Select Marketplace</label>
-                    <select
-                        className={styles.select}
+    return (
+        <PageShell className={styles.shell}>
+            <PageHeader title="Bulk Sales Upload" />
+
+            <Card padding="lg" className={styles.card}>
+                <FormField label="Select Marketplace">
+                    <Select
                         value={marketplace}
                         onChange={(e) => setMarketplace(e.target.value)}
                     >
                         <option value="Flipkart">Flipkart</option>
                         {/* More marketplaces can be added here */}
-                    </select>
-                </div>
+                    </Select>
+                </FormField>
 
-                <div
-                    className={`${styles.uploadArea} ${isDragging ? styles.dragging : ""}`}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    onClick={() => fileInputRef.current.click()}
-                >
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        style={{ display: "none" }}
-                        accept=".csv"
-                        onChange={handleFileSelect}
-                    />
+                <div className={styles.dropField}>
+                    <label
+                        className={cx(styles.dropzone, isDragging && styles.isDragging, fileError && styles.isInvalid)}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                    >
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="srOnly"
+                            accept=".csv"
+                            onChange={handleFileSelect}
+                            aria-invalid={fileError ? true : undefined}
+                            aria-describedby={fileError ? "salesFile-error" : undefined}
+                        />
 
-                    <div className={styles.uploadIcon}>
-                        <Icon name="icon-f583f931" size={48} />
-                    </div>
+                        <span className={styles.dropIcon}>
+                            <Icon name="icon-f583f931" size={48} />
+                        </span>
 
-                    <div className={styles.uploadText}>
-                        {isParsing ? "Parsing file..." : "Click to upload or drag & drop CSV file"}
-                    </div>
-                    <div style={{ fontSize: "0.85rem", color: "#64748b" }}>
-                        Supports Flipkart Sales Report Format
-                    </div>
+                        <span className={styles.dropText}>
+                            {isParsing && <Spinner size="sm" label="Parsing file..." />}
+                            {isParsing ? "Parsing file..." : "Click to upload or drag & drop CSV file"}
+                        </span>
+                        <span className={styles.dropHint}>
+                            Supports Flipkart Sales Report Format
+                        </span>
+                    </label>
+                    {fileError && (
+                        <span id="salesFile-error" className={styles.error} role="alert">{fileError}</span>
+                    )}
                 </div>
 
                 {file && (
                     <div className={styles.fileInfo}>
                         <Icon name="pdf-preview" size={18} />
-                        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <span className={styles.fileName}>
                             {file.name} ({(file.size / 1024).toFixed(1)} KB)
                         </span>
-                        <button className={styles.removeFile} onClick={(e) => { e.stopPropagation(); removeFile(); }} title="Remove file">
-                            <Icon name="remove-this-product" size={18} />
-                        </button>
+                        {isParsing ? (
+                            <Badge tone="info" className={styles.statusBadge}>
+                                <Spinner size="sm" label="Parsing file..." className={styles.badgeSpinner} />
+                                Parsing file...
+                            </Badge>
+                        ) : isSubmitting ? (
+                            <Badge tone="info" className={styles.statusBadge}>
+                                <Spinner size="sm" label="Uploading..." className={styles.badgeSpinner} />
+                                Uploading...
+                            </Badge>
+                        ) : parsedData.length > 0 && (
+                            <Badge tone="success">{parsedData.length} records found</Badge>
+                        )}
+                        <IconButton
+                            name="remove-this-product"
+                            size="sm"
+                            className={styles.removeFile}
+                            onClick={(e) => { e.stopPropagation(); removeFile(); }}
+                            title="Remove file"
+                            aria-label="Remove file"
+                        />
                     </div>
                 )}
 
                 <div className={styles.actions}>
-                    <button
-                        className={styles.submitBtn}
+                    <Button
+                        size="lg"
+                        className={styles.submitButton}
                         onClick={handleSubmit}
-                        disabled={!file || parsedData.length === 0 || isSubmitting || isParsing}
+                        disabled={isSubmitting || isParsing}
+                        leftIcon={isSubmitting ? <Spinner size="sm" label="Uploading..." className={styles.buttonSpinner} /> : undefined}
                     >
-                        {isSubmitting ? (
-                            <>
-                                <Icon name="icon-9336224a" size={18} className={styles.spinning} />
-                                Uploading...
-                            </>
-                        ) : `Submit ${parsedData.length > 0 ? parsedData.length : ""} Records`}
-                    </button>
+                        {isSubmitting ? "Uploading..." : `Submit ${parsedData.length > 0 ? parsedData.length : ""} Records`}
+                    </Button>
                 </div>
-            </div>
+            </Card>
 
             {parsedData.length > 0 && (
-                <div className={styles.preview}>
+                <Card padding="md" className={styles.preview}>
                     <div className={styles.previewHeader}>
                         <h2 className={styles.previewTitle}>Data Preview</h2>
-                        <span style={{ fontSize: "0.85rem", color: "#64748b" }}>{parsedData.length} records found</span>
+                        <span className={styles.previewCount}>{parsedData.length} records found</span>
                     </div>
-                    <div className={styles.previewTableContainer}>
-                        <table className={styles.table}>
-                            <thead>
-                                <tr>
-                                    <th className={styles.stickyColumn}>
-                                        <input
-                                            type="checkbox"
-                                            className={styles.checkbox}
-                                            checked={parsedData.length > 0 && parsedData.every(item => item.status === 'DISPATCHED')}
-                                            onChange={(e) => toggleAllRows(e.target.checked)}
-                                            title={parsedData.every(item => item.status === 'DISPATCHED') ? "Revert all to original status" : "Mark all as Dispatched"}
-                                        />
-                                    </th>
-                                    <th>Order Date</th>
-                                    <th>Order ID</th>
-                                    <th>Line ID</th>
-                                    <th>SKU</th>
-                                    <th>Quantity</th>
-                                    <th>Status</th>
-                                    <th style={{ width: "40px" }}></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {parsedData.map((item, idx) => {
-                                    return (
-                                        <tr key={idx}>
-                                            <td className={styles.stickyColumn}>
-                                                <input
-                                                    type="checkbox"
-                                                    className={styles.checkbox}
-                                                    checked={item.status === 'DISPATCHED'}
-                                                    onChange={() => toggleRowStatus(idx)}
-                                                    title={item.status === 'DISPATCHED' ? "Revert to original status" : "Mark as Dispatched"}
-                                                />
-                                            </td>
-                                            <td>{item.orderedOn}</td>
-                                            <td>{item.orderId}</td>
-                                            <td>{item.orderItemId}</td>
-                                            <td>{item.sku}</td>
-                                            <td>{item.quantity}</td>
-                                            <td>
-                                                <span className={`${styles.statusBadge} ${styles[item.status?.toLowerCase() || 'ordered']}`}>
-                                                    {item.status || 'NA'}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <button
-                                                    className={styles.removeRowBtn}
-                                                    onClick={() => removeRow(idx)}
-                                                    title="Remove this record"
-                                                >
-                                                    <Icon name="remove" size={14} />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                    <Table maxHeight="25rem" columns={8}>
+                        <Table.Head>
+                            <tr>
+                                <Table.Cell as="th" className={styles.stickyColumn}>
+                                    <Checkbox
+                                        checked={allDispatched}
+                                        onChange={(e) => toggleAllRows(e.target.checked)}
+                                        title={allDispatchedTitle}
+                                        aria-label={allDispatchedTitle}
+                                    />
+                                </Table.Cell>
+                                <Table.Cell as="th">Order Date</Table.Cell>
+                                <Table.Cell as="th">Order ID</Table.Cell>
+                                <Table.Cell as="th">Line ID</Table.Cell>
+                                <Table.Cell as="th">SKU</Table.Cell>
+                                <Table.Cell as="th" numeric>Quantity</Table.Cell>
+                                <Table.Cell as="th">Status</Table.Cell>
+                                <Table.Cell as="th" className={styles.actionColumn}></Table.Cell>
+                            </tr>
+                        </Table.Head>
+                        <Table.Body>
+                            {parsedData.map((item, idx) => {
+                                const rowTitle = item.status === 'DISPATCHED' ? "Revert to original status" : "Mark as Dispatched";
+                                return (
+                                    <Table.Row key={idx}>
+                                        <Table.Cell className={styles.stickyColumn}>
+                                            <Checkbox
+                                                checked={item.status === 'DISPATCHED'}
+                                                onChange={() => toggleRowStatus(idx)}
+                                                title={rowTitle}
+                                                aria-label={rowTitle}
+                                            />
+                                        </Table.Cell>
+                                        <Table.Cell className={styles.cellText}>{item.orderedOn}</Table.Cell>
+                                        <Table.Cell className={styles.cellText}>{item.orderId}</Table.Cell>
+                                        <Table.Cell className={styles.cellText}>{item.orderItemId}</Table.Cell>
+                                        <Table.Cell className={styles.cellText}>{item.sku}</Table.Cell>
+                                        <Table.Cell numeric>{item.quantity}</Table.Cell>
+                                        <Table.Cell>
+                                            <Badge tone={STATUS_TONES[item.status?.toLowerCase() || 'ordered'] || "neutral"} className={styles.statusText}>
+                                                {item.status || 'NA'}
+                                            </Badge>
+                                        </Table.Cell>
+                                        <Table.Cell>
+                                            <IconButton
+                                                name="remove"
+                                                size="sm"
+                                                className={styles.removeRow}
+                                                onClick={() => removeRow(idx)}
+                                                title="Remove this record"
+                                                aria-label="Remove this record"
+                                            />
+                                        </Table.Cell>
+                                    </Table.Row>
+                                );
+                            })}
+                        </Table.Body>
+                    </Table>
+                </Card>
             )}
-
-                </div>
+        </PageShell>
     );
 }
