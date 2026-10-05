@@ -1,0 +1,68 @@
+.root {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  gap: var(--space-2);
+}
+
+.skeleton {
+  height: 4.25rem;
+}
+
+.pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  background: var(--color-surface-sunken);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    transform var(--duration-instant) var(--ease-out);
+}
+
+.pill:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+
+.pill:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.pill:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.pill:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pillActive {
+  border-color: var(--color-accent);
+  color: var(--color-text);
+  background: var(--color-accent-subtle);
+}
+
+.pillActive:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+.name {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  text-align: center;
+}
+
+.pillActive .name {
+  font-weight: var(--weight-semibold);
+}

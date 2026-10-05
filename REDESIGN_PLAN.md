@@ -385,7 +385,7 @@ For **every page task** the checklist **DoD-PG** applies:
 - [x] **T-4.1 Dashboard `/` (`app/page.js`)** · L · Dep: T-2.5, Phase 1
   - Remove gradient title. `NAV_CARDS` become a responsive grid of `Card variant="raised"` links (press feedback R1, hover lift via `transform`). Move static card color to tokens (`--chart-*`/status), not inline hex. Stat cards + 3 charts themed; range select → `SegmentedControl`/`Select`. Skeletons for loading.
   - Split: `app/_components/` → `StatCard`, `NavCardGrid`, `RevenueChart`, etc. only if `page.js` > 400 lines after cleanup.
-- [ ] **T-4.2 `/add-inventory`, `/add-listing`, `/add-purchase`** · L · Dep: Phase 1
+- [x] **T-4.2 `/add-inventory`, `/add-listing`, `/add-purchase`** · L · Dep: Phase 1
   - Form page pattern (7.1). Two-column field grids collapse to one column < 768px. `add-listing` has 19 inline styles → move to CSS. Split sections into `_components/` per form section when file > 400 lines.
 - [ ] **T-4.3 `/upload-sales-log`, `/map-sources`, `/custom-qr`** · L · Dep: Phase 1
   - Dropzone via `FileInput`; progress/status via `Badge` + `Spinner`. `/custom-qr` keeps white QR canvas background (exception 8.3).

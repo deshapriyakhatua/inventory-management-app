@@ -1,0 +1,27 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--control-h-sm);
+}
+
+.label {
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+}
+
+.error {
+  color: var(--color-danger);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+}

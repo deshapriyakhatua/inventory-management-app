@@ -1,15 +1,20 @@
 "use client";
 import { toast } from "sonner";
 
-import Icon from "@/components/ui/Icon/Icon";
-
-import { useState, useEffect } from "react";
-import Image from "next/image";
+import { useState, useEffect, useEffectEvent } from "react";
+import Button from "@/components/ui/Button/Button";
+import Card from "@/components/ui/Card/Card";
+import PageHeader from "@/components/ui/PageHeader/PageHeader";
+import PageShell from "@/components/ui/PageShell/PageShell";
+import { fetchVerticalsData } from "@/utils/apiUtils";
+import { useAuth } from "@/components/AuthProvider";
+import InventoryPicker from "./_components/InventoryPicker/InventoryPicker";
+import MarketplacePicker from "./_components/MarketplacePicker/MarketplacePicker";
+import RecentListings from "./_components/RecentListings/RecentListings";
+import SelectedItems from "./_components/SelectedItems/SelectedItems";
+import SkuFields from "./_components/SkuFields/SkuFields";
+import VerticalPicker from "./_components/VerticalPicker/VerticalPicker";
 import styles from "./page.module.css";
-
-import { fetchVerticalsData } from "../../utils/apiUtils";
-import { useAuth } from "../../components/AuthProvider";
-import MarketplaceLogo from "../../components/MarketplaceLogo/MarketplaceLogo";
 
 export default function CreateNewListing() {
     const [verticalShort, setVerticalShort] = useState("");
@@ -38,9 +43,18 @@ export default function CreateNewListing() {
     const [deleteButtonLoading, setDeleteButtonLoading] = useState(false);
     const [deletingListingId, setDeletingListingId] = useState(null);
 
-    useEffect(() => {
+    // Inline validation: mirrors the checks in handleSubmit, shown after submit (SKU also after blur)
+    const [submitAttempted, setSubmitAttempted] = useState(false);
+    const [skuTouched, setSkuTouched] = useState(false);
+
+    // Mount-only load; useEffectEvent keeps it from re-running when the loaders change identity
+    const loadInitial = useEffectEvent(() => {
         loadVerticals();
         loadData();
+    });
+
+    useEffect(() => {
+        loadInitial();
     }, []);
 
     const loadData = async (forceRefresh = false) => {
@@ -113,9 +127,11 @@ export default function CreateNewListing() {
     };
 
     // Whenever vertical changes, load the inventory for that vertical
+    const onVerticalChange = useEffectEvent(() => loadInventory());
+
     useEffect(() => {
         if (verticalShort) {
-            loadInventory();
+            onVerticalChange();
         } else {
             setInventoryItems([]);
             // Do not clear selectedItems, allow persisting across selections
@@ -226,6 +242,7 @@ export default function CreateNewListing() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         toast.dismiss("app-feedback");
+        setSubmitAttempted(true);
 
         const params = getEffectiveVerticalParams();
         const effVertical = params.vertical;
@@ -271,6 +288,8 @@ export default function CreateNewListing() {
                 setSkuId("");
                 setStyleId("");
                 setSelectedItems([]);
+                setSubmitAttempted(false);
+                setSkuTouched(false);
                 loadData(true); // Force fresh fetch to show the newly created listing
             } else {
                 toast.error("Failed to create listing: " + (result.error || "Unknown error"), { id: "app-feedback", duration: 3000 });
@@ -283,335 +302,105 @@ export default function CreateNewListing() {
         }
     };
 
+    const toggleVertical = (v, isSelected) => {
+        if (isSelected) {
+            setVertical("");
+            setVerticalShort("");
+        } else {
+            setVertical(v.verticalName);
+            setVerticalShort(v.verticalShort);
+        }
+    };
+
+    // Same rules and messages as handleSubmit
+    const effectiveParams = getEffectiveVerticalParams();
+    const errors = {
+        vertical: !effectiveParams.vertical ? "Please ensure vertical or items are selected." : undefined,
+        marketplace: !marketplace ? "Please select a Marketplace." : undefined,
+        items: selectedItems.length === 0 ? "Please select at least one inventory item." : undefined,
+        skuId: !skuId ? "Please auto-generate or enter a SKU ID." : undefined,
+    };
+    const showError = (field) => (submitAttempted || (field === "skuId" && skuTouched) ? errors[field] : undefined);
+
     return (
-        <div className={styles.container}>
-            <div className={styles.card}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h1 className={styles.title} style={{ marginBottom: 0 }}>Create New Listing</h1>
-                </div>
+        <PageShell className={styles.shell}>
+            <PageHeader title="Create New Listing" />
 
-                <form onSubmit={handleSubmit} className={styles.form}>
+            <Card padding="lg">
+                <form onSubmit={handleSubmit} className={styles.form} noValidate>
+                    <MarketplacePicker
+                        value={marketplace}
+                        onChange={setMarketplace}
+                        disabled={isLoading}
+                        error={showError("marketplace")}
+                    />
 
-                    {/* Marketplace Section */}
-                    <div className={styles.inputGroup}>
-                        <label className={styles.label}>Select Marketplace</label>
-                        <div className={styles.marketplaceGrid}>
-                            {['Amazon', 'Flipkart', 'Myntra', 'Meesho', 'Ajio', 'Shopsy', 'Website', 'Other'].map(mp => (
-                                <button
-                                    key={mp}
-                                    type="button"
-                                    className={`${styles.marketplacePill} ${marketplace === mp ? styles.marketplacePillActive : ''}`}
-                                    onClick={() => setMarketplace(mp)}
-                                    disabled={isLoading}
-                                >
-                                    <MarketplaceLogo marketplace={mp} size={20} />
-                                    <span>{mp}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+                    <VerticalPicker
+                        verticals={verticals}
+                        loading={loadingVerticals}
+                        verticalShort={verticalShort}
+                        vertical={vertical}
+                        onToggle={toggleVertical}
+                        onRefresh={loadVerticals}
+                        disabled={isLoading}
+                        error={showError("vertical")}
+                    />
 
-                    {/* Vertical Section */}
-                    <div className={styles.inputGroup}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <label className={styles.label}>Select Vertical Type</label>
-                            <button
-                                type="button"
-                                className={`${styles.refreshBtn} ${loadingVerticals ? styles.spinning : ''}`}
-                                onClick={loadVerticals}
-                                disabled={loadingVerticals}
-                                title="Refresh Verticals"
-                            >
-                                <Icon name="refresh" size={16} />
-                            </button>
-                        </div>
-
-                        {loadingVerticals ? (
-                            <p className={styles.loadingText}>Loading verticals...</p>
-                        ) : verticals.length > 0 ? (
-                            <div className={styles.verticalGrid}>
-                                {verticals.map((v) => {
-                                    const isSelected = verticalShort === v.verticalShort && vertical === v.verticalName;
-                                    return (
-                                        <button
-                                            key={v.verticalName}
-                                            type="button"
-                                            className={`${styles.verticalPill} ${isSelected ? styles.verticalPillActive : ''}`}
-                                            onClick={() => {
-                                                if (isSelected) {
-                                                    setVertical("");
-                                                    setVerticalShort("");
-                                                } else {
-                                                    setVertical(v.verticalName);
-                                                    setVerticalShort(v.verticalShort);
-                                                }
-                                            }}
-                                            disabled={isLoading}
-                                        >
-                                            <span className={styles.verticalBadge}>{v.verticalShort}</span>
-                                            <span className={styles.verticalName}>{v.verticalName}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            <p className={styles.noItemsText}>No verticals available.</p>
-                        )}
-                    </div>
-
-                    {/* Selected Items Strip */}
                     {selectedItems.length > 0 && (
-                        <div className={styles.inputGroup}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                <label className={styles.label}>
-                                    Selected Items ({selectedItems.length}) {isSelectionCombo() ? "- Combo Mode" : ""}
-                                </label>
-                            </div>
-                            <div className={styles.recentImagesScrollContainer} style={{ background: '#0f172a', padding: '15px', borderRadius: '8px', border: '1px solid #1e293b', minHeight: '80px', display: 'flex', gap: '10px', overflowX: 'auto' }}>
-                                {selectedItems.map(item => (
-                                    <div key={item.inventoryId} className={styles.recentImageThumbWrapper} style={{ position: 'relative', flexShrink: 0, width: '60px' }}>
-                                        <div style={{ position: 'relative', width: '60px', height: '60px', borderRadius: '4px', overflow: 'hidden' }}>
-                                            <button 
-                                                type="button" 
-                                                onClick={() => toggleSelection(item)} 
-                                                style={{ position: 'absolute', top: 0, right: 0, background: 'rgba(239, 68, 68, 0.9)', color: 'white', border: 'none', borderBottomLeftRadius: '6px', width: '20px', height: '20px', fontSize: '14px', lineHeight: '14px', cursor: 'pointer', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                title="Remove item"
-                                            >
-                                                ×
-                                            </button>
-                                            {item.imageUrl ? (
-                                                <Image src={item.imageUrl} alt={item.inventoryId} fill style={{ objectFit: 'cover' }} unoptimized />
-                                            ) : (
-                                                <div className={styles.recentImagePlaceholderSmall} style={{ width: '100%', height: '100%', fontSize: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>No Img</div>
-                                            )}
-                                        </div>
-                                        <div className={styles.recentImageThumbId} style={{ fontSize: '0.6rem', textAlign: 'center', marginTop: '4px', wordBreak: 'break-all' }}>{item.inventoryId}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                        <SelectedItems
+                            items={selectedItems}
+                            isCombo={isSelectionCombo()}
+                            onRemove={toggleSelection}
+                        />
                     )}
 
-                    {/* Scrollable Grid of Existing Inventory */}
                     {verticalShort && (
-                        <div className={styles.inputGroup}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <label className={styles.label}>
-                                    Select Inventory Items to Add
-                                </label>
-                                <button
-                                    type="button"
-                                    className={`${styles.refreshBtn} ${refreshingInventory ? styles.spinning : ''}`}
-                                    onClick={() => loadInventory(true)}
-                                    disabled={loadingInventoryItems || refreshingInventory}
-                                    title="Refresh Inventory"
-                                >
-                                    <Icon name="refresh" size={16} />
-                                </button>
-                            </div>
-                            <div className={styles.inventoryGridContainer}>
-                                {loadingInventoryItems ? (
-                                    <p className={styles.loadingText}>Loading inventory...</p>
-                                ) : inventoryItems.length > 0 ? (
-                                    <div className={styles.grid}>
-                                        {inventoryItems.map((item) => (
-                                            <div
-                                                key={item._id}
-                                                className={`${styles.gridItem} ${selectedItems.some(s => s.inventoryId === item.inventoryId) ? styles.gridItemSelected : ""}`}
-                                                onClick={() => toggleSelection(item)}
-                                            >
-                                                {selectedItems.some(s => s.inventoryId === item.inventoryId) && (
-                                                    <div className={styles.checkmark}>
-                                                        <Icon name="icon-5ab11cbf" size={12} />
-                                                    </div>
-                                                )}
-                                                <div className={styles.imageContainer}>
-                                                    {item.imageUrl ? (
-                                                        <Image
-                                                            src={item.imageUrl}
-                                                            alt={item.inventoryId}
-                                                            fill
-                                                            style={{ objectFit: 'cover' }}
-                                                            unoptimized
-                                                        />
-                                                    ) : (
-                                                        <div className={styles.imagePlaceholder}>
-                                                            <Icon name="icon-b99b6c9f" size={24} style={{opacity:0.3}} />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className={styles.itemInfo}>
-                                                    <p className={styles.itemId}>{item.inventoryId}</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className={styles.noItemsText}>No inventory found for this vertical.</p>
-                                )}
-                            </div>
-                        </div>
+                        <InventoryPicker
+                            items={inventoryItems}
+                            selectedItems={selectedItems}
+                            loading={loadingInventoryItems}
+                            refreshing={refreshingInventory}
+                            onToggle={toggleSelection}
+                            onRefresh={() => loadInventory(true)}
+                            error={showError("items")}
+                        />
                     )}
 
-                    {/* Style ID Section (Myntra) */}
-                    {marketplace === "Myntra" && (
-                        <div className={styles.inputGroup}>
-                            <label htmlFor="styleId" className={styles.label}>Style ID (Myntra)</label>
-                            <input
-                                type="text"
-                                id="styleId"
-                                value={styleId}
-                                onChange={(e) => setStyleId(e.target.value)}
-                                placeholder="e.g., 29481052"
-                                className={styles.input}
-                                disabled={isLoading}
-                            />
-                        </div>
-                    )}
+                    <SkuFields
+                        showStyleId={marketplace === "Myntra"}
+                        styleId={styleId}
+                        onStyleIdChange={(e) => setStyleId(e.target.value)}
+                        skuId={skuId}
+                        onSkuIdChange={(e) => setSkuId(e.target.value.toUpperCase())}
+                        onSkuBlur={() => setSkuTouched(true)}
+                        skuError={showError("skuId")}
+                        skuDisabled={isLoading || !verticalShort}
+                        disabled={isLoading}
+                        onGenerate={async () => await generateSkuId()}
+                        generateDisabled={isLoading || isGenerating || selectedItems.length === 0}
+                        isGenerating={isGenerating}
+                    />
 
-                    {/* SKU ID Section */}
-                    <div className={styles.inputGroup}>
-                        <label htmlFor="skuId" className={styles.label}>Product SKU ID</label>
-                        <div className={styles.idRow}>
-                            <input
-                                type="text"
-                                id="skuId"
-                                value={skuId}
-                                onChange={(e) => setSkuId(e.target.value.toUpperCase())}
-                                placeholder="e.g., ER-01-0001"
-                                className={styles.input}
-                                disabled={isLoading || !verticalShort}
-                            />
-                            <button
-                                type="button"
-                                onClick={async () => await generateSkuId()}
-                                className={styles.generateBtn}
-                                disabled={isLoading || isGenerating || selectedItems.length === 0}
-                            >
-                                {isGenerating ? "Generating..." : skuId ? "Regenerate SKU" : "Generate SKU"}
-                            </button>
-                        </div>
+                    <div className={styles.actions}>
+                        <Button type="submit" loading={isLoading}>
+                            {isLoading ? "Creating Listing..." : "Create Listing"}
+                        </Button>
                     </div>
-
-                    {/* Submit Button */}
-                    <button
-                        type="submit"
-                        className={styles.submitBtn}
-                        disabled={isLoading || selectedItems.length === 0 || !skuId || !marketplace}
-                    >
-                        {isLoading ? "Creating Listing..." : "Create Listing"}
-                    </button>
-
                 </form>
+            </Card>
 
-                        </div>
-
-            {/* Recent Listings Section */}
             {(recentListings.length > 0 || loadingRecentListings || refreshingRecentListings) && (
-                <div className={styles.recentSection}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h2 className={styles.recentTitle} style={{ marginBottom: 0 }}>Recently Added (Last {recentListings.length})</h2>
-                        <button
-                            type="button"
-                            className={`${styles.refreshBtn} ${refreshingRecentListings ? styles.spinning : ''}`}
-                            onClick={() => loadData(true)}
-                            disabled={loadingRecentListings || refreshingRecentListings}
-                            title="Refresh Recent Listings"
-                        >
-                            <Icon name="refresh" size={16} />
-                        </button>
-                    </div>
-                    {loadingRecentListings
-                        ? <div className={styles.recentGrid}>
-                            {Array.from({ length: 5 }).map((_, index) => (
-                                <div key={index} className={styles.recentCard}>
-                                    <div className={styles.recentImageContainer}>
-                                        <div className={styles.recentImagePlaceholder}>
-                                            <p>Loading...</p>
-                                        </div>
-                                    </div>
-                                    <div className={styles.recentInfo}>
-                                        <p className={styles.recentId}>Loading...</p>
-                                        <p className={styles.recentDate}>Loading...</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        : <div className={styles.recentGrid}>
-                            {recentListings.map((item) => (
-                                <div key={item.skuId} className={styles.recentCard}>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleDelete(item.skuId)}
-                                        className={styles.deleteBtn}
-                                        title="Remove from recent"
-                                        disabled={deleteButtonLoading}
-                                    >
-                                        {deleteButtonLoading && deletingListingId === item.skuId
-                                            ? <Icon name="refresh-loop" size={16} className={styles.deleteLoadingIcon} />
-                                            : <Icon name="trash" size={16} className={styles.deleteIcon} />
-                                        }
-                                    </button>
-                                    {item.inventoryItems && item.inventoryItems.length > 0 ? (
-                                        <div className={styles.recentImagesScrollContainer}>
-                                            {item.inventoryItems.map((inv) => (
-                                                <div key={inv.inventoryId} className={styles.recentImageThumbWrapper}>
-                                                    {inv.imageUrl ? (
-                                                        <Image
-                                                            src={inv.imageUrl}
-                                                            alt={inv.inventoryId}
-                                                            referrerPolicy="no-referrer"
-                                                            fill
-                                                            className={styles.recentImageThumb}
-                                                            unoptimized
-                                                        />
-                                                    ) : (
-                                                        <div className={styles.recentImagePlaceholderSmall}>No Image</div>
-                                                    )}
-                                                    <div className={styles.recentImageThumbId}>{inv.inventoryId}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className={styles.recentImagePlaceholder}>No Images Linked</div>
-                                    )}
-                                    <div className={styles.recentInfo}>
-                                        <div className={styles.idRowWrapper}>
-                                            <div className={styles.recentIdWithLogo}>
-                                                <MarketplaceLogo marketplace={item.marketplace} size={18} />
-                                                <p className={styles.recentId}>{item.skuId}</p>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleCopySku(item.skuId)}
-                                                className={styles.copyBtn}
-                                                title="Copy SKU ID"
-                                            >
-                                                <Icon name="copy-inventory-id" size={14} />
-                                            </button>
-                                        </div>
-                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '4px' }}>
-                                            <p className={styles.recentVertical}>{item.vertical}</p>
-                                            <span style={{ color: '#64748b', fontSize: '0.8rem' }}>•</span>
-                                            <p className={styles.recentVertical} style={{ color: '#94a3b8' }}>{item.marketplace || 'Direct'}</p>
-                                        </div>
-                                        <p className={styles.recentDate}>
-                                            {item.createdAt ? new Date(item.createdAt).toLocaleString('en-IN', {
-                                                day: 'numeric',
-                                                month: 'short',
-                                                year: 'numeric',
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                                hour12: true
-                                            }) : 'Recently added'}
-                                        </p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    }
-                </div>
+                <RecentListings
+                    listings={recentListings}
+                    loading={loadingRecentListings}
+                    refreshing={refreshingRecentListings}
+                    onRefresh={() => loadData(true)}
+                    onDelete={handleDelete}
+                    onCopy={handleCopySku}
+                    deleteButtonLoading={deleteButtonLoading}
+                    deletingListingId={deletingListingId}
+                />
             )}
-        </div>
+        </PageShell>
     );
 }

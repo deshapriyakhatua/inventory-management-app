@@ -1,13 +1,20 @@
 "use client";
 import { toast } from "sonner";
 
-import Icon from "@/components/ui/Icon/Icon";
-
-
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, { useState, useEffect, useEffectEvent, useCallback, useMemo, useRef } from "react";
+import Button from "@/components/ui/Button/Button";
+import Card from "@/components/ui/Card/Card";
+import PageHeader from "@/components/ui/PageHeader/PageHeader";
+import PageShell from "@/components/ui/PageShell/PageShell";
+import Spinner from "@/components/ui/Spinner/Spinner";
+import InventoryPickerModal from "./_components/InventoryPickerModal/InventoryPickerModal";
+import ProductsSection from "./_components/ProductsSection/ProductsSection";
+import PurchaseTotals from "./_components/PurchaseTotals/PurchaseTotals";
+import SupplierSection from "./_components/SupplierSection/SupplierSection";
+import TimelineSection from "./_components/TimelineSection/TimelineSection";
 import styles from "./page.module.css";
 
-import { parseSearchQuery, matchesSearchTerms } from "../../utils/searchUtils";
+import { parseSearchQuery, matchesSearchTerms } from "@/utils/searchUtils";
 
 const EMPTY_ITEM = () => ({
   id: crypto.randomUUID(),
@@ -46,11 +53,20 @@ export default function AddPurchasePage() {
 
   const [submitting, setSubmitting] = useState(false);
 
+  // Inline validation display (mirrors the rules enforced in handleSubmit)
+  const [touched, setTouched] = useState({});
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const markTouched = (key) => setTouched(prev => ({ ...prev, [key]: true }));
+  const fieldError = (key, invalid, message) =>
+    invalid && (submitAttempted || touched[key]) ? message : undefined;
 
   const getTodayDateString = () => new Date().toISOString().split("T")[0];
 
+  // Mount-only load; useEffectEvent keeps it from re-running when fetchInitialData changes identity
+  const loadInitial = useEffectEvent(() => fetchInitialData());
+
   useEffect(() => {
-    fetchInitialData();
+    loadInitial();
   }, []);
 
   const fetchInitialData = async () => {
@@ -166,10 +182,13 @@ export default function AddPurchasePage() {
     setFormReceivedOn("");
     setCurrentMappings([]);
     setItems([EMPTY_ITEM()]);
+    setTouched({});
+    setSubmitAttempted(false);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitAttempted(true);
 
     if (!formSellerId || !formOrderedOn) {
       toast.error("Please fill in the Seller and Ordered On date.", { id: "app-feedback", duration: 3000 });
@@ -181,6 +200,12 @@ export default function AddPurchasePage() {
     );
     if (invalid) {
       toast.error("Each product must have an Inventory ID, quantity, and unit price.", { id: "app-feedback", duration: 3000 });
+      return;
+    }
+
+    // The form is noValidate; keep the native constraint checks (Seller SKU required, min/max/step) it enforced before.
+    if (!e.currentTarget.checkValidity()) {
+      e.currentTarget.reportValidity();
       return;
     }
 
@@ -261,403 +286,86 @@ export default function AddPurchasePage() {
 
   if (loadingInitial) {
     return (
-      <div className={styles.container}>
-        <div className={styles.loadingWrapper}>
-          <div className={styles.spinner}></div>
+      <PageShell className={styles.shell}>
+        <div className={styles.loading}>
+          <Spinner size="lg" label="Loading purchase config" />
           <p>Loading purchase config...</p>
         </div>
-      </div>
+      </PageShell>
     );
   }
 
-  const allValid = formSellerId && formOrderedOn && items.every(
-    i => i.inventoryId && i.quantity && i.price
-  );
+  const itemErrors = (item) => ({
+    inventoryId: fieldError(`${item.id}.inventoryId`, !item.inventoryId, "Please select an inventory item."),
+    quantity: fieldError(`${item.id}.quantity`, !item.quantity, "Please enter a quantity."),
+    price: fieldError(`${item.id}.price`, !item.price, "Please enter the unit price."),
+  });
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>Add Purchase</h1>
-        <p className={styles.subtitle}>Record inbound stock invoices. This safely logs expenses without mutating open inventory limits.</p>
-      </div>
+    <PageShell className={styles.shell}>
+      <PageHeader
+        title="Add Purchase"
+        subtitle="Record inbound stock invoices. This safely logs expenses without mutating open inventory limits."
+      />
 
-      <div className={styles.formCard}>
-        <form onSubmit={handleSubmit}>
+      <Card padding="lg">
+        <form onSubmit={handleSubmit} className={styles.form} noValidate>
+          <SupplierSection
+            sellers={sellers}
+            sellerId={formSellerId}
+            sellerError={fieldError("seller", !formSellerId, "Please select a seller.")}
+            onSellerChange={setFormSellerId}
+            onSellerBlur={() => markTouched("seller")}
+            invoiceNo={formInvoiceNo}
+            onInvoiceNoChange={setFormInvoiceNo}
+          />
 
-          {/* ── SHARED HEADER ─────────────────────────────────── */}
-          <h2 className={styles.sectionTitle}>
-            <Icon name="icon-2df76557" />
-            Supplier &amp; Invoice
-          </h2>
+          <ProductsSection
+            items={items}
+            sellerSelected={Boolean(formSellerId)}
+            mappingsLoading={mappingsLoading}
+            mappings={currentMappings}
+            getItemErrors={itemErrors}
+            onRemoveItem={removeItem}
+            onSkuChange={handleItemSellerProductChange}
+            onItemChange={handleItemChange}
+            onItemBlur={(itemId, field) => markTouched(`${itemId}.${field}`)}
+            onOpenPicker={openInventoryPicker}
+            onAddItem={addItem}
+          />
 
-          <div className={styles.grid}>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>
-                Seller <span className={styles.required}>*</span>
-              </label>
-              <select
-                className={styles.select}
-                value={formSellerId}
-                onChange={e => setFormSellerId(e.target.value)}
-                required
-              >
-                <option value="">-- Choose a Seller --</option>
-                {sellers.map(s => (
-                  <option key={s._id} value={s._id}>
-                    {s.businessName}{s.contactPerson ? ` (${s.contactPerson})` : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <TimelineSection
+            orderedOn={formOrderedOn}
+            orderedOnError={fieldError("orderedOn", !formOrderedOn, "Please select the Ordered On date.")}
+            onOrderedOnChange={setFormOrderedOn}
+            onOrderedOnBlur={() => markTouched("orderedOn")}
+            receivedOn={formReceivedOn}
+            onReceivedOnChange={setFormReceivedOn}
+          />
 
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Invoice No</label>
-              <input
-                type="text"
-                className={styles.input}
-                placeholder="Optional Invoice ID"
-                value={formInvoiceNo}
-                onChange={e => setFormInvoiceNo(e.target.value)}
-              />
-            </div>
+          <PurchaseTotals totals={totals} />
+
+          <div className={styles.actions}>
+            <Button type="submit" size="lg" loading={submitting}>
+              {submitting
+                ? `Saving ${items.length} purchase(s)...`
+                : `Save ${items.length} Purchase${items.length !== 1 ? "s" : ""}`}
+            </Button>
           </div>
-
-          {/* ── PRODUCT LINE ITEMS ─────────────────────────────── */}
-          <h2 className={styles.sectionTitle}>
-            <Icon name="icon-9172bca2" />
-            Products
-            <span className={styles.itemCount}>{items.length} item{items.length !== 1 ? "s" : ""}</span>
-          </h2>
-
-          {!formSellerId && (
-            <div className={styles.noSellerHint}>
-              <Icon name="icon-fe5d7d4f" size={18} />
-              Select a seller above to start adding products.
-            </div>
-          )}
-
-          <div className={styles.itemsStack}>
-            {items.map((item, index) => (
-              <div key={item.id} className={styles.productRow}>
-                {/* Row header */}
-                <div className={styles.productRowHeader}>
-                  <span className={styles.productRowLabel}>Product {index + 1}</span>
-                  {items.length > 1 && (
-                    <button
-                      type="button"
-                      className={styles.removeItemBtn}
-                      onClick={() => removeItem(item.id)}
-                      title="Remove this product"
-                    >
-                      <Icon name="remove-this-product" size={14} />
-                      Remove
-                    </button>
-                  )}
-                </div>
-
-                <div className={styles.productRowGrid}>
-                  {/* SKU Select */}
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Seller SKU <span className={styles.required}>*</span>
-                    </label>
-                    <select
-                      className={styles.select}
-                      value={item.sellerProductId}
-                      onChange={e => handleItemSellerProductChange(item.id, e.target.value)}
-                      disabled={!formSellerId || mappingsLoading}
-                      required
-                    >
-                      <option value="">
-                        {mappingsLoading ? "Loading SKUs..." : "-- Select Mapped SKU --"}
-                      </option>
-                      {/* Shown when inventory was picked without a matching seller SKU */}
-                      {item.sellerProductId === "NA" && (
-                        <option value="NA">NA (no mapping)</option>
-                      )}
-                      {currentMappings.map(m => (
-                        <option key={m.sellerProductId} value={m.sellerProductId}>
-                          {m.sellerProductId}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Clickable Inventory ID picker */}
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Internal Inventory ID <span className={styles.required}>*</span>
-                    </label>
-                    <button
-                      type="button"
-                      className={`${styles.inventoryPickerBtn} ${item.inventoryId ? styles.inventoryPickerBtnFilled : ""}`}
-                      onClick={() => openInventoryPicker(item.id)}
-                      title="Click to select from inventory"
-                    >
-                      {item.imageUrl && (
-                        <img src={item.imageUrl} alt="Preview" className={styles.inputImagePreview} />
-                      )}
-                      {!item.imageUrl && (
-                        <span className={styles.pickerBtnIcon}>
-                          <Icon name="icon-b99b6c9f" size={16} />
-                        </span>
-                      )}
-                      <span className={item.inventoryId ? styles.pickerBtnId : styles.pickerBtnPlaceholder}>
-                        {item.inventoryId || "Click to select inventory..."}
-                      </span>
-                      <span className={styles.pickerBtnChevron}>
-                        <Icon name="click-to-select-from-inventory" size={14} />
-                      </span>
-                    </button>
-                  </div>
-
-                  {/* Quantity */}
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Quantity <span className={styles.required}>*</span>
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      className={styles.input}
-                      placeholder="e.g. 50"
-                      value={item.quantity}
-                      onChange={e => handleItemChange(item.id, "quantity", e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  {/* Unit Price */}
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Unit Price <span className={styles.required}>*</span>
-                    </label>
-                    <div className={styles.priceGroup}>
-                      <span className={styles.currencySymbol}>₹</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        className={`${styles.input} ${styles.priceInput}`}
-                        placeholder="0.00"
-                        value={item.price}
-                        onChange={e => handleItemChange(item.id, "price", e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  {/* Shipping Fee */}
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Shipping Fee</label>
-                    <div className={styles.priceGroup}>
-                      <span className={styles.currencySymbol}>₹</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        className={`${styles.input} ${styles.priceInput}`}
-                        placeholder="0.00"
-                        value={item.shippingFee}
-                        onChange={e => handleItemChange(item.id, "shippingFee", e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Tax */}
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Tax (%)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      className={styles.input}
-                      placeholder="e.g. 18"
-                      value={item.taxPercentage}
-                      onChange={e => handleItemChange(item.id, "taxPercentage", e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Add Product button */}
-          <button
-            type="button"
-            className={styles.addItemBtn}
-            onClick={addItem}
-            disabled={!formSellerId}
-          >
-            <Icon name="add-another-product" size={16} />
-            Add Another Product
-          </button>
-
-          {/* ── TIMELINE ────────────────────────────────────────── */}
-          <h2 className={`${styles.sectionTitle} ${styles.timelineSection}`}>
-            <Icon name="icon-f5ba4e77" />
-            Timeline
-          </h2>
-
-          <div className={styles.grid}>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>
-                Ordered On <span className={styles.required}>*</span>
-              </label>
-              <input
-                type="date"
-                className={styles.input}
-                value={formOrderedOn}
-                onChange={e => setFormOrderedOn(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Received On</label>
-              <input
-                type="date"
-                className={styles.input}
-                value={formReceivedOn}
-                onChange={e => setFormReceivedOn(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* ── PURCHASE TOTALS SUMMARY ────────────────────────── */}
-          <div className={styles.totalsSummaryCard}>
-            <div className={styles.totalsSummaryHeader}>
-              <Icon name="icon-7e710d4a" size={18} />
-              <span>Purchase Summary &amp; Totals</span>
-            </div>
-
-            <div className={styles.totalsGrid}>
-              <div className={styles.totalItem}>
-                <span className={styles.totalLabel}>Total Items</span>
-                <span className={styles.totalValue}>{totals.totalLineItems}</span>
-              </div>
-
-              <div className={styles.totalItem}>
-                <span className={styles.totalLabel}>Total Quantity</span>
-                <span className={styles.totalValue}>{totals.totalQuantity} units</span>
-              </div>
-
-              <div className={styles.totalItem}>
-                <span className={styles.totalLabel}>Subtotal</span>
-                <span className={styles.totalValue}>₹{totals.subtotal.toFixed(2)}</span>
-              </div>
-
-              <div className={styles.totalItem}>
-                <span className={styles.totalLabel}>Total Shipping</span>
-                <span className={styles.totalValue}>₹{totals.totalShipping.toFixed(2)}</span>
-              </div>
-
-              <div className={styles.totalItem}>
-                <span className={styles.totalLabel}>Total Tax</span>
-                <span className={styles.totalValue}>₹{totals.totalTax.toFixed(2)}</span>
-              </div>
-
-              <div className={`${styles.totalItem} ${styles.grandTotalItem}`}>
-                <span className={styles.grandTotalLabel}>Grand Total</span>
-                <span className={styles.grandTotalValue}>₹{totals.grandTotal.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            className={styles.submitBtn}
-            disabled={submitting || !allValid}
-          >
-            {submitting
-              ? `Saving ${items.length} purchase(s)...`
-              : `Save ${items.length} Purchase${items.length !== 1 ? "s" : ""}`}
-          </button>
         </form>
-      </div>
+      </Card>
 
-
-      {/* ── INVENTORY PICKER MODAL ─────────────────────────────── */}
-      {inventoryPickerFor && (
-        <div className={styles.pickerOverlay} onClick={closeInventoryPicker}>
-          <div className={styles.pickerModal} onClick={e => e.stopPropagation()}>
-            {/* Modal header */}
-            <div className={styles.pickerHeader}>
-              <div>
-                <h3 className={styles.pickerTitle}>Select Inventory Item</h3>
-                <p className={styles.pickerSubtitle}>Choose which internal inventory this purchase maps to.</p>
-              </div>
-              <button type="button" className={styles.pickerCloseBtn} onClick={closeInventoryPicker}>
-                <Icon name="remove-this-product" />
-              </button>
-            </div>
-
-            {/* Search */}
-            <div className={styles.pickerSearch}>
-              <Icon name="icon-9c4a10ac" size={16} className={styles.pickerSearchIcon} />
-              <input
-                ref={pickerSearchRef}
-                type="text"
-                className={styles.pickerSearchInput}
-                placeholder="Search by inventory ID..."
-                value={inventorySearch}
-                onChange={e => setInventorySearch(e.target.value)}
-              />
-              {inventorySearch && (
-                <button type="button" className={styles.pickerSearchClear} onClick={() => setInventorySearch("")}>
-                  <Icon name="remove-this-product" size={14} />
-                </button>
-              )}
-            </div>
-
-            {/* Grid */}
-            <div className={styles.pickerGrid}>
-              {inventoryLoading ? (
-                <div className={styles.pickerLoading}>
-                  <div className={styles.spinner}></div>
-                  <span>Loading inventory...</span>
-                </div>
-              ) : filteredInventory.length === 0 ? (
-                <div className={styles.pickerEmpty}>
-                  <Icon name="icon-9c4a10ac" size={40} style={{opacity:0.3}} />
-                  <span>No inventory items found.</span>
-                </div>
-              ) : (
-                filteredInventory.map(inv => {
-                  const isSelected = items.find(i => i.id === inventoryPickerFor)?.inventoryId === inv.inventoryId;
-                  return (
-                    <button
-                      key={inv._id}
-                      type="button"
-                      className={`${styles.pickerCard} ${isSelected ? styles.pickerCardSelected : ""}`}
-                      onClick={() => pickInventoryItem(inv)}
-                    >
-                      <div className={styles.pickerCardImg}>
-                        {inv.imageUrl
-                          ? <img src={inv.imageUrl} alt={inv.inventoryId} />
-                          : <span className={styles.pickerCardNoImg}>No Image</span>
-                        }
-                        {isSelected && (
-                          <span className={styles.pickerSelectedTick}>
-                            <Icon name="icon-5ab11cbf" size={12} />
-                          </span>
-                        )}
-                      </div>
-                      <span className={styles.pickerCardId}>{inv.inventoryId}</span>
-                      {inv.currentStock !== undefined && (
-                        <span className={`${styles.pickerCardStock} ${inv.currentStock <= 10 ? styles.pickerCardLowStock : ""}`}>
-                          Stock: {inv.currentStock ?? 0}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      <InventoryPickerModal
+        open={Boolean(inventoryPickerFor)}
+        onClose={closeInventoryPicker}
+        searchRef={pickerSearchRef}
+        search={inventorySearch}
+        onSearchChange={setInventorySearch}
+        loading={inventoryLoading}
+        inventory={filteredInventory}
+        selectedInventoryId={items.find(i => i.id === inventoryPickerFor)?.inventoryId}
+        onPick={pickInventoryItem}
+      />
+    </PageShell>
   );
 }

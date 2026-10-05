@@ -1,0 +1,107 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+  animation: fadeIn var(--duration-base) var(--ease-out);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--control-h-sm);
+}
+
+.label {
+  color: var(--color-accent);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+}
+
+/* Descendant selector so the danger tint wins over Button's ghost color. */
+.header .removeButton {
+  color: var(--color-danger);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+.picker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--control-h-md);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: var(--text-md);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.picker:hover {
+  border-color: var(--color-border-focus);
+  color: var(--color-text);
+}
+
+.picker[aria-invalid="true"] {
+  border-color: var(--color-danger);
+}
+
+.pickerFilled {
+  border-color: var(--color-success-border);
+}
+
+.pickerImage {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  object-fit: cover;
+}
+
+.pickerIcon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  color: var(--color-text-subtle);
+}
+
+.pickerValue {
+  flex: 1;
+  overflow: hidden;
+  color: var(--color-success);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pickerPlaceholder {
+  flex: 1;
+  color: var(--color-text-subtle);
+  font-style: italic;
+}
+
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

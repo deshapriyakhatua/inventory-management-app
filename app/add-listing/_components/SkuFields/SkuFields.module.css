@@ -1,0 +1,27 @@
+.root {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+.skuRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-3);
+}
+
+/* Aligns the button with the input by skipping the FormField label row. */
+.generateBtn {
+  margin-top: calc(var(--text-sm) * var(--leading-snug) + var(--space-2));
+}
+
+@media (min-width: 768px) {
+  .root {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .skuRow:only-child {
+    grid-column: 1 / -1;
+  }
+}

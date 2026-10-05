@@ -1,16 +1,26 @@
 "use client";
 import { toast } from "sonner";
 
-import Icon from "@/components/ui/Icon/Icon";
-
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useEffectEvent } from "react";
 import Image from "next/image";
+import ConfirmModal from "@/components/ConfirmModal/ConfirmModal";
+import Button from "@/components/ui/Button/Button";
+import Card from "@/components/ui/Card/Card";
+import FormField from "@/components/ui/FormField/FormField";
+import IconButton from "@/components/ui/IconButton/IconButton";
+import Input from "@/components/ui/Input/Input";
+import PageHeader from "@/components/ui/PageHeader/PageHeader";
+import PageShell from "@/components/ui/PageShell/PageShell";
+import Select from "@/components/ui/Select/Select";
+import RecentlyAdded from "./_components/RecentlyAdded/RecentlyAdded";
 import styles from "./page.module.css";
 
-import { fetchVerticalsData } from "../../utils/apiUtils";
-import { useAuth } from "../../components/AuthProvider";
+import { fetchVerticalsData } from "@/utils/apiUtils";
+import { useAuth } from "@/components/AuthProvider";
 
+const INVENTORY_ID_ERROR = "Please generate or enter an Inventory ID.";
+const VERTICAL_ERROR = "Please select a Vertical to generate an ID.";
+const IMAGE_ERROR = "Please upload an image.";
 
 export default function AddInventory() {
     const [inventoryId, setInventoryId] = useState("");
@@ -28,6 +38,7 @@ export default function AddInventory() {
     const [deletingItemId, setDeletingItemId] = useState(null);
     const [verticals, setVerticals] = useState([]);
     const [loadingVerticals, setLoadingVerticals] = useState(true);
+    const [touched, setTouched] = useState({});
 
     const { user } = useAuth();
 
@@ -35,9 +46,20 @@ export default function AddInventory() {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [itemToDelete, setItemToDelete] = useState(null);
 
-    useEffect(() => {
+    // Inline errors mirror the existing toast validations; shown after blur/submit.
+    const verticalError = touched.vertical && !verticalShort ? VERTICAL_ERROR : undefined;
+    const inventoryIdError = touched.inventoryId && !inventoryId ? INVENTORY_ID_ERROR : undefined;
+    const imageError = touched.image && !imageFile ? IMAGE_ERROR : undefined;
+    const markTouched = (field) => () => setTouched((prev) => ({ ...prev, [field]: true }));
+
+    // Mount-only load; useEffectEvent keeps it from re-running when the loaders change identity
+    const loadInitial = useEffectEvent(() => {
         loadVerticals();
         loadData();
+    });
+
+    useEffect(() => {
+        loadInitial();
     }, []);
 
     const loadData = async (forceRefresh = false) => {
@@ -94,13 +116,18 @@ export default function AddInventory() {
         setShowConfirmModal(true);
     };
 
+    const closeConfirmModal = () => {
+        setShowConfirmModal(false);
+        setItemToDelete(null);
+    };
+
     const confirmDelete = async () => {
         if (!itemToDelete) return;
-        
+
         const id = itemToDelete;
         setShowConfirmModal(false);
         setItemToDelete(null);
-        
+
         setDeletingItemId(id);
         setDeleteButtonLoading(true);
         try {
@@ -129,7 +156,8 @@ export default function AddInventory() {
             setIsGenerating(true);
             toast.dismiss("app-feedback");
             if (!verticalShort) {
-                toast.error("Please select a Vertical to generate an ID.", { id: "app-feedback", duration: 3000 });
+                setTouched((prev) => ({ ...prev, vertical: true }));
+                toast.error(VERTICAL_ERROR, { id: "app-feedback", duration: 3000 });
                 return;
             }
             const response = await fetch(`/api/employee/inventory/generate-id?verticalShort=${verticalShort}`);
@@ -169,7 +197,15 @@ export default function AddInventory() {
         toast.dismiss("app-feedback");
 
         if (!inventoryId) {
-            toast.error("Please generate or enter an Inventory ID.", { id: "app-feedback", duration: 3000 });
+            setTouched((prev) => ({ ...prev, inventoryId: true, image: true }));
+            toast.error(INVENTORY_ID_ERROR, { id: "app-feedback", duration: 3000 });
+            return;
+        }
+
+        // Previously enforced by disabling the submit button while no image was selected.
+        if (!imageFile) {
+            setTouched((prev) => ({ ...prev, image: true }));
+            toast.error(IMAGE_ERROR, { id: "app-feedback", duration: 3000 });
             return;
         }
 
@@ -195,6 +231,7 @@ export default function AddInventory() {
                 setVerticalShort("");
                 setImageFile(null);
                 setImagePreview(null);
+                setTouched({});
                 document.getElementById('imageUpload').value = "";
                 loadData(true);
             } else {
@@ -209,93 +246,102 @@ export default function AddInventory() {
     };
 
     return (
-        <div className={styles.container}>
-            <div className={styles.card}>
-                <h1 className={styles.title}>Add New Inventory</h1>
+        <PageShell className={styles.shell}>
+            <PageHeader title="Add New Inventory" />
 
-                <form onSubmit={handleSubmit} className={styles.form}>
-                    <div className={styles.inputGroup}>
-                        <label htmlFor="vertical" className={styles.label}>Vertical</label>
-                        <div className={styles.inputWithRefresh}>
-                        <select
-                            id="vertical"
-                            value={verticalShort && vertical ? `${verticalShort} - ${vertical}` : ""}
-                            onChange={(e) => {
-                                const val = e.target.value;
-                                if (val) {
-                                    setVertical(val.split(' - ')[1]);
-                                    setVerticalShort(val.split(' - ')[0]);
-                                } else {
-                                    setVertical("");
-                                    setVerticalShort("");
-                                }
-                            }}
-                            className={styles.input}
-                            disabled={isLoading || loadingVerticals}
-                        >
-                            <option value="">Select a vertical</option>
-                            {verticals.map((v) => (
-                                <option key={v.verticalName} value={`${v.verticalShort} - ${v.verticalName}`}>
-                                    {`${v.verticalShort} - ${v.verticalName}`}
-                                </option>
-                            ))}
-                        </select>
-                        <button
-                            type="button"
-                            onClick={() => loadVerticals(true)}
-                            className={styles.refreshBtn}
-                            disabled={loadingVerticals}
-                            title="Refresh"
-                        >
-                            <Icon name="refresh" size={16} />
-                        </button>
-                        </div>
+            <Card padding="lg">
+                <form onSubmit={handleSubmit} className={styles.form} noValidate>
+                    <div className={styles.grid2}>
+                        {/* Children passed as an array so FormField labels the inner control, not the row wrapper. */}
+                        <FormField label="Vertical" id="vertical" error={verticalError}>
+                            {[
+                                <div key="row" className={styles.controlRow}>
+                                    <div className={styles.controlGrow}>
+                                        <Select
+                                            id="vertical"
+                                            value={verticalShort && vertical ? `${verticalShort} - ${vertical}` : ""}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                if (val) {
+                                                    setVertical(val.split(' - ')[1]);
+                                                    setVerticalShort(val.split(' - ')[0]);
+                                                } else {
+                                                    setVertical("");
+                                                    setVerticalShort("");
+                                                }
+                                            }}
+                                            disabled={isLoading || loadingVerticals}
+                                            aria-invalid={verticalError ? true : undefined}
+                                            aria-describedby={verticalError ? "vertical-error" : undefined}
+                                        >
+                                            <option value="">Select a vertical</option>
+                                            {verticals.map((v) => (
+                                                <option key={v.verticalName} value={`${v.verticalShort} - ${v.verticalName}`}>
+                                                    {`${v.verticalShort} - ${v.verticalName}`}
+                                                </option>
+                                            ))}
+                                        </Select>
+                                    </div>
+                                    <IconButton
+                                        name="refresh"
+                                        variant="secondary"
+                                        aria-label="Refresh"
+                                        title="Refresh"
+                                        onClick={() => loadVerticals(true)}
+                                        disabled={loadingVerticals}
+                                    />
+                                </div>,
+                            ]}
+                        </FormField>
+
+                        <FormField label="Inventory ID" id="inventoryId" required error={inventoryIdError}>
+                            {[
+                                <div key="row" className={styles.controlRow}>
+                                    <div className={styles.controlGrow}>
+                                        <Input
+                                            type="text"
+                                            id="inventoryId"
+                                            value={inventoryId}
+                                            onChange={(e) => setInventoryId(e.target.value.toUpperCase())}
+                                            onBlur={markTouched("inventoryId")}
+                                            placeholder="e.g., ER-0001"
+                                            disabled={isLoading}
+                                            required
+                                            aria-invalid={inventoryIdError ? true : undefined}
+                                            aria-describedby={inventoryIdError ? "inventoryId-error" : undefined}
+                                        />
+                                    </div>
+                                    <Button
+                                        variant="secondary"
+                                        onClick={generateId}
+                                        disabled={isLoading || isGenerating}
+                                    >
+                                        {isGenerating ? "Generating..." : inventoryId ? "Regenerate ID" : "Generate ID"}
+                                    </Button>
+                                </div>,
+                            ]}
+                        </FormField>
                     </div>
 
-                    <div className={styles.inputGroup}>
-                        <label htmlFor="inventoryId" className={styles.label}>Inventory ID</label>
-                        <div className={styles.idRow}>
-                            <input
-                                type="text"
-                                id="inventoryId"
-                                value={inventoryId}
-                                onChange={(e) => setInventoryId(e.target.value.toUpperCase())}
-                                placeholder="e.g., ER-0001"
-                                className={styles.input}
-                                disabled={isLoading}
-                            />
-                            <button
-                                type="button"
-                                onClick={generateId}
-                                className={styles.generateBtn}
-                                disabled={isLoading || isGenerating}
-                            >
-                                {isGenerating ? "Generating..." : inventoryId ? "Regenerate ID" : "Generate ID"}
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className={styles.inputGroup}>
-                        <label htmlFor="imageUpload" className={styles.label}>Upload Image</label>
-                        <input
+                    <FormField label="Upload Image" required error={imageError}>
+                        <Input
                             type="file"
                             id="imageUpload"
                             accept="image/*"
                             onChange={handleImageChange}
-                            className={styles.fileInput}
+                            onBlur={markTouched("image")}
                             disabled={isLoading}
                         />
-                    </div>
+                    </FormField>
 
                     {imagePreview && (
-                        <div className={styles.previewContainer}>
+                        <div className={styles.preview}>
                             <p className={styles.previewLabel}>Image Preview:</p>
-                            <div style={{ position: 'relative', width: '100%', height: '250px' }}>
+                            <div className={styles.previewFrame}>
                                 <Image
                                     src={imagePreview}
                                     alt="Inventory Preview"
                                     fill
-                                    style={{ objectFit: 'contain' }}
                                     className={styles.previewImage}
                                     unoptimized
                                 />
@@ -303,141 +349,38 @@ export default function AddInventory() {
                         </div>
                     )}
 
-                    <button
-                        type="submit"
-                        className={styles.submitBtn}
-                        disabled={isLoading || (!inventoryId || !imageFile)}
-                    >
-                        {isLoading ? "Adding Item..." : "Add to Inventory"}
-                    </button>
+                    <div className={styles.actions}>
+                        <Button type="submit" loading={isLoading}>
+                            {isLoading ? "Adding Item..." : "Add to Inventory"}
+                        </Button>
+                    </div>
                 </form>
-
-                        </div>
+            </Card>
 
             {(recentItems.length > 0 || loadingInventoryItems || refreshingRecentItems) && (
-                <div className={styles.recentSection}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h2 className={styles.recentTitle} style={{ marginBottom: 0 }}>Recently Added (Last {recentItems.length})</h2>
-                        <button
-                            type="button"
-                            className={`${styles.refreshBtn} ${refreshingRecentItems ? styles.spinning : ''}`}
-                            onClick={() => loadData(true)}
-                            disabled={loadingInventoryItems || refreshingRecentItems}
-                            title="Refresh Recent Inventory"
-                        >
-                            <Icon name="refresh" size={16} />
-                        </button>
-                    </div>
-                    {loadingInventoryItems
-                        ? <div className={styles.recentGrid}>
-                            {Array.from({ length: 5 }).map((_, index) => (
-                                <div key={index} className={styles.recentCard}>
-                                    <div className={styles.recentImageContainer}>
-                                        <div className={styles.recentImagePlaceholder}>
-                                            <p>Loading...</p>
-                                        </div>
-                                    </div>
-                                    <div className={styles.recentInfo}>
-                                        <p className={styles.recentId}>Loading...</p>
-                                        <p className={styles.recentDate}>Loading...</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        : <div className={styles.recentGrid}>
-                                {recentItems.map((item) => {
-                                    const canArchive = user?.role === 'admin' || user?.role === 'superadmin' || item.addedBy === user?.id;
-                                    return (
-                                    <div key={item._id || item.inventoryId} className={styles.recentItemCard}>
-                                        {canArchive && (
-                                            <button
-                                                type="button"
-                                                onClick={() => handleDelete(item._id || item.inventoryId)}
-                                                className={styles.deleteBtn}
-                                                title="Remove from recent"
-                                                disabled={deleteButtonLoading}
-                                            >
-                                                {deleteButtonLoading && deletingItemId === (item._id || item.inventoryId)
-                                                    ? <Icon name="refresh-loop" size={16} className={styles.deleteLoadingIcon} />
-                                                    : <Icon name="trash" size={16} className={styles.deleteIcon} />
-                                                }
-                                            </button>
-                                        )}
-                                    {item.imageUrl ? (
-                                        <div className={styles.recentImageContainer}>
-                                            <Image
-                                                src={item.imageUrl}
-                                                alt={item.inventoryId}
-                                                fill
-                                                className={styles.recentImage}
-                                                unoptimized
-                                            />
-                                        </div>
-                                    ) : (
-                                        <div className={styles.recentImagePlaceholder}>No Image</div>
-                                    )}
-                                    <div className={styles.recentInfo}>
-                                        <div className={styles.recentIdRow}>
-                                            <p className={styles.recentId}>{item.inventoryId}</p>
-                                            <button
-                                                type="button"
-                                                className={styles.copyBtn}
-                                                onClick={() => copyInventoryId(item.inventoryId)}
-                                                title="Copy Inventory ID"
-                                            >
-                                                <Icon name="copy-inventory-id" size={14} />
-                                            </button>
-                                        </div>
-                                        <p className={styles.recentDate}>
-                                            {item?.createdAt ? new Date(item.createdAt).toLocaleString('en-IN', {
-                                                day: 'numeric',
-                                                month: 'short',
-                                                year: 'numeric',
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                                hour12: true
-                                            }) : ''}
-                                        </p>
-                                    </div>
-                                </div>
-                            );})}
-                        </div>
-                    }
-                </div>
+                <RecentlyAdded
+                    items={recentItems}
+                    user={user}
+                    loading={loadingInventoryItems}
+                    refreshing={refreshingRecentItems}
+                    deleteButtonLoading={deleteButtonLoading}
+                    deletingItemId={deletingItemId}
+                    onRefresh={() => loadData(true)}
+                    onDelete={handleDelete}
+                    onCopy={copyInventoryId}
+                />
             )}
-            {/* Confirmation Modal */}
-            {showConfirmModal && (
-                <div className={styles.modalOverlay}>
-                    <div className={styles.modalContent}>
-                        <div className={styles.modalHeader}>
-                            <Icon name="icon-cfd589e1" size={24} />
-                            <h2>Confirm Archiving</h2>
-                        </div>
-                        <div className={styles.modalBody}>
-                            <p className={styles.modalMessage}>
-                                Are you sure you want to archive this inventory item? It will be hidden from all standard views.
-                            </p>
-                        </div>
-                        <div className={styles.modalFooter}>
-                            <button 
-                                className={styles.cancelBtn} 
-                                onClick={() => {
-                                    setShowConfirmModal(false);
-                                    setItemToDelete(null);
-                                }}
-                            >
-                                Cancel
-                            </button>
-                            <button 
-                                className={styles.deleteConfirmBtn}
-                                onClick={confirmDelete}
-                            >
-                                Confirm Archive
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
+
+            <ConfirmModal
+                isOpen={showConfirmModal}
+                title="Confirm Archiving"
+                message="Are you sure you want to archive this inventory item? It will be hidden from all standard views."
+                confirmLabel="Confirm Archive"
+                cancelLabel="Cancel"
+                variant="danger"
+                onConfirm={confirmDelete}
+                onClose={closeConfirmModal}
+            />
+        </PageShell>
     );
 }
