@@ -1,66 +1,73 @@
 import Image from "next/image";
-import Icon from "@/components/ui/Icon/Icon";
+import Badge from "@/components/ui/Badge/Badge";
+import IconButton from "@/components/ui/IconButton/IconButton";
+import cx from "@/components/ui/cx";
 import styles from "./SkuCard.module.css";
 
+const statusTones = { active: "success", blocked: "warning" };
+
 export default function SkuCard({ sku, onCopy }) {
+    const status = sku.status?.toLowerCase();
     return (
-        <div className={`${styles.skuCard} ${sku.status?.toLowerCase() === 'active' ? styles.activeSku : sku.status?.toLowerCase() === 'blocked' ? styles.blockedSku : styles.inactiveSku}`}>
-            <div className={styles.skuInfo}>
-                <div className={styles.skuMain}>
-                    <span className={styles.skuIdLabel}>SKU ID</span>
-                    <div className={styles.skuIdWithCopy}>
-                        <span className={styles.skuIdValue}>{sku.skuId}</span>
-                        <button
-                            className={styles.copyButtonSmall}
+        <div className={cx(styles.root, status === 'blocked' && styles.isBlocked, status !== 'active' && status !== 'blocked' && styles.isInactive)}>
+            <div className={styles.info}>
+                <div className={styles.main}>
+                    <span className={styles.idLabel}>SKU ID</span>
+                    <div className={styles.idRow}>
+                        <span className={styles.idValue}>{sku.skuId}</span>
+                        <IconButton
+                            name="copy-inventory-id"
+                            size="sm"
+                            className={styles.copy}
                             onClick={() => onCopy(sku.skuId, "SKU ID")}
                             title="Copy SKU ID"
-                        >
-                            <Icon name="copy-inventory-id" size={14} />
-                        </button>
+                            aria-label="Copy SKU ID"
+                        />
                     </div>
-                    <span className={`${styles.statusBadge} ${sku.status?.toLowerCase() === 'active' ? styles.activeStatus : sku.status?.toLowerCase() === 'blocked' ? styles.blockedStatus : styles.inactiveStatus}`}>
+                    <Badge tone={statusTones[status] || "danger"} className={styles.status}>
                         {sku.status?.charAt(0).toUpperCase() + sku.status?.slice(1)}
-                    </span>
+                    </Badge>
                 </div>
-                <div className={styles.skuBadges}>
-                    <span className={styles.marketplaceBadge}>{sku.marketplace}</span>
-                    <span className={styles.netSoldBadge}>Sold: {sku.netSold}</span>
+                <div className={styles.badges}>
+                    <Badge tone="info">{sku.marketplace}</Badge>
+                    <Badge tone="neutral" className={styles.sold}>Sold: {sku.netSold}</Badge>
                 </div>
             </div>
 
             {/* Combo Items */}
             {sku.comboItems && sku.comboItems.length > 0 && (
-                <div className={styles.comboSection}>
+                <div className={styles.combo}>
                     <span className={styles.comboLabel}>Combo Items</span>
                     <div className={styles.comboGrid}>
                         {sku.comboItems.map((combo, cIndex) => (
                             <div key={cIndex} className={styles.comboItem}>
-                                <div className={styles.comboImageWrapper}>
+                                <div className={styles.comboMedia}>
                                     {combo.imageUrl ? (
                                         <Image
                                             src={combo.imageUrl}
                                             alt={combo.inventoryId}
                                             fill
-                                            className={styles.comboImg}
-                                            unoptimized
+                                            sizes="3.75rem"
+                                            className={styles.comboImage}
                                         />
                                     ) : (
-                                        <div className={styles.comboPlaceholder}>NA</div>
+                                        <span className={styles.comboPlaceholder}>NA</span>
                                     )}
                                 </div>
-                                <div className={styles.comboIdContainer}>
+                                <div className={styles.comboIdRow}>
                                     <span className={styles.comboId}>{combo.inventoryId}</span>
-                                    <button
-                                        className={styles.copyButtonTiny}
+                                    <IconButton
+                                        name="copy-inventory-id"
+                                        size="sm"
+                                        className={styles.copy}
                                         onClick={() => onCopy(combo.inventoryId, "Combo Inventory ID")}
                                         title="Copy ID"
-                                    >
-                                        <Icon name="copy-inventory-id" size={12} />
-                                    </button>
+                                        aria-label="Copy ID"
+                                    />
                                 </div>
-                                <div className={styles.comboQuantity}>
-                                    <span className={styles.comboQtyLabel}>Stock: </span>
-                                    <span className={styles.comboQtyValue}>{combo.currentStock}</span>
+                                <div className={styles.comboStock}>
+                                    <span>Stock: </span>
+                                    <span className={styles.comboStockValue}>{combo.currentStock}</span>
                                 </div>
                             </div>
                         ))}

@@ -1,5 +1,7 @@
-import Icon from "@/components/ui/Icon/Icon";
-import SmoothImage from "@/components/SmoothImage/SmoothImage";
+import Image from "next/image";
+import IconButton from "@/components/ui/IconButton/IconButton";
+import Modal from "@/components/ui/Modal/Modal";
+import cx from "@/components/ui/cx";
 import SkuCard from "../SkuCard/SkuCard";
 import styles from "./InventoryDetailModal.module.css";
 
@@ -10,99 +12,80 @@ export default function InventoryDetailModal({
     onClose,
     onCopy,
 }) {
+    const metrics = [
+        { label: "Unit Price", value: `₹ ${Math.ceil(selectedItem.buyPriceUnit ?? 0)}`, highlight: true },
+        { label: "Current Stock", value: selectedItem.currentStock ?? 0, highlight: true },
+        { label: "Initial Stock", value: selectedItem.initialStock ?? 0 },
+        { label: "Gross Ordered", value: selectedItem.grossOrdered ?? 0 },
+        { label: "Net Sold", value: selectedItem.netSold ?? 0 },
+        { label: "Cancelled", value: selectedItem.cancelled ?? 0 },
+        { label: "Returned", value: selectedItem.returned ?? 0 },
+    ];
+
     return (
-        <div className={styles.modalOverlay} onClick={onClose}>
-            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                <button className={styles.closeModal} onClick={onClose}>
-                    <Icon name="remove-this-product" size={24} />
-                </button>
-
-                <div className={styles.modalScrollArea}>
-                    <div className={styles.modalHeader}>
-                        <div className={styles.modalImageContainer}>
-                            {selectedItem.imageUrl ? (
-                                <SmoothImage
-                                    src={selectedItem.imageUrl}
-                                    alt={selectedItem.inventoryId}
-                                    fill
-                                    className={styles.modalImage}
-                                    unoptimized
-                                />
-                            ) : (
-                                <div className={styles.modalImagePlaceholder}>No Image</div>
-                            )}
-                        </div>
-                        <div className={styles.modalMainInfo}>
-                            <div className={styles.idWithCopy}>
-                                <h2 className={styles.modalId}>{selectedItem.inventoryId}</h2>
-                                <button
-                                    className={styles.copyButton}
-                                    onClick={() => onCopy(selectedItem.inventoryId, "Inventory ID")}
-                                    title="Copy ID"
-                                >
-                                    <Icon name="copy-inventory-id" size={16} />
-                                </button>
-                            </div>
-                            <p className={styles.modalVertical}>{selectedItem.vertical}</p>
-                            <p className={styles.modalDate}>
-                                {selectedItem?.createdAt ? `Added on ${new Date(selectedItem.createdAt).toLocaleString('en-IN', {
-                                    month: 'long', day: 'numeric', year: 'numeric',
-                                    hour: '2-digit', minute: '2-digit'
-                                })}` : ''}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className={styles.metricsGrid}>
-                        <div className={`${styles.metricCard} ${styles.highlightMetric}`}>
-                            <span className={styles.metricLabel}>Unit Price</span>
-                            <span className={styles.metricValue}>₹ {Math.ceil(selectedItem.buyPriceUnit ?? 0)}</span>
-                        </div>
-                        <div className={`${styles.metricCard} ${styles.highlightMetric}`}>
-                            <span className={styles.metricLabel}>Current Stock</span>
-                            <span className={styles.metricValue}>{selectedItem.currentStock ?? 0}</span>
-                        </div>
-                        <div className={styles.metricCard}>
-                            <span className={styles.metricLabel}>Initial Stock</span>
-                            <span className={styles.metricValue}>{selectedItem.initialStock ?? 0}</span>
-                        </div>
-                        <div className={styles.metricCard}>
-                            <span className={styles.metricLabel}>Gross Ordered</span>
-                            <span className={styles.metricValue}>{selectedItem.grossOrdered ?? 0}</span>
-                        </div>
-                        <div className={styles.metricCard}>
-                            <span className={styles.metricLabel}>Net Sold</span>
-                            <span className={styles.metricValue}>{selectedItem.netSold ?? 0}</span>
-                        </div>
-                        <div className={styles.metricCard}>
-                            <span className={styles.metricLabel}>Cancelled</span>
-                            <span className={styles.metricValue}>{selectedItem.cancelled ?? 0}</span>
-                        </div>
-                        <div className={styles.metricCard}>
-                            <span className={styles.metricLabel}>Returned</span>
-                            <span className={styles.metricValue}>{selectedItem.returned ?? 0}</span>
-                        </div>
-                    </div>
-
-                    {/* SKUs Section */}
-                    {modalSkusLoading ? (
-                        <div className={styles.modalSection}>
-                            <h3 className={styles.sectionTitle}>Associated SKUs</h3>
-                            <p style={{ color: '#666', fontSize: '14px', marginTop: '10px' }}>Loading SKUs...</p>
-                        </div>
+        <Modal open onClose={onClose} size="lg" ariaLabel={selectedItem.inventoryId}>
+            <div className={styles.header}>
+                <div className={styles.media}>
+                    {selectedItem.imageUrl ? (
+                        <Image
+                            src={selectedItem.imageUrl}
+                            alt={selectedItem.inventoryId}
+                            fill
+                            sizes="(min-width: 768px) 18.75rem, 100vw"
+                            className={styles.image}
+                        />
                     ) : (
-                        modalSkus && modalSkus.length > 0 && (
-                            <div className={styles.modalSection}>
-                                <h3 className={styles.sectionTitle}>Associated SKUs</h3>
-                                <div className={styles.skuGrid}>
-                                    {modalSkus.map((sku, index) => (
-                                        <SkuCard key={index} sku={sku} onCopy={onCopy} />
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
+                        <span className={styles.placeholder}>No Image</span>
+                    )}
+                </div>
+                <div className={styles.mainInfo}>
+                    <div className={styles.idRow}>
+                        <h2 className={styles.id}>{selectedItem.inventoryId}</h2>
+                        <IconButton
+                            name="copy-inventory-id"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => onCopy(selectedItem.inventoryId, "Inventory ID")}
+                            title="Copy ID"
+                            aria-label="Copy ID"
+                        />
+                    </div>
+                    <p className={styles.vertical}>{selectedItem.vertical}</p>
+                    <p className={styles.date}>
+                        {selectedItem?.createdAt ? `Added on ${new Date(selectedItem.createdAt).toLocaleString('en-IN', {
+                            month: 'long', day: 'numeric', year: 'numeric',
+                            hour: '2-digit', minute: '2-digit'
+                        })}` : ''}
+                    </p>
                 </div>
             </div>
-        </div>
+
+            <div className={styles.metrics}>
+                {metrics.map(metric => (
+                    <div key={metric.label} className={cx(styles.metric, metric.highlight && styles.isHighlight)}>
+                        <span className={styles.metricLabel}>{metric.label}</span>
+                        <span className={styles.metricValue}>{metric.value}</span>
+                    </div>
+                ))}
+            </div>
+
+            {/* SKUs Section */}
+            {modalSkusLoading ? (
+                <section className={styles.section}>
+                    <h3 className={styles.sectionTitle}>Associated SKUs</h3>
+                    <p className={styles.status} role="status">Loading SKUs...</p>
+                </section>
+            ) : (
+                modalSkus && modalSkus.length > 0 && (
+                    <section className={styles.section}>
+                        <h3 className={styles.sectionTitle}>Associated SKUs</h3>
+                        <div className={styles.skuList}>
+                            {modalSkus.map((sku, index) => (
+                                <SkuCard key={index} sku={sku} onCopy={onCopy} />
+                            ))}
+                        </div>
+                    </section>
+                ))}
+        </Modal>
     );
 }

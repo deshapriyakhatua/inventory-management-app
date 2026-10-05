@@ -1,5 +1,8 @@
-import Icon from "@/components/ui/Icon/Icon";
-import SmoothImage from "@/components/SmoothImage/SmoothImage";
+import Image from "next/image";
+import Badge from "@/components/ui/Badge/Badge";
+import Card from "@/components/ui/Card/Card";
+import IconButton from "@/components/ui/IconButton/IconButton";
+import cx from "@/components/ui/cx";
 import styles from "./InventoryCard.module.css";
 
 export default function InventoryCard({
@@ -17,111 +20,106 @@ export default function InventoryCard({
 }) {
     const canArchive = user?.role === 'admin' || user?.role === 'superadmin' || item.addedBy === user?.id;
     return (
-        <div
-            className={styles.gridCard}
-        >
+        <Card as="article" padding="sm" className={styles.root}>
+            <button
+                type="button"
+                className={styles.open}
+                aria-label={item.inventoryId}
+                onClick={() => onSelect(item)}
+            />
+
             {item.isArchived ? (
-                <button
-                    type="button"
+                <IconButton
+                    name="restore-inventory"
+                    size="sm"
                     onClick={() => onRestore(item._id)}
-                    className={styles.deleteBtn}
+                    className={cx(styles.action, styles.actionStart)}
                     title="Restore Inventory"
+                    aria-label="Restore Inventory"
                     disabled={restoreButtonLoading}
-                >
-                    <Icon name="restore-inventory" size={16} />
-                </button>
+                />
             ) : canArchive ? (
-                <button
-                    type="button"
+                <IconButton
+                    name="trash"
+                    size="sm"
                     onClick={() => onDelete(item._id)}
-                    className={styles.deleteBtn}
+                    className={cx(styles.action, styles.actionStart, styles.isDanger)}
                     title="Archive Inventory"
+                    aria-label="Archive Inventory"
                     disabled={deleteButtonLoading}
-                >
-                    {deleteButtonLoading && deletingItemId === item._id
-                        ? <Icon name="refresh-loop" size={16} className={styles.deleteLoadingIcon} />
-                        : <Icon name="trash" size={16} className={styles.deleteIcon} />
-                    }
-                </button>
+                    loading={deleteButtonLoading && deletingItemId === item._id}
+                />
             ) : null}
 
             {item.isArchived ? (
-                <button
-                    type="button"
+                <IconButton
+                    name="permanently-delete"
+                    size="sm"
                     onClick={(e) => {
                         e.stopPropagation();
                         onPermanentDelete(item._id);
                     }}
-                    className={styles.editCardBtn}
+                    className={cx(styles.action, styles.actionEnd, styles.isDanger)}
                     title="Permanently Delete"
-                >
-                    <Icon name="permanently-delete" size={14} />
-                </button>
+                    aria-label="Permanently Delete"
+                />
             ) : (
-                <button
-                    type="button"
+                <IconButton
+                    name="edit-inventory"
+                    size="sm"
                     onClick={(e) => {
                         e.stopPropagation();
                         onEdit(item);
                     }}
-                    className={styles.editCardBtn}
+                    className={cx(styles.action, styles.actionEnd)}
                     title="Edit Inventory"
-                >
-                    <Icon name="edit-inventory" size={14} />
-                </button>
+                    aria-label="Edit Inventory"
+                />
             )}
 
-            <div className={styles.imageContainer}>
+            <div className={styles.media}>
                 {item.imageUrl ? (
-                    <SmoothImage
+                    <Image
                         src={item.imageUrl}
                         alt={item.inventoryId}
                         fill
-                        className={styles.itemImage}
-                        loading="lazy"
+                        sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                        className={styles.image}
                     />
                 ) : (
-                    <div className={styles.imagePlaceholder}>No Image</div>
+                    <span className={styles.placeholder}>No Image</span>
                 )}
             </div>
-            <div className={styles.cardInfo}>
-                <div className={styles.skuHeaderRow}>
-                    <p className={styles.itemId} title={item.inventoryId}>{item.inventoryId}</p>
-                    <button
-                        className={styles.smallCopyBtn}
+
+            <div className={styles.info}>
+                <div className={styles.idRow}>
+                    <p className={styles.id} title={item.inventoryId}>{item.inventoryId}</p>
+                    <IconButton
+                        name="copy-inventory-id"
+                        size="sm"
+                        className={styles.copy}
                         onClick={(e) => {
                             e.stopPropagation();
                             onCopy(item.inventoryId, "SKU");
                         }}
                         title="Copy SKU"
-                    >
-                        <Icon name="copy-inventory-id" size={14} />
-                    </button>
+                        aria-label="Copy SKU"
+                    />
                 </div>
-                <p className={styles.itemDate}>
+                <p className={styles.date}>
                     {new Date(item.createdAt).toLocaleDateString('en-US', {
                         month: 'short', day: 'numeric', year: 'numeric'
                     })}
                 </p>
-                <div className={styles.stockAndPriceContainer}>
-                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                        <div className={styles.stockBadge}>
-                            <span className={styles.stockLabel}>Stock:</span>
-                            <span className={`${styles.stockValue} ${item.currentStock <= 10 ? styles.lowStock : ''}`}>
-                                {item.currentStock ?? 0}
-                            </span>
-                        </div>
-                    </div>
-                    <p className={styles.itemPrice}>
+                <div className={styles.footer}>
+                    <Badge tone={item.currentStock <= 10 ? "danger" : "success"} className={styles.stock}>
+                        Stock: <span className={styles.stockValue}>{item.currentStock ?? 0}</span>
+                    </Badge>
+                    <p className={styles.price}>
                         ₹{item.fifoUnitCost ?? 0}
                     </p>
                 </div>
             </div>
-
-            <div
-                className={styles.clickableOverlay}
-                onClick={() => onSelect(item)}
-            />
-        </div>
+        </Card>
     );
 }

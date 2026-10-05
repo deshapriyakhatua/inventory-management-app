@@ -1,14 +1,17 @@
 "use client";
 import { toast } from "sonner";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useEffectEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import EmptyState from "@/components/ui/EmptyState/EmptyState";
+import PageShell from "@/components/ui/PageShell/PageShell";
+import Skeleton from "@/components/ui/Skeleton/Skeleton";
+import ConfirmModal from "@/components/ConfirmModal/ConfirmModal";
 import styles from "./page.module.css";
 
 import InventoryToolbar from "./_components/InventoryToolbar/InventoryToolbar";
 import InventoryCard from "./_components/InventoryCard/InventoryCard";
 import InventoryPagination from "./_components/InventoryPagination/InventoryPagination";
-import ConfirmDialog from "./_components/ConfirmDialog/ConfirmDialog";
 import InventoryDetailModal from "./_components/InventoryDetailModal/InventoryDetailModal";
 import EditInventoryModal from "./_components/EditInventoryModal/EditInventoryModal";
 import { fetchVerticalsData } from "../../utils/apiUtils";
@@ -67,10 +70,15 @@ export default function AllInventoryPage() {
     const showArchivedRef = React.useRef(showArchived);
     useEffect(() => { showArchivedRef.current = showArchived; }, [showArchived]);
 
-    useEffect(() => {
+    // Mount-only load; useEffectEvent keeps it from re-running when the loaders change identity
+    const loadOnMount = useEffectEvent(() => {
         loadInitialData();
         const initialArchived = searchParams.get('archived') === 'true';
         fetchInventory(false, initialArchived);
+    });
+
+    useEffect(() => {
+        loadOnMount();
     }, []);
 
     useEffect(() => {
@@ -92,8 +100,11 @@ export default function AllInventoryPage() {
     }, [selectedItem]);
 
     // Apply Filters, Sort, and Pagination locally whenever dependencies change
+    // Re-run only for these inputs; useEffectEvent reads the latest processLocalData
+    const onLocalDataInputsChange = useEffectEvent(() => processLocalData());
+
     useEffect(() => {
-        processLocalData();
+        onLocalDataInputsChange();
     }, [allInventoryData, currentPage, sortOrder, selectedVertical, searchQuery, pageSize, showArchived]);
 
     const processLocalData = () => {
@@ -424,7 +435,7 @@ export default function AllInventoryPage() {
     };
 
     return (
-        <div className={styles.container}>
+        <PageShell>
             <InventoryToolbar
                 user={user}
                 verticals={verticals}
@@ -443,38 +454,39 @@ export default function AllInventoryPage() {
             />
 
             {loading ? (
-                <div className={styles.loadingContainer} style={{ flex: 1 }}>
-                    <div className={styles.spinner}></div>
-                    <p>Loading Inventory...</p>
+                <div className={styles.grid} role="status" aria-busy="true">
+                    <span className="srOnly">Loading Inventory...</span>
+                    {Array.from({ length: 8 }, (_, i) => (
+                        <div key={i} className={styles.skeletonCard}>
+                            <Skeleton className={styles.skeletonMedia} />
+                            <Skeleton variant="text" width="70%" />
+                            <Skeleton variant="text" width="40%" />
+                        </div>
+                    ))}
                 </div>
             ) : inventory.length === 0 ? (
-                <div className={styles.emptyState} style={{ flex: 1 }}>
-                    <p>No inventory items found.</p>
-                </div>
+                <EmptyState title="No inventory items found." />
             ) : (
-                <div className={styles.contentArea}>
-                    <div className={styles.scrollWrapper}>
-                        <div className={styles.gridContainer}>
-                            {inventory.map((item) => (
-                                <InventoryCard
-                                    key={item._id}
-                                    item={item}
-                                    user={user}
-                                    restoreButtonLoading={restoreButtonLoading}
-                                    deleteButtonLoading={deleteButtonLoading}
-                                    deletingItemId={deletingItemId}
-                                    onRestore={handleRestore}
-                                    onDelete={handleDelete}
-                                    onPermanentDelete={handlePermanentDelete}
-                                    onEdit={openEditModal}
-                                    onCopy={copyToClipboard}
-                                    onSelect={setSelectedItem}
-                                />
-                            ))}
-                        </div>
+                <>
+                    <div className={styles.grid}>
+                        {inventory.map((item) => (
+                            <InventoryCard
+                                key={item._id}
+                                item={item}
+                                user={user}
+                                restoreButtonLoading={restoreButtonLoading}
+                                deleteButtonLoading={deleteButtonLoading}
+                                deletingItemId={deletingItemId}
+                                onRestore={handleRestore}
+                                onDelete={handleDelete}
+                                onPermanentDelete={handlePermanentDelete}
+                                onEdit={openEditModal}
+                                onCopy={copyToClipboard}
+                                onSelect={setSelectedItem}
+                            />
+                        ))}
                     </div>
 
-                    {/* Pagination */}
                     {totalItems > 0 && (
                         <InventoryPagination
                             currentPage={currentPage}
@@ -485,39 +497,30 @@ export default function AllInventoryPage() {
                             onNextPage={handleNextPage}
                         />
                     )}
-                </div>
+                </>
             )}
 
-            {showDeleteConfirm && (
-                <ConfirmDialog
-                    onClose={() => setShowDeleteConfirm(false)}
-                    iconName="icon-cfd589e1"
-                    title="Confirm Archiving"
-                    loading={deleteButtonLoading}
-                    onConfirm={confirmDelete}
-                    confirmLabel="Confirm Archive"
-                    loadingLabel="Archiving..."
-                >
-                    Are you sure you want to archive this inventory item? It will be hidden from all standard views.
-                </ConfirmDialog>
-            )}
+            <ConfirmModal
+                isOpen={showDeleteConfirm}
+                variant="warning"
+                title="Confirm Archiving"
+                message="Are you sure you want to archive this inventory item? It will be hidden from all standard views."
+                confirmLabel={deleteButtonLoading ? "Archiving..." : "Confirm Archive"}
+                isLoading={deleteButtonLoading}
+                onConfirm={confirmDelete}
+                onClose={() => setShowDeleteConfirm(false)}
+            />
 
-            {showRestoreConfirm && (
-                <ConfirmDialog
-                    onClose={() => setShowRestoreConfirm(false)}
-                    iconVariant="restore"
-                    iconStyle={{ color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '8px', borderRadius: '50%', display: 'flex' }}
-                    iconName="restore-inventory"
-                    title="Confirm Restore"
-                    loading={restoreButtonLoading}
-                    onConfirm={confirmRestore}
-                    confirmStyle={{ backgroundColor: '#10b981', borderColor: '#10b981', color: 'white' }}
-                    confirmLabel="Confirm Restore"
-                    loadingLabel="Restoring..."
-                >
-                    Are you sure you want to restore this inventory item? It will be visible again in standard views.
-                </ConfirmDialog>
-            )}
+            <ConfirmModal
+                isOpen={showRestoreConfirm}
+                variant="info"
+                title="Confirm Restore"
+                message="Are you sure you want to restore this inventory item? It will be visible again in standard views."
+                confirmLabel={restoreButtonLoading ? "Restoring..." : "Confirm Restore"}
+                isLoading={restoreButtonLoading}
+                onConfirm={confirmRestore}
+                onClose={() => setShowRestoreConfirm(false)}
+            />
 
             {selectedItem && (
                 <InventoryDetailModal
@@ -528,20 +531,17 @@ export default function AllInventoryPage() {
                     onCopy={copyToClipboard}
                 />
             )}
-            {showPermDeleteConfirm && (
-                <ConfirmDialog
-                    onClose={() => setShowPermDeleteConfirm(false)}
-                    iconName="permanently-delete"
-                    title="Permanently Delete"
-                    loading={permDeleteLoading}
-                    onConfirm={confirmPermanentDelete}
-                    confirmStyle={{ backgroundColor: '#f43f5e' }}
-                    confirmLabel="Delete Forever"
-                    loadingLabel="Deleting..."
-                >
-                    This will <strong>permanently delete</strong> this inventory item and cannot be undone. Are you sure?
-                </ConfirmDialog>
-            )}
+
+            <ConfirmModal
+                isOpen={showPermDeleteConfirm}
+                variant="danger"
+                title="Permanently Delete"
+                message={<>This will <strong>permanently delete</strong> this inventory item and cannot be undone. Are you sure?</>}
+                confirmLabel={permDeleteLoading ? "Deleting..." : "Delete Forever"}
+                isLoading={permDeleteLoading}
+                onConfirm={confirmPermanentDelete}
+                onClose={() => setShowPermDeleteConfirm(false)}
+            />
 
             {editingItem && (
                 <EditInventoryModal
@@ -553,6 +553,6 @@ export default function AllInventoryPage() {
                     onClose={closeEditModal}
                 />
             )}
-        </div>
+        </PageShell>
     );
 }

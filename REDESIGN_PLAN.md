@@ -403,7 +403,7 @@ Additional rules for splitting (**DoD-SPLIT**):
 
 Standard "list page" pattern (7.2) applies to all.
 
-- [ ] **T-5.1 `/all-inventory`** · L · Dep: T-1.6, T-1.5
+- [x] **T-5.1 `/all-inventory`** · L · Dep: T-1.6, T-1.5
 - [ ] **T-5.2 `/all-listings`** · L · Dep: T-1.6, T-1.5
 - [ ] **T-5.3 `/all-sellers`** · L · Dep: T-1.6, T-1.5
 - [ ] **T-5.4 `/add-sales-log`** · L · Dep: Phase 1

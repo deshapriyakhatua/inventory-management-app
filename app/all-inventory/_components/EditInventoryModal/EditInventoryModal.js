@@ -1,4 +1,9 @@
-import Icon from "@/components/ui/Icon/Icon";
+import Image from "next/image";
+import Button from "@/components/ui/Button/Button";
+import FormField from "@/components/ui/FormField/FormField";
+import Input from "@/components/ui/Input/Input";
+import Modal from "@/components/ui/Modal/Modal";
+import Select from "@/components/ui/Select/Select";
 import styles from "./EditInventoryModal.module.css";
 
 export default function EditInventoryModal({
@@ -10,83 +15,66 @@ export default function EditInventoryModal({
     onClose,
 }) {
     return (
-        <div className={styles.confirmOverlay} onClick={onClose}>
-            <div className={styles.confirmModal} style={{ maxWidth: '500px' }} onClick={(e) => e.stopPropagation()}>
-                <div className={styles.confirmHeader}>
-                    <div style={{ color: '#3b82f6', background: 'rgba(59, 130, 246, 0.1)', padding: '8px', borderRadius: '50%', display: 'flex' }}>
-                        <Icon name="edit-inventory" />
-                    </div>
-                    <h3 className={styles.confirmTitle}>Edit Inventory Item</h3>
-                </div>
+        <Modal open onClose={onClose} size="sm" title="Edit Inventory Item">
+            <form onSubmit={onSubmit} className={styles.form}>
+                <FormField label="Inventory ID / SKU">
+                    <Input
+                        type="text"
+                        name="inventoryId"
+                        value={editForm.inventoryId}
+                        onChange={onChange}
+                        required
+                    />
+                </FormField>
 
-                <form onSubmit={onSubmit} className={styles.editModalForm}>
-                    <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Inventory ID / SKU</label>
-                        <input
-                            type="text"
-                            name="inventoryId"
-                            value={editForm.inventoryId}
-                            onChange={onChange}
-                            className={styles.formInput}
-                            required
+                <FormField label="Vertical">
+                    <Select
+                        name="vertical"
+                        value={editForm.vertical}
+                        onChange={onChange}
+                        required
+                    >
+                        <option value="">Select Vertical</option>
+                        {verticals.map(v => (
+                            <option key={v.verticalShort} value={v.verticalName}>{v.verticalName}</option>
+                        ))}
+                    </Select>
+                </FormField>
+
+                <FormField label="Inventory Image">
+                    <Input
+                        type="file"
+                        name="image"
+                        accept="image/*"
+                        onChange={onChange}
+                    />
+                </FormField>
+
+                {editForm.imagePreview && (
+                    <div className={styles.preview}>
+                        <Image
+                            src={editForm.imagePreview}
+                            alt="Preview"
+                            fill
+                            sizes="10rem"
+                            className={styles.previewImage}
                         />
                     </div>
+                )}
 
-                    <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Vertical</label>
-                        <select
-                            name="vertical"
-                            value={editForm.vertical}
-                            onChange={onChange}
-                            className={styles.formSelect}
-                            required
-                        >
-                            <option value="">Select Vertical</option>
-                            {verticals.map(v => (
-                                <option key={v.verticalShort} value={v.verticalName}>{v.verticalName}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Inventory Image</label>
-                        <div className={styles.imagePreviewWrapper}>
-                            {editForm.imagePreview && (
-                                <img
-                                    src={editForm.imagePreview}
-                                    alt="Preview"
-                                    className={styles.imagePreview}
-                                />
-                            )}
-                            <input
-                                type="file"
-                                name="image"
-                                accept="image/*"
-                                onChange={onChange}
-                                className={styles.fileInput}
-                            />
-                        </div>
-                    </div>
-
-                    <div className={styles.editModalFooter}>
-                        <button
-                            type="button"
-                            className={styles.cancelBtn}
-                            onClick={onClose}
-                            disabled={editSaving}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            className={styles.saveBtn}
-                            disabled={editSaving}
-                        >
-                            {editSaving ? "Saving..." : "Save Changes"}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                <div className={styles.actions}>
+                    <Button
+                        variant="secondary"
+                        onClick={onClose}
+                        disabled={editSaving}
+                    >
+                        Cancel
+                    </Button>
+                    <Button type="submit" loading={editSaving}>
+                        {editSaving ? "Saving..." : "Save Changes"}
+                    </Button>
+                </div>
+            </form>
+        </Modal>
     );
 }
