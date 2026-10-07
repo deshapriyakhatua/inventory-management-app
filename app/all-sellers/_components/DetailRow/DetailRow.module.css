@@ -1,0 +1,53 @@
+/* ── Detail Row ── */
+.detailRow {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.3rem 0;
+}
+
+.detailIcon {
+    color: #475569;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+}
+
+.detailContent { flex: 1; min-width: 0; }
+
+.detailLabel {
+    display: block;
+    font-size: 0.7rem;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.1rem;
+}
+
+.detailValue {
+    display: block;
+    font-size: 0.875rem;
+    color: #e2e8f0;
+    font-weight: 500;
+    word-break: break-word;
+}
+
+.copyIconBtn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: #475569;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.copyIconBtn:hover {
+    color: #3b82f6;
+    border-color: rgba(59, 130, 246, 0.3);
+    background: rgba(59, 130, 246, 0.08);
+}
