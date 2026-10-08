@@ -1,23 +1,29 @@
+import Badge from "@/components/ui/Badge/Badge";
+import Button from "@/components/ui/Button/Button";
 import Icon from "@/components/ui/Icon/Icon";
+import cx from "@/components/ui/cx";
 import styles from "./SalesRowHeader.module.css";
 
 export default function SalesRowHeader({ row, idx, canRemove, onRemoveRow }) {
   return (
-    <div className={styles.rowHeader}>
-      <div className={styles.rowHeaderLeft}>
-        <span className={styles.rowIndex}>{idx + 1}</span>
-        <span className={styles.rowLabel}>
+    <div className={styles.root}>
+      <div className={styles.lead}>
+        <span className={styles.index}>{idx + 1}</span>
+        <span className={cx(styles.label, row.skuId && styles.labelFilled)}>
           {row.skuId ? row.skuId : "New SKU Entry"}
         </span>
-        {row.salesChannel && (
-          <span className={styles.channelTag}>{row.salesChannel}</span>
-        )}
+        {row.salesChannel && <Badge tone="accent">{row.salesChannel}</Badge>}
       </div>
       {canRemove && (
-        <button className={styles.removeBtn} onClick={() => onRemoveRow(row.id)}>
-          <Icon name="remove" size={13} />
+        <Button
+          variant="ghost"
+          size="sm"
+          className={styles.removeButton}
+          onClick={() => onRemoveRow(row.id)}
+          leftIcon={<Icon name="remove" size={14} />}
+        >
           Remove
-        </button>
+        </Button>
       )}
     </div>
   );

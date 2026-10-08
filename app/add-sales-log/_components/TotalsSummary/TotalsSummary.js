@@ -1,51 +1,36 @@
 import Icon from "@/components/ui/Icon/Icon";
 import styles from "./TotalsSummary.module.css";
 
+const formatCurrency = (value) =>
+  `₹${(value ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 export default function TotalsSummary({ totals }) {
+  const tiles = [
+    { label: "Gross Units", value: totals.grossUnits },
+    { label: "Log. Returns", value: totals.logisticsReturns },
+    { label: "Cust. Returns", value: totals.customerReturns },
+    { label: "Cancellations", value: totals.cancellations },
+    { label: "Net Units", value: totals.netUnits },
+    { label: "Net Sales", value: formatCurrency(totals.netSales) },
+    { label: "Total Expenses", value: formatCurrency(totals.totalExpenses) },
+    { label: "Other Benefits", value: formatCurrency(totals.otherBenefits) },
+    { label: "Settlement", value: formatCurrency(totals.projectedBankSettlement) },
+  ];
+
   return (
-    <div className={styles.totalsSection}>
-      <div className={styles.totalsHeader}>
+    <section className={styles.root}>
+      <h2 className={styles.header}>
         <Icon name="icon-3af5fc37" size={18} />
         Summary Totals
+      </h2>
+      <div className={styles.grid}>
+        {tiles.map((tile) => (
+          <div key={tile.label} className={styles.tile}>
+            <span className={styles.label}>{tile.label}</span>
+            <span className={styles.value}>{tile.value}</span>
+          </div>
+        ))}
       </div>
-      <div className={styles.totalsGrid}>
-        <div className={styles.totalBox}>
-          <span className={styles.totalLabel}>Gross Units</span>
-          <span className={styles.totalValue}>{totals.grossUnits}</span>
-        </div>
-        <div className={styles.totalBox}>
-          <span className={styles.totalLabel}>Log. Returns</span>
-          <span className={styles.totalValue}>{totals.logisticsReturns}</span>
-        </div>
-        <div className={styles.totalBox}>
-          <span className={styles.totalLabel}>Cust. Returns</span>
-          <span className={styles.totalValue}>{totals.customerReturns}</span>
-        </div>
-        <div className={styles.totalBox}>
-          <span className={styles.totalLabel}>Cancellations</span>
-          <span className={styles.totalValue}>{totals.cancellations}</span>
-        </div>
-        <div className={styles.totalBox}>
-          <span className={styles.totalLabel}>Net Units</span>
-          <span className={styles.totalValue}>{totals.netUnits}</span>
-        </div>
-        <div className={styles.totalBox}>
-          <span className={styles.totalLabel}>Net Sales</span>
-          <span className={styles.totalValueCurrency}>₹{(totals.netSales ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-        </div>
-        <div className={styles.totalBox}>
-          <span className={styles.totalLabel}>Total Expenses</span>
-          <span className={styles.totalValueCurrency}>₹{(totals.totalExpenses ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-        </div>
-        <div className={styles.totalBox}>
-          <span className={styles.totalLabel}>Other Benefits</span>
-          <span className={styles.totalValueCurrency}>₹{(totals.otherBenefits ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-        </div>
-        <div className={styles.totalBox}>
-          <span className={styles.totalLabel}>Settlement</span>
-          <span className={styles.totalValueCurrency}>₹{(totals.projectedBankSettlement ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-        </div>
-      </div>
-    </div>
+    </section>
   );
 }

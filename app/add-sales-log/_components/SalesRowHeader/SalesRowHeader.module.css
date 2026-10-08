@@ -1,74 +1,48 @@
-/* ─── Row Header ──────────────────────────────────────────────────────────── */
-.rowHeader {
+.root {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   align-items: center;
-  border-bottom: 1px solid #334155;
-  padding-bottom: 1rem;
-  gap: 1rem;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--control-h-sm);
 }
 
-.rowHeaderLeft {
+.lead {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
   flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
   min-width: 0;
 }
 
-.rowIndex {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  color: white;
-  font-size: 0.75rem;
-  font-weight: 700;
-  display: flex;
+.index {
+  display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
+  border-radius: var(--radius-pill);
+  color: var(--color-accent);
+  background: var(--color-accent-subtle);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
 }
 
-.rowLabel {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #cbd5e1;
-  font-family: 'Courier New', monospace;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 300px;
+.label {
+  min-width: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  overflow-wrap: anywhere;
 }
 
-.channelTag {
-  padding: 0.2rem 0.6rem;
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  color: #93c5fd;
-  border-radius: 4px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  white-space: nowrap;
+.labelFilled {
+  color: var(--color-text);
 }
 
-.removeBtn {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  background: transparent;
-  border: 1px solid #7f1d1d;
-  color: #fca5a5;
-  border-radius: 6px;
-  padding: 0.35rem 0.75rem;
-  font-size: 0.8rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.removeBtn:hover {
-  background: #7f1d1d;
-  color: #fecaca;
+/* Descendant selector so the danger tint wins over Button's ghost color. */
+.root .removeButton {
+  color: var(--color-danger);
 }

@@ -2,6 +2,7 @@
 import { toast } from "sonner";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import PageShell from "@/components/ui/PageShell/PageShell";
 import styles from "./page.module.css";
 
 import { parseSearchQuery, matchesSearchTerms } from "../../utils/searchUtils";
@@ -342,20 +343,22 @@ export default function AddSalesLog() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className={styles.container}>
+    <PageShell className={styles.shell}>
       {/* ── Page Header ── */}
       <SalesLogHeader month={month} year={year} />
 
-      {/* ── Period Selector ── */}
-      <PeriodSelector month={month} year={year} years={years}
-        onMonthChange={handleMonthChange} onYearChange={handleYearChange} />
+      <div className={styles.setup}>
+        {/* ── Period Selector ── */}
+        <PeriodSelector month={month} year={year} years={years}
+          onMonthChange={handleMonthChange} onYearChange={handleYearChange} />
 
-      {/* ── Bulk Import Section ── */}
-      <BulkImport fileInputRef={fileInputRef} isParsingFile={isParsingFile}
-        onFileUpload={handleFileUpload} onUploadClick={handleUploadClick} />
+        {/* ── Bulk Import Section ── */}
+        <BulkImport fileInputRef={fileInputRef} isParsingFile={isParsingFile}
+          onFileUpload={handleFileUpload} onUploadClick={handleUploadClick} />
+      </div>
 
       {/* ── SKU Rows ── */}
-      <div className={styles.layout}>
+      <div className={styles.rows}>
         {rows.map((row, idx) => {
           const mismatch = hasNetMismatch(row);
           const filteredListings = globalFilteredListings;
@@ -385,7 +388,6 @@ export default function AddSalesLog() {
           month={month} year={year} onClose={closeConflictModal}
           onDecisionChange={handleDecisionChange} onConfirm={handleConflictResolve} />
       )}
-
-      </div>
+    </PageShell>
   );
 }

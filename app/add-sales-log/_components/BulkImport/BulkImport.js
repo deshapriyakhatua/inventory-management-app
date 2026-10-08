@@ -1,40 +1,34 @@
+import Button from "@/components/ui/Button/Button";
+import Card from "@/components/ui/Card/Card";
 import Icon from "@/components/ui/Icon/Icon";
 import styles from "./BulkImport.module.css";
 
 export default function BulkImport({ fileInputRef, isParsingFile, onFileUpload, onUploadClick }) {
   return (
-    <div className={styles.importSection}>
-      <div className={styles.importHeader}>
-          <div className={styles.importTitle}>
-            <Icon name="icon-f583f931" size={16} />
-            Bulk Import Data
-          </div>
-          <p className={styles.importDescription}>Automatically extract SKU metrics from marketplace reports.</p>
+    <Card as="section" padding="lg" className={styles.root}>
+      <div className={styles.text}>
+        <h2 className={styles.title}>
+          <Icon name="icon-f583f931" size={18} />
+          Bulk Import Data
+        </h2>
+        <p className={styles.description}>Automatically extract SKU metrics from marketplace reports.</p>
       </div>
-      <div className={styles.importActions}>
-          <input 
-            type="file" 
-            accept=".xlsx" 
-            style={{ display: "none" }} 
-            ref={fileInputRef} 
-            onChange={onFileUpload} 
-          />
-          <button 
-            className={styles.uploadBtn} 
-            onClick={onUploadClick} 
-            type="button"
-            disabled={isParsingFile}
-          >
-            {isParsingFile ? (
-               <><span className={styles.spinnerSmall}></span> Parsing…</>
-            ) : (
-               <>
-                 <Icon name="icon-f583f931" size={16} />
-                 Upload Flipkart .xlsx
-               </>
-            )}
-          </button>
-      </div>
-    </div>
+      <input
+        type="file"
+        accept=".xlsx"
+        hidden
+        ref={fileInputRef}
+        onChange={onFileUpload}
+      />
+      <Button
+        variant="secondary"
+        className={styles.upload}
+        onClick={onUploadClick}
+        loading={isParsingFile}
+        leftIcon={<Icon name="icon-f583f931" size={16} />}
+      >
+        {isParsingFile ? "Parsing…" : "Upload Flipkart .xlsx"}
+      </Button>
+    </Card>
   );
 }

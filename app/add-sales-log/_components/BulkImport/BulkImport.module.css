@@ -1,73 +1,41 @@
-/* ─── Import Section ──────────────────────────────────────────────────────── */
-.importSection {
-  background: #1e293b;
-  border: 1px dashed #3b82f6;
-  border-radius: 14px;
-  padding: 1.25rem 1.5rem;
-  margin-bottom: 1.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 2rem;
-  flex-wrap: wrap;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  background: linear-gradient(145deg, rgba(30, 41, 59, 1) 0%, rgba(15, 23, 42, 0.8) 100%);
-}
-
-.importHeader {
+.root {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  justify-content: space-between;
+  gap: var(--space-4);
 }
 
-.importTitle {
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.title {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #38bdf8;
-  letter-spacing: 0.02em;
-}
-
-.importDescription {
-  font-size: 0.8rem;
-  color: #94a3b8;
+  gap: var(--space-2);
   margin: 0;
+  color: var(--color-text);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-snug);
 }
 
-.importActions {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+.description {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
 }
 
-.uploadBtn {
-  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-  color: #ffffff;
-  border: none;
-  padding: 0.65rem 1.25rem;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.39);
-  transition: all 0.2s ease;
+.upload {
+  width: 100%;
 }
 
-.uploadBtn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px 0 rgba(16, 185, 129, 0.45);
-  background: linear-gradient(135deg, #047857 0%, #059669 100%);
-}
-
-.uploadBtn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  box-shadow: none;
-  background: #334155;
-  color: #94a3b8;
+@media (min-width: 640px) {
+  .upload {
+    width: auto;
+    align-self: flex-start;
+  }
 }

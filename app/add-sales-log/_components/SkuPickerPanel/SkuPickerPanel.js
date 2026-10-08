@@ -1,4 +1,8 @@
+import EmptyState from "@/components/ui/EmptyState/EmptyState";
 import Icon from "@/components/ui/Icon/Icon";
+import Input from "@/components/ui/Input/Input";
+import Spinner from "@/components/ui/Spinner/Spinner";
+import cx from "@/components/ui/cx";
 import styles from "./SkuPickerPanel.module.css";
 
 export default function SkuPickerPanel({
@@ -9,36 +13,46 @@ export default function SkuPickerPanel({
   onSelectSku,
 }) {
   return (
-    <div className={styles.pickerPanel}>
-      <div className={styles.pickerSearchWrap}>
-        <Icon name="icon-9c4a10ac" size={15} className={styles.pickerSearchIcon} />
-        <input
-          type="text"
-          placeholder="Search SKU ID…"
-          value={row.pickerSearch}
-          onChange={(e) => onPickerSearch(row.id, e.target.value)}
-          className={styles.pickerSearch}
-          autoFocus
-        />
-      </div>
-      <div className={styles.pickerList}>
+    <div className={styles.root}>
+      <Input
+        type="text"
+        aria-label="Search SKU ID"
+        placeholder="Search SKU ID…"
+        value={row.pickerSearch}
+        onChange={(e) => onPickerSearch(row.id, e.target.value)}
+        leading={<Icon name="icon-9c4a10ac" size={16} />}
+        autoFocus
+      />
+      <div className={styles.list}>
         {loadingListings ? (
-          <div className={styles.pickerEmpty}>Loading listings…</div>
+          <div className={styles.status}>
+            <Spinner size="sm" label="Loading listings" />
+            <span>Loading listings…</span>
+          </div>
         ) : filteredListings.length === 0 ? (
-          <div className={styles.pickerEmpty}>No SKUs match your search.</div>
+          <EmptyState
+            className={styles.empty}
+            icon={<Icon name="icon-9c4a10ac" size={28} />}
+            title="No SKUs match your search."
+          />
         ) : (
-          filteredListings.slice(0, 60).map((item) => (
-            <div
-              key={item.skuId}
-              className={`${styles.pickerItem} ${row.skuId === item.skuId ? styles.pickerItemSelected : ""}`}
-              onClick={() => onSelectSku(row.id, item.skuId)}
-            >
-              <span className={styles.pickerSkuId}>{item.skuId}</span>
-              <span className={styles.pickerMeta}>
-                {item.vertical} · {item.marketplace || "Direct"}
-              </span>
-            </div>
-          ))
+          filteredListings.slice(0, 60).map((item) => {
+            const isSelected = row.skuId === item.skuId;
+            return (
+              <button
+                key={item.skuId}
+                type="button"
+                aria-pressed={isSelected}
+                className={cx(styles.item, isSelected && styles.itemSelected)}
+                onClick={() => onSelectSku(row.id, item.skuId)}
+              >
+                <span className={styles.skuId}>{item.skuId}</span>
+                <span className={styles.meta}>
+                  {item.vertical} · {item.marketplace || "Direct"}
+                </span>
+              </button>
+            );
+          })
         )}
       </div>
     </div>

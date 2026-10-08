@@ -1,45 +1,6 @@
-/* ─── Page Header ─────────────────────────────────────────────────────────── */
-.pageHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1.75rem;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.headerLeft {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.title {
-  font-size: 1.9rem;
-  font-weight: 700;
-  color: #f8fafc;
-  margin: 0;
-  letter-spacing: -0.02em;
-}
-
-.subtitle {
-  font-size: 0.875rem;
-  color: #64748b;
-  margin: 0;
-}
-
 .periodBadge {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: linear-gradient(135deg, #1e3a5f, #1e293b);
-  border: 1px solid #3b82f6;
-  color: #93c5fd;
-  padding: 0.5rem 1.1rem;
-  border-radius: 20px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-  box-shadow: 0 0 16px rgba(59, 130, 246, 0.15);
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
 }

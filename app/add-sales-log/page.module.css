@@ -1,33 +1,21 @@
-/* ─── Base ─────────────────────────────────────────────────────────────────── */
-.container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 2rem 2rem 4rem;
-  animation: fadeSlideIn 0.4s ease-out;
+.shell {
+  max-width: 72rem;
 }
 
-@keyframes fadeSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.setup {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
 }
 
-/* ─── Layout ──────────────────────────────────────────────────────────────── */
-.layout {
+.rows {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: var(--space-5);
 }
 
-/* ─── Responsive ──────────────────────────────────────────────────────────── */
-@media (max-width: 640px) {
-  .container {
-    padding: 1rem 1rem 3rem;
+@media (min-width: 1024px) {
+  .setup {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
