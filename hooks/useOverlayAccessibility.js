@@ -11,6 +11,9 @@ const focusableSelector = [
   "[tabindex]:not([tabindex='-1'])",
 ].join(",");
 
+// Open overlays, innermost last; only the topmost handles Escape and the focus trap.
+const overlayStack = [];
+
 export default function useOverlayAccessibility({
   open,
   onClose,
@@ -23,6 +26,8 @@ export default function useOverlayAccessibility({
     if (!open || !dialogRef.current) return undefined;
 
     const dialog = dialogRef.current;
+    const token = {};
+    overlayStack.push(token);
     const restoreTarget = triggerRef?.current || document.activeElement;
     const previousBodyOverflow = document.body.style.overflow;
     const previousRootOverflow = document.documentElement.style.overflow;
@@ -35,6 +40,8 @@ export default function useOverlayAccessibility({
     initialFocus.focus({ preventScroll: true });
 
     function handleKeyDown(event) {
+      if (overlayStack[overlayStack.length - 1] !== token) return;
+
       if (event.key === "Escape") {
         event.preventDefault();
         requestClose();
@@ -66,6 +73,7 @@ export default function useOverlayAccessibility({
 
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
+      overlayStack.splice(overlayStack.indexOf(token), 1);
       document.body.style.overflow = previousBodyOverflow;
       document.documentElement.style.overflow = previousRootOverflow;
       if (restoreTarget instanceof HTMLElement && restoreTarget.isConnected) {
