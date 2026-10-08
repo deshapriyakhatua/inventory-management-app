@@ -1,212 +1,94 @@
-/* ── Detail Modal ─────────────────────────────────────── */
-.modalOverlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.75);
-    backdrop-filter: blur(6px);
+.header {
     display: flex;
     align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 1.5rem;
+    gap: var(--space-5);
+    margin-bottom: var(--space-6);
+    padding-bottom: var(--space-5);
+    border-bottom: 1px solid var(--color-border);
 }
 
-.modal {
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 16px;
-    width: 100%;
-    max-width: 560px;
-    max-height: 88vh;
+.heading {
     display: flex;
     flex-direction: column;
-    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
-    animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    position: relative;
+    gap: var(--space-1);
+    min-width: 0;
 }
 
-@keyframes popIn {
-    from { opacity: 0; transform: scale(0.95) translateY(12px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-.closeBtn {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    background: #334155;
-    border: none;
-    border-radius: 50%;
-    width: 34px;
-    height: 34px;
+.title {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: center;
-    color: #f1f5f9;
-    cursor: pointer;
-    z-index: 10;
-    transition: all 0.2s;
-}
-
-.closeBtn:hover {
-    background: #ef4444;
-    transform: rotate(90deg);
-}
-
-.modalScroll {
-    overflow-y: auto;
-    padding: 2rem;
-    flex: 1;
-}
-
-.modalScroll::-webkit-scrollbar { width: 5px; }
-.modalScroll::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 10px; }
-
-.avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-    font-weight: 800;
-    color: #fff;
-    flex-shrink: 0;
-    letter-spacing: 0.02em;
-}
-
-/* ── Modal Header ── */
-.modalHeader {
-    display: flex;
-    align-items: center;
-    gap: 1.25rem;
-    margin-bottom: 1.75rem;
-    padding-bottom: 1.25rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-}
-
-.modalHeader .avatar {
-    width: 56px;
-    height: 56px;
-    border-radius: 14px;
-    font-size: 1.25rem;
-    flex-shrink: 0;
-}
-
-.modalTitle {
-    font-size: 1.35rem;
-    font-weight: 800;
-    color: #f8fafc;
-    margin: 0 0 0.25rem;
-}
-
-.modalSubtitle {
-    font-size: 0.875rem;
-    color: #60a5fa;
-    margin: 0 0 0.2rem;
-}
-
-.modalMeta {
-    font-size: 0.78rem;
-    color: #475569;
+    gap: var(--space-2) var(--space-3);
     margin: 0;
+    color: var(--color-text);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-tight);
+    line-height: var(--leading-tight);
+    overflow-wrap: anywhere;
 }
 
-/* ── Modal Sections ── */
-.modalSections { display: flex; flex-direction: column; gap: 1.25rem; }
+.archived {
+    min-height: 0;
+    padding: 0 var(--space-2);
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+}
 
-.modalSection {
-    background: rgba(15, 23, 42, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-    padding: 1rem 1.25rem;
+.subtitle {
+    margin: 0;
+    color: var(--color-accent);
+    font-size: var(--text-md);
+}
+
+.meta {
+    margin: 0;
+    color: var(--color-text-subtle);
+    font-size: var(--text-xs);
+}
+
+.sections {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--space-5);
 }
 
-.modalSectionTitle {
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: #64748b;
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-5);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-sunken);
+}
+
+.sectionTitle {
+    margin: 0 0 var(--space-2);
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-caps);
     text-transform: uppercase;
-    letter-spacing: 0.07em;
-    margin: 0 0 0.5rem;
 }
 
-/* ── Modal Actions ── */
-.modalActions {
-    margin-top: 1.5rem;
-    padding-top: 1.25rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+.actions {
     display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
+    flex-direction: column-reverse;
+    gap: var(--space-3);
+    margin-top: var(--space-6);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--color-border);
 }
 
-.modalDeleteBtn {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #ef4444;
-    padding: 0.55rem 1.2rem;
-    border-radius: 8px;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 0.875rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    transition: all 0.2s;
+.actions:empty {
+    display: none;
 }
 
-.modalDeleteBtn:hover {
-    background: #ef4444;
-    color: white;
-    border-color: #ef4444;
-}
-
-.modalRestoreBtn {
-    background: rgba(16, 185, 129, 0.1);
-    border: 1px solid rgba(16, 185, 129, 0.3);
-    color: #10b981;
-    padding: 0.55rem 1.2rem;
-    border-radius: 8px;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 0.875rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    transition: all 0.2s;
-}
-
-.modalRestoreBtn:hover {
-    background: #10b981;
-    color: white;
-    border-color: #10b981;
-}
-
-.modalEditBtn {
-    background: rgba(59, 130, 246, 0.1);
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    color: #3b82f6;
-    padding: 0.55rem 1.2rem;
-    border-radius: 8px;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 0.875rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    transition: all 0.2s;
-}
-
-.modalEditBtn:hover {
-    background: #3b82f6;
-    color: white;
-    border-color: #3b82f6;
+@media (min-width: 640px) {
+    .actions {
+        flex-direction: row;
+        justify-content: flex-end;
+    }
 }

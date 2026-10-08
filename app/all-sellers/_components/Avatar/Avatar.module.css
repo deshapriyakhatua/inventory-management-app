@@ -1,0 +1,49 @@
+.root {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: var(--radius-md);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-wide);
+}
+
+.sizeLg {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: var(--radius-lg);
+    font-size: var(--text-xl);
+}
+
+.tone1 {
+    color: var(--chart-1);
+    background: color-mix(in srgb, var(--chart-1) 16%, transparent);
+}
+
+.tone2 {
+    color: var(--chart-2);
+    background: color-mix(in srgb, var(--chart-2) 16%, transparent);
+}
+
+.tone3 {
+    color: var(--chart-3);
+    background: color-mix(in srgb, var(--chart-3) 16%, transparent);
+}
+
+.tone4 {
+    color: var(--chart-4);
+    background: color-mix(in srgb, var(--chart-4) 16%, transparent);
+}
+
+.tone5 {
+    color: var(--chart-5);
+    background: color-mix(in srgb, var(--chart-5) 16%, transparent);
+}
+
+.tone6 {
+    color: var(--chart-6);
+    background: color-mix(in srgb, var(--chart-6) 16%, transparent);
+}

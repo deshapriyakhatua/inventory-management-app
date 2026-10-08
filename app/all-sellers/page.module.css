@@ -1,66 +1,45 @@
-/* ── Shell ────────────────────────────────────────────── */
-.container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 1.5rem 2rem;
-    font-family: var(--font-geist-sans), sans-serif;
-    color: #f8fafc;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    box-sizing: border-box;
-}
-
-/* ── Empty / Loading ──────────────────────────────────── */
-.emptyState {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    color: #64748b;
-    font-size: 0.95rem;
-}
-
-.spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid rgba(59, 130, 246, 0.1);
-    border-top-color: #3b82f6;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ── Content Area ─────────────────────────────────────── */
-.contentArea {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    overflow: hidden;
-    border: 1px solid #334155;
-    border-radius: 12px;
-    padding: 0.75rem;
-}
-
-.scrollWrapper {
-    flex: 1;
-    overflow-y: auto;
-    padding-right: 0.25rem;
-}
-
-.scrollWrapper::-webkit-scrollbar { width: 5px; }
-.scrollWrapper::-webkit-scrollbar-track { background: transparent; }
-.scrollWrapper::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 10px; }
-.scrollWrapper::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.55); }
-
-/* ── Card Grid ────────────────────────────────────────── */
 .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1rem;
+    grid-template-columns: 1fr;
+    gap: var(--space-5);
+}
+
+.skeletonCard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-5);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+}
+
+.skeletonTop {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.skeletonAvatar {
+    flex-shrink: 0;
+    width: 2.75rem;
+    height: 2.75rem;
+}
+
+@media (min-width: 640px) {
+    .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) {
+    .grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1280px) {
+    .grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
 }

@@ -1,4 +1,9 @@
+import Badge from "@/components/ui/Badge/Badge";
+import Button from "@/components/ui/Button/Button";
 import Icon from "@/components/ui/Icon/Icon";
+import IconButton from "@/components/ui/IconButton/IconButton";
+import Input from "@/components/ui/Input/Input";
+import PageHeader from "@/components/ui/PageHeader/PageHeader";
 import styles from "./SellersToolbar.module.css";
 
 export default function SellersToolbar({
@@ -12,53 +17,64 @@ export default function SellersToolbar({
   onRefresh,
   onToggleArchived,
 }) {
-  return (
-    <div className={styles.header}>
-      <div className={styles.titleGroup}>
-        <h1 className={styles.title}>All Sellers</h1>
-        <span className={styles.countBadge}>{totalItems}</span>
-      </div>
+  const isAdmin = user?.role === "admin" || user?.role === "superadmin";
 
-      <div className={styles.controls}>
-        <div className={styles.searchBox}>
-          <Icon name="icon-9c4a10ac" size={16} className={styles.searchIcon} />
-          <input
-            type="text"
-            placeholder="Search by name, GST, phone, email..."
-            value={searchQuery}
-            onChange={onSearchChange}
-            className={styles.searchInput}
+  return (
+    <PageHeader
+      title={
+        <span className={styles.title}>
+          All Sellers
+          <Badge tone="accent" className={styles.count}>{totalItems}</Badge>
+        </span>
+      }
+      actions={
+        <div className={styles.root}>
+          <div className={styles.search}>
+            <Input
+              type="text"
+              aria-label="Search by name, GST, phone, email..."
+              placeholder="Search by name, GST, phone, email..."
+              value={searchQuery}
+              onChange={onSearchChange}
+              leading={<Icon name="icon-9c4a10ac" size={16} className={styles.searchIcon} />}
+              trailing={
+                searchQuery && (
+                  <IconButton
+                    name="remove-this-product"
+                    size="sm"
+                    aria-label="Clear search"
+                    title="Clear search"
+                    className={styles.clearButton}
+                    onClick={onClearSearch}
+                  />
+                )
+              }
+            />
+          </div>
+
+          <IconButton
+            name="refresh"
+            variant="secondary"
+            onClick={onRefresh}
+            loading={refreshing}
+            title="Refresh"
+            aria-label="Refresh"
           />
-          {searchQuery && (
-            <button className={styles.clearSearch} onClick={onClearSearch}>
-              <Icon name="remove-this-product" size={14} />
-            </button>
+
+          {/* Admin Toggle For Archived */}
+          {isAdmin && (
+            <Button
+              variant="secondary"
+              leftIcon={<Icon name="icon-fb9fc010" size={16} />}
+              onClick={onToggleArchived}
+              aria-pressed={showArchived}
+              title={showArchived ? "Hide Archived" : "Show Archived"}
+            >
+              {showArchived ? "Hide Archived" : "Show Archived"}
+            </Button>
           )}
         </div>
-
-        <button
-          className={`${styles.refreshBtn} ${refreshing ? styles.spinning : ""}`}
-          onClick={onRefresh}
-          disabled={refreshing}
-          title="Refresh"
-        >
-          <Icon name="refresh" size={16} />
-          Refresh
-        </button>
-
-        {/* Admin Toggle For Archived */}
-        {(user?.role === "admin" || user?.role === "superadmin") && (
-          <button
-            className={styles.refreshBtn}
-            onClick={onToggleArchived}
-            title={showArchived ? "Hide Archived" : "Show Archived"}
-            style={showArchived ? { backgroundColor: "#3b82f6", color: "white", borderColor: "#3b82f6" } : {}}
-          >
-            <Icon name="icon-fb9fc010" size={16} />
-            {showArchived ? "Hide Archived" : "Show Archived"}
-          </button>
-        )}
-      </div>
-    </div>
+      }
+    />
   );
 }

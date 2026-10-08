@@ -2,9 +2,12 @@
 import { toast } from "sonner";
 
 import Icon from "@/components/ui/Icon/Icon";
+import EmptyState from "@/components/ui/EmptyState/EmptyState";
+import PageShell from "@/components/ui/PageShell/PageShell";
+import Skeleton from "@/components/ui/Skeleton/Skeleton";
+import ConfirmModal from "@/components/ConfirmModal/ConfirmModal";
 
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useEffectEvent } from "react";
 import styles from "./page.module.css";
 
 import { useAuth } from "../../components/AuthProvider";
@@ -13,7 +16,6 @@ import SellersToolbar from "./_components/SellersToolbar/SellersToolbar";
 import SellerCard from "./_components/SellerCard/SellerCard";
 import SellersPagination from "./_components/SellersPagination/SellersPagination";
 import SellerDetailModal from "./_components/SellerDetailModal/SellerDetailModal";
-import ConfirmDialog from "./_components/ConfirmDialog/ConfirmDialog";
 import EditSellerModal from "./_components/EditSellerModal/EditSellerModal";
 
 /* ── Main Page ───────────────────────────────────────── */
@@ -73,7 +75,9 @@ export default function AllSellersPage() {
     }
   };
 
-  useEffect(() => { fetchSellers(); }, []);
+  // Mount-only load; useEffectEvent keeps it from re-running when fetchSellers changes identity
+  const loadOnMount = useEffectEvent(() => fetchSellers());
+  useEffect(() => { loadOnMount(); }, []);
 
   /* ── Local filter + paginate ── */
   useEffect(() => {
@@ -216,8 +220,7 @@ export default function AllSellersPage() {
   const closeEditModal = () => setShowEditModal(false);
 
   return (
-    <div className={styles.container}>
-      {/* ── Header ── */}
+    <PageShell>
       <SellersToolbar
         user={user}
         totalItems={totalItems}
@@ -232,30 +235,37 @@ export default function AllSellersPage() {
 
       {/* ── Content ── */}
       {loading ? (
-        <div className={styles.emptyState}>
-          <div className={styles.spinner} />
-          <p>Loading sellers...</p>
+        <div className={styles.grid} role="status" aria-busy="true">
+          <span className="srOnly">Loading sellers...</span>
+          {Array.from({ length: 8 }, (_, i) => (
+            <div key={i} className={styles.skeletonCard}>
+              <div className={styles.skeletonTop}>
+                <Skeleton className={styles.skeletonAvatar} />
+                <Skeleton variant="text" width="60%" />
+              </div>
+              <Skeleton variant="text" width="80%" />
+              <Skeleton variant="text" width="50%" />
+            </div>
+          ))}
         </div>
       ) : sellers.length === 0 ? (
-        <div className={styles.emptyState}>
-          <Icon name="icon-d5851a0c" size={48} />
-          <p>{searchQuery ? "No sellers match your search." : "No sellers found. Add one to get started."}</p>
-        </div>
+        <EmptyState
+          icon={<Icon name="icon-d5851a0c" size={48} />}
+          title={searchQuery ? "No sellers match your search." : "No sellers found. Add one to get started."}
+        />
       ) : (
-        <div className={styles.contentArea}>
-          <div className={styles.scrollWrapper}>
-            <div className={styles.grid}>
-              {sellers.map((seller) => (
-                <SellerCard
-                  key={seller._id}
-                  seller={seller}
-                  user={user}
-                  onSelect={selectSeller}
-                  onRestore={openRestoreConfirm}
-                  onArchive={openDeleteConfirm}
-                />
-              ))}
-            </div>
+        <>
+          <div className={styles.grid}>
+            {sellers.map((seller) => (
+              <SellerCard
+                key={seller._id}
+                seller={seller}
+                user={user}
+                onSelect={selectSeller}
+                onRestore={openRestoreConfirm}
+                onArchive={openDeleteConfirm}
+              />
+            ))}
           </div>
 
           {/* ── Pagination ── */}
@@ -270,7 +280,7 @@ export default function AllSellersPage() {
               onNextPage={handleNextPage}
             />
           )}
-        </div>
+        </>
       )}
 
       {/* ── Detail Modal ── */}
@@ -286,35 +296,28 @@ export default function AllSellersPage() {
       )}
 
       {/* ── Archive Confirm ── */}
-      {showDeleteConfirm && (
-        <ConfirmDialog
-          variant="archive"
-          iconName="icon-cfd589e1"
-          title="Archive Seller?"
-          message="Are you sure you want to archive this seller? They will be hidden from the active list."
-          confirmLabel="Confirm Archive"
-          loadingLabel="Archiving..."
-          loading={deleteLoading}
-          onCancel={cancelDelete}
-          onConfirm={confirmDelete}
-        />
-      )}
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        variant="warning"
+        title="Archive Seller?"
+        message="Are you sure you want to archive this seller? They will be hidden from the active list."
+        confirmLabel={deleteLoading ? "Archiving..." : "Confirm Archive"}
+        isLoading={deleteLoading}
+        onConfirm={confirmDelete}
+        onClose={cancelDelete}
+      />
 
       {/* ── Restore Confirm ── */}
-      {showRestoreConfirm && (
-        <ConfirmDialog
-          variant="restore"
-          iconName="restore-inventory"
-          iconStyle={{ background: "rgba(16, 185, 129, 0.1)" }}
-          title="Restore Seller?"
-          message="Are you sure you want to restore this seller? They will become active again."
-          confirmLabel="Confirm Restore"
-          loadingLabel="Restoring..."
-          loading={restoreLoading}
-          onCancel={cancelRestore}
-          onConfirm={confirmRestore}
-        />
-      )}
+      <ConfirmModal
+        isOpen={showRestoreConfirm}
+        variant="info"
+        title="Restore Seller?"
+        message="Are you sure you want to restore this seller? They will become active again."
+        confirmLabel={restoreLoading ? "Restoring..." : "Confirm Restore"}
+        isLoading={restoreLoading}
+        onConfirm={confirmRestore}
+        onClose={cancelRestore}
+      />
 
       {/* ── Edit Seller Modal ── */}
       {showEditModal && (
@@ -326,7 +329,6 @@ export default function AllSellersPage() {
           onClose={closeEditModal}
         />
       )}
-
-          </div>
+    </PageShell>
   );
 }

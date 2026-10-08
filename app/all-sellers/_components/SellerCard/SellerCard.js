@@ -1,89 +1,94 @@
+import Badge from "@/components/ui/Badge/Badge";
+import Card from "@/components/ui/Card/Card";
 import Icon from "@/components/ui/Icon/Icon";
+import IconButton from "@/components/ui/IconButton/IconButton";
+import cx from "@/components/ui/cx";
 import Avatar from "../Avatar/Avatar";
 import styles from "./SellerCard.module.css";
 
 export default function SellerCard({ seller, user, onSelect, onRestore, onArchive }) {
-  /* ── Icons ── */
-  const iconPhone = <Icon name="icon-2d625620" size={14} />;
-  const iconMail = <Icon name="icon-4d0b16f6" size={14} />;
-  const iconMap = <Icon name="icon-28f62de3" size={14} />;
-  const iconShip = <Icon name="icon-d4e3f44f" size={14} />;
-  const iconGst = <Icon name="pdf-preview" size={14} />;
+  const isAdmin = user?.role === "admin" || user?.role === "superadmin";
 
   return (
-    <div className={styles.card} onClick={() => onSelect(seller)}>
+    <Card as="article" padding="md" className={styles.root}>
+      <button
+        type="button"
+        className={styles.open}
+        aria-label={seller.businessName}
+        onClick={() => onSelect(seller)}
+      />
+
       {/* Delete or Restore button */}
-      {(user?.role === "admin" || user?.role === "superadmin") && seller.isArchived ? (
-        <button
-          className={styles.deleteCardBtn}
-          onClick={(e) => { e.stopPropagation(); onRestore(seller._id); }}
+      {isAdmin && seller.isArchived ? (
+        <IconButton
+          name="restore-inventory"
+          size="sm"
+          className={cx(styles.action, styles.isSuccess)}
+          onClick={() => onRestore(seller._id)}
           title="Restore Seller"
-          style={{ color: '#10b981', background: 'rgba(16, 185, 129, 0.15)' }}
-        >
-          <Icon name="restore-inventory" size={14} />
-        </button>
+          aria-label="Restore Seller"
+        />
       ) : (
         !seller.isArchived && (
-          <button
-            className={styles.deleteCardBtn}
-            onClick={(e) => { e.stopPropagation(); onArchive(seller._id); }}
+          <IconButton
+            name="trash"
+            size="sm"
+            className={cx(styles.action, styles.isDanger)}
+            onClick={() => onArchive(seller._id)}
             title="Archive Seller"
-          >
-            <Icon name="trash" size={14} />
-          </button>
+            aria-label="Archive Seller"
+          />
         )
       )}
 
-      <div className={styles.cardTop}>
-        <Avatar name={seller.businessName} className={styles.avatar} />
-        <div className={styles.cardMeta}>
-          <p className={styles.cardName}>
-            {seller.businessName}
-            {seller.isArchived && (
-              <span style={{ marginLeft: "8px", fontSize: "0.65rem", padding: "2px 6px", borderRadius: "10px", background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", textTransform: "uppercase" }}>Archived</span>
-            )}
+      <div className={styles.top}>
+        <Avatar name={seller.businessName} />
+        <div className={styles.meta}>
+          <p className={styles.name}>
+            <span className={styles.nameText}>{seller.businessName}</span>
+            {seller.isArchived && <Badge tone="danger" className={styles.archived}>Archived</Badge>}
           </p>
-          {seller.contactPerson && <p className={styles.cardPerson}>{seller.contactPerson}</p>}
+          {seller.contactPerson && <p className={styles.person}>{seller.contactPerson}</p>}
         </div>
       </div>
 
-      <div className={styles.cardDetails}>
+      <div className={styles.details}>
         {seller.phoneNo && (
-          <div className={styles.cardRow}>
-            {iconPhone}
-            <span>{seller.phoneNo}</span>
+          <div className={styles.row}>
+            <Icon name="icon-2d625620" size={14} className={styles.rowIcon} />
+            <span className={styles.truncate}>{seller.phoneNo}</span>
           </div>
         )}
         {seller.email && (
-          <div className={styles.cardRow}>
-            {iconMail}
+          <div className={styles.row}>
+            <Icon name="icon-4d0b16f6" size={14} className={styles.rowIcon} />
             <span className={styles.truncate}>{seller.email}</span>
           </div>
         )}
         {seller.gstNo && (
-          <div className={styles.cardRow}>
-            {iconGst}
-            <span className={styles.gstTag}>{seller.gstNo}</span>
+          <div className={styles.row}>
+            <Icon name="pdf-preview" size={14} className={styles.rowIcon} />
+            <span className={styles.gst}>{seller.gstNo}</span>
           </div>
         )}
         {(seller.state || seller.country) && (
-          <div className={styles.cardRow}>
-            {iconMap}
-            <span>{[seller.state, seller.country].filter(Boolean).join(", ")}</span>
+          <div className={styles.row}>
+            <Icon name="icon-28f62de3" size={14} className={styles.rowIcon} />
+            <span className={styles.truncate}>{[seller.state, seller.country].filter(Boolean).join(", ")}</span>
           </div>
         )}
       </div>
 
-      <div className={styles.cardFooter}>
+      <div className={styles.footer}>
         {seller.shippingProvider && (
-          <span className={styles.shipBadge}>
-            {iconShip} {seller.shippingProvider}
-          </span>
+          <Badge tone="success" className={styles.ship}>
+            <Icon name="icon-d4e3f44f" size={14} /> {seller.shippingProvider}
+          </Badge>
         )}
-        <span className={styles.addedDate}>
+        <span className={styles.date}>
           {new Date(seller.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
         </span>
       </div>
-    </div>
+    </Card>
   );
 }
