@@ -1,30 +1,29 @@
+import Badge from "@/components/ui/Badge/Badge";
+import Button from "@/components/ui/Button/Button";
 import Icon from "@/components/ui/Icon/Icon";
 import styles from "./ArchivedSection.module.css";
 
 export default function ArchivedSection({ count, showExpandToggle, allExpanded, onToggleExpandAll, children }) {
   return (
-    <div className={styles.archivedSection}>
-      <div className={styles.archivedSectionHeader} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <span className={styles.archivedSectionTitle}>
+    <section className={styles.root}>
+      <div className={styles.header}>
+        <div className={styles.content}>
+          <h2 className={styles.title}>
             <Icon name="archive-this-record" size={16} />
             Archived Records
-            <span className={styles.archivedCount}>{count}</span>
-          </span>
-          <p className={styles.archivedSectionSubtitle}>These records are soft-deleted. Use "Delete Permanently" to remove them forever.</p>
+            <Badge tone="danger">{count}</Badge>
+          </h2>
+          <p className={styles.subtitle}>These records are soft-deleted. Use &quot;Delete Permanently&quot; to remove them forever.</p>
         </div>
 
         {showExpandToggle && (
-          <button
-            className={styles.actionSecondaryBtn}
-            onClick={onToggleExpandAll}
-          >
+          <Button variant="secondary" onClick={onToggleExpandAll} aria-expanded={allExpanded}>
             {allExpanded ? "Collapse All Archived" : "Expand All Archived"}
-          </button>
+          </Button>
         )}
       </div>
 
       {children}
-    </div>
+    </section>
   );
 }

@@ -1,11 +1,12 @@
+import Table from "@/components/ui/Table/Table";
 import TableShell from "../TableShell/TableShell";
 import HeaderCell from "../HeaderCell/HeaderCell";
 import FlatRow from "../FlatRow/FlatRow";
-import styles from "./FlatTable.module.css";
 
 export default function FlatTable({
   rows,
   isArchived,
+  loading = false,
   sortConfig,
   onSort,
   onImageMouseEnter,
@@ -15,48 +16,42 @@ export default function FlatTable({
   onRestore,
   onDelete,
 }) {
+  const sortProps = { sortConfig, onSort };
+
   return (
-    <TableShell>
-      <thead>
-        <tr>
+    <TableShell isArchived={isArchived} loading={loading} isEmpty={rows.length === 0} columns={13}>
+      <Table.Head>
+        <Table.Row hover={false}>
           <HeaderCell>Image</HeaderCell>
-          <HeaderCell sortKey="orderedOn" sortConfig={sortConfig} onSort={onSort}>Date Ordered</HeaderCell>
-          <HeaderCell sortKey="sellerId" sortConfig={sortConfig} onSort={onSort}>Seller</HeaderCell>
-          <HeaderCell sortKey="sellerProductId" sortConfig={sortConfig} onSort={onSort}>Seller SKU</HeaderCell>
-          <HeaderCell sortKey="inventoryId" sortConfig={sortConfig} onSort={onSort}>Internal ID</HeaderCell>
-          <HeaderCell sortKey="quantity" sortConfig={sortConfig} onSort={onSort}>Qty</HeaderCell>
-          <HeaderCell sortKey="price" sortConfig={sortConfig} onSort={onSort}>Unit Price</HeaderCell>
-          <HeaderCell sortKey="finalUnitPrice" sortConfig={sortConfig} onSort={onSort}>Final Unit Price</HeaderCell>
-          <HeaderCell sortKey="total" sortConfig={sortConfig} onSort={onSort}>Total</HeaderCell>
-          <HeaderCell sortKey="invoiceNo" sortConfig={sortConfig} onSort={onSort}>Invoice No</HeaderCell>
-          <HeaderCell sortKey="receivedOn" sortConfig={sortConfig} onSort={onSort}>Received On</HeaderCell>
+          <HeaderCell sortKey="orderedOn" {...sortProps}>Date Ordered</HeaderCell>
+          <HeaderCell sortKey="sellerId" {...sortProps}>Seller</HeaderCell>
+          <HeaderCell sortKey="sellerProductId" {...sortProps}>Seller SKU</HeaderCell>
+          <HeaderCell sortKey="inventoryId" {...sortProps}>Internal ID</HeaderCell>
+          <HeaderCell sortKey="quantity" numeric {...sortProps}>Qty</HeaderCell>
+          <HeaderCell sortKey="price" numeric {...sortProps}>Unit Price</HeaderCell>
+          <HeaderCell sortKey="finalUnitPrice" numeric {...sortProps}>Final Unit Price</HeaderCell>
+          <HeaderCell sortKey="total" numeric {...sortProps}>Total</HeaderCell>
+          <HeaderCell sortKey="invoiceNo" {...sortProps}>Invoice No</HeaderCell>
+          <HeaderCell sortKey="receivedOn" {...sortProps}>Received On</HeaderCell>
           <HeaderCell>Status</HeaderCell>
           <HeaderCell>Actions</HeaderCell>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.length === 0 ? (
-          <tr>
-            <td colSpan="13" className={styles.noData}>
-              {isArchived ? "No archived purchase records." : "No purchase records found matching your filters."}
-            </td>
-          </tr>
-        ) : (
-          rows.map((p) => (
-            <FlatRow
-              key={p._id}
-              item={p}
-              isArchived={isArchived}
-              onImageMouseEnter={onImageMouseEnter}
-              onImageMouseLeave={onImageMouseLeave}
-              onEdit={onEdit}
-              onArchive={onArchive}
-              onRestore={onRestore}
-              onDelete={onDelete}
-            />
-          ))
-        )}
-      </tbody>
+        </Table.Row>
+      </Table.Head>
+      <Table.Body>
+        {rows.map((p) => (
+          <FlatRow
+            key={p._id}
+            item={p}
+            isArchived={isArchived}
+            onImageMouseEnter={onImageMouseEnter}
+            onImageMouseLeave={onImageMouseLeave}
+            onEdit={onEdit}
+            onArchive={onArchive}
+            onRestore={onRestore}
+            onDelete={onDelete}
+          />
+        ))}
+      </Table.Body>
     </TableShell>
   );
 }

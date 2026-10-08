@@ -1,3 +1,4 @@
+import Table from "@/components/ui/Table/Table";
 import TableShell from "../TableShell/TableShell";
 import HeaderCell from "../HeaderCell/HeaderCell";
 import GroupRow from "../GroupRow/GroupRow";
@@ -6,6 +7,7 @@ import styles from "./GroupedTable.module.css";
 export default function GroupedTable({
   groups,
   isArchived,
+  loading = false,
   expandedGroups,
   sortConfig,
   onSort,
@@ -18,47 +20,41 @@ export default function GroupedTable({
   onRestore,
   onDelete,
 }) {
+  const sortProps = { sortConfig, onSort };
+
   return (
-    <TableShell>
-      <thead>
-        <tr>
-          <HeaderCell style={{ width: "45px" }}></HeaderCell>
-          <HeaderCell sortKey="invoiceNo" sortConfig={sortConfig} onSort={onSort}>Invoice No</HeaderCell>
-          <HeaderCell sortKey="sellerId" sortConfig={sortConfig} onSort={onSort}>Seller</HeaderCell>
-          <HeaderCell sortKey="orderedOn" sortConfig={sortConfig} onSort={onSort}>Order Date</HeaderCell>
-          <HeaderCell sortKey="itemCount" sortConfig={sortConfig} onSort={onSort}>Items</HeaderCell>
-          <HeaderCell sortKey="quantity" sortConfig={sortConfig} onSort={onSort}>Total Qty</HeaderCell>
-          <HeaderCell sortKey="total" sortConfig={sortConfig} onSort={onSort}>Total Cost</HeaderCell>
+    <TableShell isArchived={isArchived} loading={loading} isEmpty={groups.length === 0} columns={9}>
+      <Table.Head>
+        <Table.Row hover={false}>
+          <HeaderCell className={styles.toggleColumn}></HeaderCell>
+          <HeaderCell sortKey="invoiceNo" {...sortProps}>Invoice No</HeaderCell>
+          <HeaderCell sortKey="sellerId" {...sortProps}>Seller</HeaderCell>
+          <HeaderCell sortKey="orderedOn" {...sortProps}>Order Date</HeaderCell>
+          <HeaderCell sortKey="itemCount" {...sortProps}>Items</HeaderCell>
+          <HeaderCell sortKey="quantity" numeric {...sortProps}>Total Qty</HeaderCell>
+          <HeaderCell sortKey="total" numeric {...sortProps}>Total Cost</HeaderCell>
           <HeaderCell>Status</HeaderCell>
-          <HeaderCell style={{ textAlign: "right", paddingRight: "1.5rem" }}>Details</HeaderCell>
-        </tr>
-      </thead>
-      <tbody>
-        {groups.length === 0 ? (
-          <tr>
-            <td colSpan="9" className={styles.noData}>
-              {isArchived ? "No archived purchase records." : "No purchase records found matching your filters."}
-            </td>
-          </tr>
-        ) : (
-          groups.map((group) => (
-            <GroupRow
-              key={group.groupKey}
-              group={group}
-              isArchived={isArchived}
-              isExpanded={!!expandedGroups[group.groupKey]}
-              onToggle={onToggleGroup}
-              onCopy={onCopy}
-              onImageMouseEnter={onImageMouseEnter}
-              onImageMouseLeave={onImageMouseLeave}
-              onEdit={onEdit}
-              onArchive={onArchive}
-              onRestore={onRestore}
-              onDelete={onDelete}
-            />
-          ))
-        )}
-      </tbody>
+          <HeaderCell className={styles.detailsColumn}>Details</HeaderCell>
+        </Table.Row>
+      </Table.Head>
+      <Table.Body>
+        {groups.map((group) => (
+          <GroupRow
+            key={group.groupKey}
+            group={group}
+            isArchived={isArchived}
+            isExpanded={!!expandedGroups[group.groupKey]}
+            onToggle={onToggleGroup}
+            onCopy={onCopy}
+            onImageMouseEnter={onImageMouseEnter}
+            onImageMouseLeave={onImageMouseLeave}
+            onEdit={onEdit}
+            onArchive={onArchive}
+            onRestore={onRestore}
+            onDelete={onDelete}
+          />
+        ))}
+      </Table.Body>
     </TableShell>
   );
 }

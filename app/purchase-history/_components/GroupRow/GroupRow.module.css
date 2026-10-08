@@ -1,199 +1,144 @@
-.td {
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid #334155;
-  color: #e2e8f0;
-  vertical-align: middle;
-}
-
-.tr:hover .td {
-  background: rgba(59, 130, 246, 0.05);
-}
-
-/* Group row styling */
 .groupRow {
   cursor: pointer;
-  background: rgba(15, 23, 42, 0.4);
-  transition: background 0.15s ease;
 }
 
-.groupRow:hover .td {
-  background: rgba(59, 130, 246, 0.08) !important;
+.isExpanded > td {
+  background: var(--color-accent-subtle);
 }
 
-.expandedGroupRow .td {
-  background: rgba(59, 130, 246, 0.12) !important;
-  border-bottom-color: rgba(59, 130, 246, 0.2);
+.isArchived > td {
+  opacity: 0.65;
 }
 
-.expandChevronBtn {
-  background: transparent;
-  border: none;
-  color: #94a3b8;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  border-radius: 4px;
-  transition: all 0.2s;
+.isArchived:hover > td {
+  opacity: 0.85;
 }
 
-.expandChevronBtn:hover {
-  color: #3b82f6;
-  background: rgba(59, 130, 246, 0.15);
+.chevron {
+  transition: transform var(--duration-base) var(--ease-out);
 }
 
-.chevronIcon {
-  transition: transform 0.2s ease;
-}
-
-.chevronRotated {
+.chevronOpen {
+  color: var(--color-accent);
   transform: rotate(90deg);
-  color: #3b82f6;
 }
 
-.invoiceCell {
-  font-weight: 600;
+.invoice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 .invoiceText {
-  font-family: 'JetBrains Mono', monospace;
-  color: #38bdf8;
-}
-
-.itemCountBadge {
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  padding: 0.18rem 0.5rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  color: var(--color-accent);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-.copyBtnSmall {
-  background: transparent;
-  border: none;
-  color: #64748b;
-  cursor: pointer;
-  padding: 3px;
-  border-radius: 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.2s, background 0.2s;
+.seller {
+  color: var(--color-accent);
+  font-weight: var(--weight-semibold);
 }
 
-.copyBtnSmall:hover {
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.12);
+.nowrap {
+  white-space: nowrap;
 }
 
-/* Nested row & table */
-.nestedRow {
-  background: #0f172a;
+.strong {
+  font-weight: var(--weight-semibold);
 }
 
-.nestedContainer {
-  padding: 0.85rem 1.25rem 1.15rem 2.25rem;
-  background: rgba(15, 23, 42, 0.95);
-  border-bottom: 2px solid #334155;
-  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.25);
+.total {
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+}
+
+.details {
+  text-align: right;
+}
+
+.detailsHint {
+  color: var(--color-text-subtle);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.detailsHintOpen {
+  color: var(--color-accent);
+}
+
+.nestedCell {
+  padding: 0;
+}
+
+.nested {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-4) var(--space-7);
+  background: var(--color-surface-sunken);
 }
 
 .nestedHeader {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.65rem;
-  padding: 0 0.25rem;
+  gap: var(--space-2);
 }
 
-.nestedHeaderTitle {
+.nestedTitle {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.78rem;
-  color: #94a3b8;
-  font-weight: 600;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+}
+
+.nestedMeta {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.nestedTotal {
+  color: var(--color-text);
 }
 
 .nestedTable {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-  background: #1e293b;
-  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   overflow: hidden;
-  border: 1px solid #334155;
 }
 
-.nestedTh {
-  background: #0f172a;
-  padding: 0.6rem 0.85rem;
-  color: #94a3b8;
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  border-bottom: 1px solid #334155;
+.id {
+  color: var(--color-text);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
 }
 
-.nestedTd {
-  padding: 0.6rem 0.85rem;
-  border-bottom: 1px solid rgba(51, 65, 85, 0.5);
-  color: #e2e8f0;
-  vertical-align: middle;
+.finalPrice {
+  color: var(--color-success);
+  font-weight: var(--weight-semibold);
 }
 
-.nestedTable tr:last-child .nestedTd {
-  border-bottom: none;
+.muted {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  white-space: nowrap;
 }
 
-.nestedTable tr:hover .nestedTd {
-  background: rgba(59, 130, 246, 0.06);
+.center {
+  text-align: center;
 }
 
-.idCell {
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 500;
-  color: #fff;
-}
-
-.sellerCell {
-  font-weight: 600;
-  color: #3b82f6;
-}
-
-.quantity {
-  font-weight: 600;
-}
-
-.price {
-  font-family: 'JetBrains Mono', monospace;
-}
-
-.finalUnitPrice {
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 600;
-  color: #10b981;
-}
-
-.total {
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 700;
-  color: #fff;
-}
-
-/* ── Archived row styling ────────────────────────────────────── */
-.archivedRow .td, .archivedRow .nestedTd {
-  opacity: 0.65;
-}
-
-.archivedRow:hover .td, .archivedRow:hover .nestedTd {
-  background: rgba(239, 68, 68, 0.04);
-  opacity: 0.85;
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition: none;
+  }
 }

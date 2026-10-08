@@ -1,39 +1,45 @@
-.itemImageThumbnail {
-  width: 38px;
-  height: 38px;
-  object-fit: cover;
-  border-radius: 6px;
-  border: 1px solid #334155;
-  background: #0f172a;
-  display: block;
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.imageWrapper {
-  position: relative;
+.root {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
 }
 
-.imageWrapper:hover .itemImageThumbnail {
-  border-color: #3b82f6;
-  transform: scale(1.08);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+.image,
+.placeholder {
+  width: 2.375rem;
+  height: 2.375rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-sunken);
 }
 
-.imagePlaceholder {
-  width: 38px;
-  height: 38px;
-  border-radius: 6px;
-  border: 1px dashed #334155;
-  background: #0f172a;
-  color: #64748b;
+.image {
+  display: block;
+  border: 1px solid var(--color-border);
+  object-fit: cover;
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.root:hover .image {
+  border-color: var(--color-accent);
+  transform: scale(1.08);
+}
+
+.placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.65rem;
-  font-weight: 700;
+  border: 1px dashed var(--color-border-strong);
+  color: var(--color-text-subtle);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
   user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root:hover .image {
+    transform: none;
+  }
 }

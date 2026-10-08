@@ -1,3 +1,5 @@
+import Table from "@/components/ui/Table/Table";
+import cx from "@/components/ui/cx";
 import ItemThumbnail from "../ItemThumbnail/ItemThumbnail";
 import StatusPill from "../StatusPill/StatusPill";
 import RowActions from "../RowActions/RowActions";
@@ -16,26 +18,26 @@ export default function FlatRow({
 }) {
   const finalUnitPrice = calculateFinalUnitPrice(p);
   return (
-    <tr className={`${styles.tr} ${isArchived ? styles.archivedRow : ""}`}>
-      <td className={styles.td}>
+    <Table.Row className={cx(isArchived && styles.isArchived)}>
+      <Table.Cell>
         <ItemThumbnail item={p} onMouseEnter={onImageMouseEnter} onMouseLeave={onImageMouseLeave} />
-      </td>
-      <td className={styles.td}>{formatDate(p.orderedOn)}</td>
-      <td className={`${styles.td} ${styles.sellerCell}`}>{p.sellerId?.businessName || "Unknown"}</td>
-      <td className={styles.td}>{p.sellerProductId}</td>
-      <td className={`${styles.td} ${styles.idCell}`}>{p.inventoryId}</td>
-      <td className={`${styles.td} ${styles.quantity}`}>{p.quantity}</td>
-      <td className={`${styles.td} ${styles.price}`}>₹{p.price.toFixed(2)}</td>
-      <td className={`${styles.td} ${styles.finalUnitPrice}`}>₹{finalUnitPrice.toFixed(2)}</td>
-      <td className={`${styles.td} ${styles.total}`}>₹{calculateTotal(p).toFixed(2)}</td>
-      <td className={styles.td}>{p.invoiceNo || "-"}</td>
-      <td className={styles.td}>{formatDate(p.receivedOn)}</td>
-      <td className={styles.td}>
+      </Table.Cell>
+      <Table.Cell className={styles.nowrap}>{formatDate(p.orderedOn)}</Table.Cell>
+      <Table.Cell className={styles.seller}>{p.sellerId?.businessName || "Unknown"}</Table.Cell>
+      <Table.Cell>{p.sellerProductId}</Table.Cell>
+      <Table.Cell className={styles.id}>{p.inventoryId}</Table.Cell>
+      <Table.Cell numeric className={styles.strong}>{p.quantity}</Table.Cell>
+      <Table.Cell numeric>₹{(Number(p.price) || 0).toFixed(2)}</Table.Cell>
+      <Table.Cell numeric className={styles.finalPrice}>₹{finalUnitPrice.toFixed(2)}</Table.Cell>
+      <Table.Cell numeric className={styles.total}>₹{calculateTotal(p).toFixed(2)}</Table.Cell>
+      <Table.Cell>{p.invoiceNo || "-"}</Table.Cell>
+      <Table.Cell className={styles.nowrap}>{formatDate(p.receivedOn)}</Table.Cell>
+      <Table.Cell>
         <StatusPill tone={p.receivedOn ? "received" : "pending"}>
           {p.receivedOn ? "Delivered" : "In-Transit"}
         </StatusPill>
-      </td>
-      <td className={styles.td}>
+      </Table.Cell>
+      <Table.Cell>
         <RowActions
           item={p}
           isArchived={isArchived}
@@ -44,7 +46,7 @@ export default function FlatRow({
           onRestore={onRestore}
           onDelete={onDelete}
         />
-      </td>
-    </tr>
+      </Table.Cell>
+    </Table.Row>
   );
 }

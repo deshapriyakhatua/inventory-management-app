@@ -1,34 +1,38 @@
 .th {
-  background: #0f172a;
-  padding: 0.85rem 1rem;
-  color: #94a3b8;
-  font-weight: 600;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
-  font-size: 0.73rem;
-  letter-spacing: 0.05em;
-  border-bottom: 2px solid #334155;
+}
+
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-xs);
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
   white-space: nowrap;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.sortable {
   cursor: pointer;
-  user-select: none;
-  transition: color 0.2s;
+  transition: color var(--duration-fast) var(--ease-out);
 }
 
-.sortable:hover {
-  color: #e2e8f0;
+.sortButton:hover {
+  color: var(--color-text);
 }
 
-.sortPlaceholder {
-  opacity: 0.3;
-  margin-left: 4px;
+.sortButton:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
 }
 
-.sortActive {
-  color: #3b82f6;
-  margin-left: 4px;
+.sortIndicator {
+  color: var(--color-text-subtle);
+}
+
+.isActive {
+  color: var(--color-accent);
 }

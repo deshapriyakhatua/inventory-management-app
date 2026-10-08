@@ -1,4 +1,8 @@
+import Badge from "@/components/ui/Badge/Badge";
 import Icon from "@/components/ui/Icon/Icon";
+import IconButton from "@/components/ui/IconButton/IconButton";
+import Table from "@/components/ui/Table/Table";
+import cx from "@/components/ui/cx";
 import ItemThumbnail from "../ItemThumbnail/ItemThumbnail";
 import StatusPill from "../StatusPill/StatusPill";
 import RowActions from "../RowActions/RowActions";
@@ -20,130 +24,131 @@ export default function GroupRow({
 }) {
   return (
     <>
-      <tr
-        className={`${styles.tr} ${styles.groupRow} ${isExpanded ? styles.expandedGroupRow : ""} ${isArchived ? styles.archivedRow : ""}`}
+      <Table.Row
+        className={cx(styles.groupRow, isExpanded && styles.isExpanded, isArchived && styles.isArchived)}
         onClick={() => onToggle(group.groupKey, isArchived)}
       >
-        <td className={styles.td} onClick={(e) => e.stopPropagation()}>
-          <button
-            className={styles.expandChevronBtn}
+        <Table.Cell onClick={(e) => e.stopPropagation()}>
+          <IconButton
+            size="sm"
+            icon={<Icon name="icon-40639b2b" size={16} className={cx(styles.chevron, isExpanded && styles.chevronOpen)} />}
             onClick={() => onToggle(group.groupKey, isArchived)}
+            aria-expanded={isExpanded}
             title={isExpanded ? "Collapse group" : "Expand group"}
-          >
-            <Icon name="icon-40639b2b" size={16} className={`${styles.chevronIcon} ${isExpanded?styles.chevronRotated:""}`} />
-          </button>
-        </td>
-        <td className={`${styles.td} ${styles.invoiceCell}`}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            aria-label={isExpanded ? "Collapse group" : "Expand group"}
+          />
+        </Table.Cell>
+        <Table.Cell>
+          <div className={styles.invoice}>
             <span className={styles.invoiceText}>{group.invoiceNo}</span>
             {group.invoiceNo !== "No Invoice" && (
-              <button
-                className={styles.copyBtnSmall}
+              <IconButton
+                size="sm"
+                icon={<Icon name="copy-inventory-id" size={13} />}
                 onClick={(e) => { e.stopPropagation(); onCopy(group.invoiceNo, "Invoice No"); }}
                 title="Copy Invoice No"
-              >
-                <Icon name="copy-inventory-id" size={13} />
-              </button>
+                aria-label="Copy Invoice No"
+              />
             )}
           </div>
-        </td>
-        <td className={`${styles.td} ${styles.sellerCell}`}>{group.sellerName}</td>
-        <td className={styles.td}>{formatDate(group.orderedOn)}</td>
-        <td className={styles.td}>
-          <span className={styles.itemCountBadge}>{group.itemCount} {group.itemCount === 1 ? 'item' : 'items'}</span>
-        </td>
-        <td className={`${styles.td} ${styles.quantity}`}>{group.totalQuantity} units</td>
-        <td className={`${styles.td} ${styles.total}`}>₹{group.totalAmount.toFixed(2)}</td>
-        <td className={styles.td}>
+        </Table.Cell>
+        <Table.Cell className={styles.seller}>{group.sellerName}</Table.Cell>
+        <Table.Cell className={styles.nowrap}>{formatDate(group.orderedOn)}</Table.Cell>
+        <Table.Cell>
+          <Badge tone="accent">{group.itemCount} {group.itemCount === 1 ? 'item' : 'items'}</Badge>
+        </Table.Cell>
+        <Table.Cell numeric className={styles.strong}>{group.totalQuantity} units</Table.Cell>
+        <Table.Cell numeric className={styles.total}>₹{group.totalAmount.toFixed(2)}</Table.Cell>
+        <Table.Cell>
           <StatusPill tone={group.deliveredCount === group.itemCount ? "received" : group.deliveredCount > 0 ? "partial" : "pending"}>
             {group.groupStatus}
           </StatusPill>
-        </td>
-        <td className={styles.td} style={{ textAlign: "right", paddingRight: "1.5rem" }}>
-          <span style={{ fontSize: "0.8rem", color: isExpanded ? "#3b82f6" : "#64748b", fontWeight: 500 }}>
+        </Table.Cell>
+        <Table.Cell className={styles.details}>
+          <span className={cx(styles.detailsHint, isExpanded && styles.detailsHintOpen)}>
             {isExpanded ? "Hide items ▲" : "Show items ▼"}
           </span>
-        </td>
-      </tr>
+        </Table.Cell>
+      </Table.Row>
 
-      {/* Expanded Sub-table */}
       {isExpanded && (
-        <tr className={styles.nestedRow}>
-          <td colSpan="9" style={{ padding: 0 }}>
-            <div className={styles.nestedContainer}>
+        <Table.Row hover={false}>
+          <Table.Cell colSpan={9} className={styles.nestedCell}>
+            <div className={styles.nested}>
               <div className={styles.nestedHeader}>
-                <div className={styles.nestedHeaderTitle}>
+                <div className={styles.nestedTitle}>
                   <Icon name="pdf-preview" size={14} />
                   Invoice Items ({group.items.length}) — {group.sellerName} [{group.invoiceNo}]
                 </div>
-                <div style={{ fontSize: "0.78rem", color: "#94a3b8" }}>
-                  Group Total: <strong style={{ color: "#fff" }}>₹{group.totalAmount.toFixed(2)}</strong> ({group.totalQuantity} units)
+                <div className={styles.nestedMeta}>
+                  Group Total: <strong className={styles.nestedTotal}>₹{group.totalAmount.toFixed(2)}</strong> ({group.totalQuantity} units)
                 </div>
               </div>
 
-              <table className={styles.nestedTable}>
-                <thead>
-                  <tr>
-                    <th className={styles.nestedTh}>Image</th>
-                    <th className={styles.nestedTh}>Order Date</th>
-                    <th className={styles.nestedTh}>Seller SKU</th>
-                    <th className={styles.nestedTh}>Internal ID</th>
-                    <th className={styles.nestedTh}>Qty</th>
-                    <th className={styles.nestedTh}>Unit Price</th>
-                    <th className={styles.nestedTh}>Final Unit Price</th>
-                    <th className={styles.nestedTh}>Shipping & Tax</th>
-                    <th className={styles.nestedTh}>Item Total</th>
-                    <th className={styles.nestedTh}>Received On</th>
-                    <th className={styles.nestedTh}>Status</th>
-                    <th className={styles.nestedTh} style={{ textAlign: "center" }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className={styles.nestedTable} columns={12} maxHeight="none">
+                <Table.Head>
+                  <Table.Row hover={false}>
+                    <Table.Cell as="th">Image</Table.Cell>
+                    <Table.Cell as="th">Order Date</Table.Cell>
+                    <Table.Cell as="th">Seller SKU</Table.Cell>
+                    <Table.Cell as="th">Internal ID</Table.Cell>
+                    <Table.Cell as="th" numeric>Qty</Table.Cell>
+                    <Table.Cell as="th" numeric>Unit Price</Table.Cell>
+                    <Table.Cell as="th" numeric>Final Unit Price</Table.Cell>
+                    <Table.Cell as="th">Shipping & Tax</Table.Cell>
+                    <Table.Cell as="th" numeric>Item Total</Table.Cell>
+                    <Table.Cell as="th">Received On</Table.Cell>
+                    <Table.Cell as="th">Status</Table.Cell>
+                    <Table.Cell as="th" className={styles.center}>Actions</Table.Cell>
+                  </Table.Row>
+                </Table.Head>
+                <Table.Body>
                   {group.items.map((p) => {
                     const itemTotal = calculateTotal(p);
                     const finalUnitPrice = calculateFinalUnitPrice(p);
-                    const subtotal = p.quantity * p.price;
+                    const price = Number(p.price) || 0;
+                    const subtotal = (Number(p.quantity) || 0) * price;
                     const taxAmount = (subtotal * (p.taxPercentage || 0)) / 100;
                     return (
-                      <tr key={p._id}>
-                        <td className={styles.nestedTd}>
+                      <Table.Row key={p._id}>
+                        <Table.Cell>
                           <ItemThumbnail item={p} onMouseEnter={onImageMouseEnter} onMouseLeave={onImageMouseLeave} />
-                        </td>
-                        <td className={styles.nestedTd}>{formatDate(p.orderedOn)}</td>
-                        <td className={styles.nestedTd}>{p.sellerProductId}</td>
-                        <td className={`${styles.nestedTd} ${styles.idCell}`}>{p.inventoryId}</td>
-                        <td className={`${styles.nestedTd} ${styles.quantity}`}>{p.quantity}</td>
-                        <td className={`${styles.nestedTd} ${styles.price}`}>₹{p.price.toFixed(2)}</td>
-                        <td className={`${styles.nestedTd} ${styles.finalUnitPrice}`}>₹{finalUnitPrice.toFixed(2)}</td>
-                        <td className={styles.nestedTd} style={{ fontSize: "0.78rem", color: "#94a3b8" }}>
+                        </Table.Cell>
+                        <Table.Cell className={styles.nowrap}>{formatDate(p.orderedOn)}</Table.Cell>
+                        <Table.Cell>{p.sellerProductId}</Table.Cell>
+                        <Table.Cell className={styles.id}>{p.inventoryId}</Table.Cell>
+                        <Table.Cell numeric className={styles.strong}>{p.quantity}</Table.Cell>
+                        <Table.Cell numeric>₹{price.toFixed(2)}</Table.Cell>
+                        <Table.Cell numeric className={styles.finalPrice}>₹{finalUnitPrice.toFixed(2)}</Table.Cell>
+                        <Table.Cell className={styles.muted}>
                           ₹{p.shippingFee || 0} ship | {p.taxPercentage || 0}% tax (₹{taxAmount.toFixed(2)})
-                        </td>
-                        <td className={`${styles.nestedTd} ${styles.total}`}>₹{itemTotal.toFixed(2)}</td>
-                        <td className={styles.nestedTd}>{formatDate(p.receivedOn)}</td>
-                        <td className={styles.nestedTd}>
+                        </Table.Cell>
+                        <Table.Cell numeric className={styles.total}>₹{itemTotal.toFixed(2)}</Table.Cell>
+                        <Table.Cell className={styles.nowrap}>{formatDate(p.receivedOn)}</Table.Cell>
+                        <Table.Cell>
                           <StatusPill tone={p.receivedOn ? "received" : "pending"}>
                             {p.receivedOn ? "Delivered" : "In-Transit"}
                           </StatusPill>
-                        </td>
-                        <td className={styles.nestedTd} style={{ textAlign: "center" }}>
+                        </Table.Cell>
+                        <Table.Cell>
                           <RowActions
                             item={p}
                             isArchived={isArchived}
-                            style={{ justifyContent: "center" }}
+                            align="center"
                             onEdit={onEdit}
                             onArchive={onArchive}
                             onRestore={onRestore}
                             onDelete={onDelete}
                           />
-                        </td>
-                      </tr>
+                        </Table.Cell>
+                      </Table.Row>
                     );
                   })}
-                </tbody>
-              </table>
+                </Table.Body>
+              </Table>
             </div>
-          </td>
-        </tr>
+          </Table.Cell>
+        </Table.Row>
       )}
     </>
   );

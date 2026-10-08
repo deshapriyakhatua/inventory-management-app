@@ -4,7 +4,7 @@ import { toast } from "sonner";
 
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import styles from "./page.module.css";
+import PageShell from "@/components/ui/PageShell/PageShell";
 
 import { parseSearchQuery, matchesArraySearchTerms } from "../../utils/searchUtils";
 import * as XLSX from "xlsx";
@@ -725,10 +725,11 @@ export default function PurchaseHistoryPage() {
   const handlePinKeyDown = e => e.key === "Enter" && confirmDelete();
 
   // ── TABLE RENDERER: GROUPED VIEW ─────────────────────────────────
-  const renderGroupedTable = (groups, isArchived = false) => (
+  const renderGroupedTable = (groups, isArchived = false, isLoading = false) => (
     <GroupedTable
       groups={groups}
       isArchived={isArchived}
+      loading={isLoading}
       expandedGroups={isArchived ? archivedExpandedGroups : expandedGroups}
       sortConfig={sortConfig}
       onSort={handleSort}
@@ -744,10 +745,11 @@ export default function PurchaseHistoryPage() {
   );
 
   // ── TABLE RENDERER: FLAT VIEW ────────────────────────────────────
-  const renderFlatTable = (rows, isArchived = false) => (
+  const renderFlatTable = (rows, isArchived = false, isLoading = false) => (
     <FlatTable
       rows={rows}
       isArchived={isArchived}
+      loading={isLoading}
       sortConfig={sortConfig}
       onSort={handleSort}
       onImageMouseEnter={handleImageMouseEnter}
@@ -760,7 +762,7 @@ export default function PurchaseHistoryPage() {
   );
 
   return (
-    <div className={styles.container}>
+    <PageShell>
       <PurchaseToolbar
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
@@ -774,60 +776,39 @@ export default function PurchaseHistoryPage() {
         onExport={exportGroupedToExcel}
         showArchived={showArchived}
         onToggleShowArchived={toggleShowArchived}
+        refreshing={loading}
         onRefresh={fetchPurchases}
       />
 
-      {/* ── Summary Stats Cards ───────────────────────────────────── */}
       {!loading && <SummaryStats stats={summaryStats} />}
 
-      {/* ── Scrollable Table Area ───────────────────────────────── */}
-      <div className={styles.scrollArea}>
-        {loading ? (
-          <div className={styles.tableWrapper}>
-            <div className={styles.loadingWrapper}>
-              <div className={styles.spinner}></div>
-              <p>Fetching history logs...</p>
-            </div>
-          </div>
-        ) : (
-          <>
-            {viewMode === "grouped"
-              ? renderGroupedTable(paginatedGroups, false)
-              : renderFlatTable(paginatedFlatItems, false)
-            }
+      {viewMode === "grouped"
+        ? renderGroupedTable(paginatedGroups, false, loading)
+        : renderFlatTable(paginatedFlatItems, false, loading)
+      }
 
-            {totalPages > 1 && (
-              <PurchasePagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPrev={goToPrevPage}
-                onNext={goToNextPage}
-              />
-            )}
-          </>
-        )}
+      {!loading && totalPages > 1 && (
+        <PurchasePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPrev={goToPrevPage}
+          onNext={goToNextPage}
+        />
+      )}
 
-        {/* ── Archived Section ─────────────────────────────────────── */}
-        {showArchived && (
-          <ArchivedSection
-            count={archivedPurchases.length}
-            showExpandToggle={viewMode === "grouped" && archivedProcessedGroups.length > 0}
-            allExpanded={isAllExpanded(true)}
-            onToggleExpandAll={toggleExpandAllArchived}
-          >
-            {loadingArchived ? (
-              <div className={styles.tableWrapper} style={{ padding: "3rem", textAlign: "center", color: "#64748b" }}>
-                <div className={styles.spinner} style={{ margin: "0 auto 1rem" }}></div>
-                <p>Loading archived records...</p>
-              </div>
-            ) : (
-              viewMode === "grouped"
-                ? renderGroupedTable(archivedProcessedGroups, true)
-                : renderFlatTable(archivedPurchases, true)
-            )}
-          </ArchivedSection>
-        )}
-      </div>
+      {showArchived && (
+        <ArchivedSection
+          count={archivedPurchases.length}
+          showExpandToggle={viewMode === "grouped" && archivedProcessedGroups.length > 0}
+          allExpanded={isAllExpanded(true)}
+          onToggleExpandAll={toggleExpandAllArchived}
+        >
+          {viewMode === "grouped"
+            ? renderGroupedTable(archivedProcessedGroups, true, loadingArchived)
+            : renderFlatTable(archivedPurchases, true, loadingArchived)
+          }
+        </ArchivedSection>
+      )}
 
       {/* ── EDIT MODAL ─────────────────────────────────────────── */}
       {isEditing && editingData && (
@@ -891,6 +872,6 @@ export default function PurchaseHistoryPage() {
 
 
       {hoveredImage && <ImagePreviewPopover image={hoveredImage} />}
-    </div>
+    </PageShell>
   );
 }

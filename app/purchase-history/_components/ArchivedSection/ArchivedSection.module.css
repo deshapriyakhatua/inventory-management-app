@@ -1,62 +1,48 @@
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  animation: var(--keyframes-fade-in) var(--duration-slow) var(--ease-out);
 }
 
-.actionSecondaryBtn {
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-subtle);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.title {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  background: #1e293b;
-  border: 1px solid #334155;
-  color: #e2e8f0;
-  padding: 0.55rem 0.85rem;
-  border-radius: 8px;
-  font-size: 0.83rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-snug);
 }
 
-.actionSecondaryBtn:hover {
-  background: #334155;
-  border-color: #475569;
+.subtitle {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
 }
 
-/* ── Archived section ───────────────────────────────────────── */
-.archivedSection {
-  margin-top: 2rem;
-  animation: fadeIn 0.3s ease-out;
-}
-
-.archivedSectionHeader {
-  margin-bottom: 1rem;
-  padding: 1rem 1.25rem;
-  background: rgba(239, 68, 68, 0.05);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: 10px;
-}
-
-.archivedSectionTitle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 1rem;
-  font-weight: 700;
-  color: #f87171;
-}
-
-.archivedCount {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  padding: 0.1rem 0.55rem;
-  font-weight: 700;
-}
-
-.archivedSectionSubtitle {
-  font-size: 0.82rem;
-  color: #64748b;
-  margin: 0.35rem 0 0;
+@media (prefers-reduced-motion: reduce) {
+  .root {
+    animation: none;
+  }
 }
