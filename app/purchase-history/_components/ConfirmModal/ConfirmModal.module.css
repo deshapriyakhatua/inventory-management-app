@@ -1,223 +1,55 @@
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ── Edit Modal ─────────────────────────────────────────────── */
-.modalOverlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  animation: fadeIn 0.2s ease-out;
-}
-
-.modal {
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 500px;
-  padding: 2rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
-}
-
-.modalTitle {
-  font-size: 1.25rem;
-  color: #fff;
-  margin: 0 0 1.5rem 0;
-  font-weight: 600;
-}
-
-.formGroup {
+.root {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  flex: 1;
+  gap: var(--space-5);
 }
 
-.formGroup label {
-  font-size: 0.8rem;
-  color: #94a3b8;
-  font-weight: 500;
-}
-
-.formGroup input {
-  padding: 0.7rem;
-  border-radius: 8px;
-  background: #0f172a;
-  border: 1px solid #334155;
-  color: #fff;
-  font-size: 0.95rem;
-  transition: all 0.2s;
-}
-
-.formGroup input:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-}
-
-.modalActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 2rem;
-}
-
-.cancelBtn {
-  background: transparent;
-  border: 1px solid #475569;
-  color: #94a3b8;
-  padding: 0.6rem 1.2rem;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.cancelBtn:hover:not(:disabled) {
-  background: #334155;
-  color: #fff;
-}
-
-.saveBtn:disabled, .cancelBtn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* ── Modal shared additions ─────────────────────────────────── */
-.dangerModalIcon {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  display: flex;
+.title {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  color: #f59e0b;
-  margin: 0 0 1.25rem;
+  gap: var(--space-2);
 }
 
-.dangerRed {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.3);
-  color: #ef4444;
+.toneWarning {
+  color: var(--color-warning);
 }
 
-.infoBlue {
-  background: rgba(59, 130, 246, 0.1);
-  border-color: rgba(59, 130, 246, 0.3);
-  color: #3b82f6;
+.toneInfo {
+  color: var(--color-info);
 }
 
-.modalDesc {
-  font-size: 0.9rem;
-  color: #94a3b8;
-  line-height: 1.6;
+.toneDanger {
+  color: var(--color-danger);
+}
+
+.message {
   margin: 0;
+  color: var(--color-text);
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
+  overflow-wrap: anywhere;
 }
 
-.confirmInput {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  background: #0f172a;
-  border: 1px solid #334155;
-  color: #fff;
-  font-size: 0.95rem;
-  transition: all 0.2s;
-  font-family: inherit;
-  box-sizing: border-box;
+.emphasisDanger {
+  color: var(--color-danger);
 }
 
-.confirmInput:focus {
-  outline: none;
-  border-color: #f59e0b;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+.keyword {
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface-sunken);
+  font-weight: var(--weight-bold);
 }
 
-.confirmInputError {
-  border-color: #ef4444 !important;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+.actions {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-3);
 }
 
-.pinError {
-  font-size: 0.8rem;
-  color: #ef4444;
-  margin-top: 0.25rem;
-}
-
-/* Archive confirm button */
-.archiveConfirmBtn {
-  background: #f59e0b;
-  border: none;
-  color: #0f172a;
-  padding: 0.6rem 1.2rem;
-  border-radius: 8px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: inherit;
-}
-
-.archiveConfirmBtn:hover:not(:disabled) {
-  background: #d97706;
-}
-
-.archiveConfirmBtn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-/* Restore confirm button */
-.restoreConfirmBtn {
-  background: #3b82f6;
-  border: none;
-  color: #fff;
-  padding: 0.6rem 1.2rem;
-  border-radius: 8px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: inherit;
-}
-
-.restoreConfirmBtn:hover:not(:disabled) {
-  background: #2563eb;
-}
-
-.restoreConfirmBtn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-/* Delete permanently confirm button */
-.deleteConfirmBtn {
-  background: #ef4444;
-  border: none;
-  color: #fff;
-  padding: 0.6rem 1.2rem;
-  border-radius: 8px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: inherit;
-}
-
-.deleteConfirmBtn:hover:not(:disabled) {
-  background: #dc2626;
-}
-
-.deleteConfirmBtn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+@media (min-width: 640px) {
+  .actions {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
 }
