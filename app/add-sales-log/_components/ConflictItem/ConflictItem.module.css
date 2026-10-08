@@ -1,0 +1,178 @@
+.conflictItem {
+  border: 1px solid #334155;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.conflictItemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #0f172a;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.conflictItemLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.conflictSkuId {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #93c5fd;
+  font-family: 'Courier New', monospace;
+}
+
+.conflictPeriod {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Decision buttons */
+
+.decisionGroup {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.decisionBtn {
+  padding: 0.35rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.overrideBtn {
+  background: transparent;
+  border-color: #b45309;
+  color: #fbbf24;
+}
+
+.overrideBtn:hover {
+  background: rgba(180, 83, 9, 0.15);
+}
+
+.overrideBtn.decisionActive {
+  background: #b45309;
+  color: white;
+  border-color: #b45309;
+}
+
+.keepBtn {
+  background: transparent;
+  border-color: #0d9488;
+  color: #2dd4bf;
+}
+
+.keepBtn:hover {
+  background: rgba(13, 148, 136, 0.15);
+}
+
+.keepBtn.decisionActive {
+  background: #0d9488;
+  color: white;
+  border-color: #0d9488;
+}
+
+.skipBtn {
+  background: transparent;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+.skipBtn:hover {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+.skipBtn.decisionActive {
+  background: #998200;
+  color: #e2e8f0;
+  border-color: #475569;
+}
+
+/* Compare table */
+.compareTable {
+  width: 100%;
+}
+
+.compareHeaderRow,
+.compareRow {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  padding: 0.5rem 1rem;
+  font-size: 0.825rem;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+}
+
+.compareHeaderRow {
+  background: #0d1829;
+  border-bottom: 1px solid #334155;
+}
+
+.compareHeaderRow span {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #475569;
+}
+
+.compareOldCol {
+  color: #94a3b8;
+}
+
+.compareNewCol {
+  color: #60a5fa;
+}
+
+.compareRow {
+  transition: background 0.1s ease;
+}
+
+.compareRow:last-child {
+  border-bottom: none;
+}
+
+.compareRow:hover {
+  background: rgba(51, 65, 85, 0.2);
+}
+
+.compareRow.compareChanged {
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.compareRow.compareChanged .compareNewVal {
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.compareFieldName {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.compareOldVal {
+  color: #64748b;
+}
+
+.compareNewVal {
+  color: #e2e8f0;
+}
+
+/* ─── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .compareHeaderRow,
+  .compareRow {
+    grid-template-columns: 1fr 0.8fr 0.8fr;
+  }
+}

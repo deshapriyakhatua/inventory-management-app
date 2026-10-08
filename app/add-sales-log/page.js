@@ -1,73 +1,18 @@
 "use client";
 import { toast } from "sonner";
 
-import Icon from "@/components/ui/Icon/Icon";
-
-
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import styles from "./page.module.css";
 
 import { parseSearchQuery, matchesSearchTerms } from "../../utils/searchUtils";
-
-// ─── Constants ───────────────────────────────────────────────────────────────
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
-const SALES_CHANNELS = [
-  "Amazon", "Flipkart", "Shopsy", "Myntra", "Meesho", "Ajio", "Website", "Other",
-];
-
-const COMPARE_FIELDS = [
-  { key: "salesChannel", label: "Sales Channel" },
-  { key: "grossUnits", label: "Gross Units" },
-  { key: "logisticsReturns", label: "Logistics Returns" },
-  { key: "customerReturns", label: "Customer Returns" },
-  { key: "cancellations", label: "Cancellations" },
-  { key: "netUnits", label: "Net Units" },
-  { key: "netSales", label: "Net Sales (₹)" },
-  { key: "totalExpenses", label: "Total Expenses (₹)" },
-  { key: "otherBenefits", label: "Other Benefits (₹)" },
-  { key: "projectedBankSettlement", label: "Proj. Bank Settlement (₹)" },
-];
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-let _rowCounter = 0;
-const newRowId = () => `row_${++_rowCounter}_${Date.now()}`;
-
-const emptyRow = () => ({
-  id: newRowId(),
-  skuId: "",
-  salesChannel: "",
-  grossUnits: "",
-  logisticsReturns: "",
-  customerReturns: "",
-  cancellations: "",
-  netUnits: "",
-  netUnitsManual: false,
-  netSales: "",
-  totalExpenses: "",
-  otherBenefits: "",
-  projectedBankSettlement: "",
-  pickerOpen: false,
-  pickerSearch: "",
-});
-
-const computeNetUnits = (row) => {
-  const g = parseFloat(row.grossUnits) || 0;
-  const l = parseFloat(row.logisticsReturns) || 0;
-  const c = parseFloat(row.customerReturns) || 0;
-  const ca = parseFloat(row.cancellations) || 0;
-  return g - l - c - ca;
-};
-
-const hasNetMismatch = (row) => {
-  if (!row.netUnitsManual || row.netUnits === "") return false;
-  const computed = computeNetUnits(row);
-  const entered = parseFloat(row.netUnits);
-  return !isNaN(entered) && computed !== entered;
-};
+import { MONTHS, emptyRow, computeNetUnits, hasNetMismatch } from "./addSalesLogConfig";
+import SalesLogHeader from "./_components/SalesLogHeader/SalesLogHeader";
+import PeriodSelector from "./_components/PeriodSelector/PeriodSelector";
+import BulkImport from "./_components/BulkImport/BulkImport";
+import SalesRowCard from "./_components/SalesRowCard/SalesRowCard";
+import TotalsSummary from "./_components/TotalsSummary/TotalsSummary";
+import ActionsBar from "./_components/ActionsBar/ActionsBar";
+import ConflictModal from "./_components/ConflictModal/ConflictModal";
 
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function AddSalesLog() {
@@ -387,91 +332,27 @@ export default function AddSalesLog() {
     netUnits: 0, netSales: 0, totalExpenses: 0, otherBenefits: 0, projectedBankSettlement: 0
   });
 
+  // ── Named JSX handlers ────────────────────────────────────────────────────
+  const handleMonthChange = (e) => setMonth(Number(e.target.value));
+  const handleYearChange = (e) => setYear(Number(e.target.value));
+  const handleUploadClick = () => fileInputRef.current?.click();
+  const closeConflictModal = () => setShowConflictModal(false);
+  const handleDecisionChange = (key, decision) =>
+    setConflictDecisions((prev) => ({ ...prev, [key]: decision }));
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className={styles.container}>
       {/* ── Page Header ── */}
-      <div className={styles.pageHeader}>
-        <div className={styles.headerLeft}>
-          <h1 className={styles.title}>Monthly Sales Log</h1>
-          <p className={styles.subtitle}>Record aggregated sales data per SKU for a given month</p>
-        </div>
-        <div className={styles.periodBadge}>
-          <Icon name="icon-f5ba4e77" size={16} />
-          {MONTHS[month - 1]} {year}
-        </div>
-      </div>
+      <SalesLogHeader month={month} year={year} />
 
       {/* ── Period Selector ── */}
-      <div className={styles.periodCard}>
-        <div className={styles.periodCardTitle}>
-          <Icon name="icon-333ab5ea" size={16} />
-          Recording Period
-        </div>
-        <div className={styles.periodSelectors}>
-          <div className={styles.selectorGroup}>
-            <label className={styles.selectorLabel}>Month</label>
-            <select
-              id="month-select"
-              className={styles.periodSelect}
-              value={month}
-              onChange={(e) => setMonth(Number(e.target.value))}
-            >
-              {MONTHS.map((m, i) => (
-                <option key={m} value={i + 1}>{m}</option>
-              ))}
-            </select>
-          </div>
-          <div className={styles.selectorGroup}>
-            <label className={styles.selectorLabel}>Year</label>
-            <select
-              id="year-select"
-              className={styles.periodSelect}
-              value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
-            >
-              {years.map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
+      <PeriodSelector month={month} year={year} years={years}
+        onMonthChange={handleMonthChange} onYearChange={handleYearChange} />
 
       {/* ── Bulk Import Section ── */}
-      <div className={styles.importSection}>
-        <div className={styles.importHeader}>
-            <div className={styles.importTitle}>
-              <Icon name="icon-f583f931" size={16} />
-              Bulk Import Data
-            </div>
-            <p className={styles.importDescription}>Automatically extract SKU metrics from marketplace reports.</p>
-        </div>
-        <div className={styles.importActions}>
-            <input 
-              type="file" 
-              accept=".xlsx" 
-              style={{ display: "none" }} 
-              ref={fileInputRef} 
-              onChange={handleFileUpload} 
-            />
-            <button 
-              className={styles.uploadBtn} 
-              onClick={() => fileInputRef.current?.click()} 
-              type="button"
-              disabled={isParsingFile}
-            >
-              {isParsingFile ? (
-                 <><span className={styles.spinnerSmall}></span> Parsing…</>
-              ) : (
-                 <>
-                   <Icon name="icon-f583f931" size={16} />
-                   Upload Flipkart .xlsx
-                 </>
-              )}
-            </button>
-        </div>
-      </div>
+      <BulkImport fileInputRef={fileInputRef} isParsingFile={isParsingFile}
+        onFileUpload={handleFileUpload} onUploadClick={handleUploadClick} />
 
       {/* ── SKU Rows ── */}
       <div className={styles.layout}>
@@ -480,377 +361,29 @@ export default function AddSalesLog() {
           const filteredListings = globalFilteredListings;
 
           return (
-            <div key={row.id} className={`${styles.rowCard} ${mismatch ? styles.rowMismatch : ""}`}>
-              {/* Card header */}
-              <div className={styles.rowHeader}>
-                <div className={styles.rowHeaderLeft}>
-                  <span className={styles.rowIndex}>{idx + 1}</span>
-                  <span className={styles.rowLabel}>
-                    {row.skuId ? row.skuId : "New SKU Entry"}
-                  </span>
-                  {row.salesChannel && (
-                    <span className={styles.channelTag}>{row.salesChannel}</span>
-                  )}
-                </div>
-                {rows.length > 1 && (
-                  <button className={styles.removeBtn} onClick={() => removeRow(row.id)}>
-                    <Icon name="remove" size={13} />
-                    Remove
-                  </button>
-                )}
-              </div>
-
-              {/* Row 1: SKU + Channel */}
-              <div className={styles.formRow}>
-                <div className={styles.inputGroup} style={{ minWidth: "220px", maxWidth: "340px" }}>
-                  <label className={styles.inputLabel} htmlFor={`sku-${row.id}`}>SKU ID *</label>
-                  <button
-                    id={`sku-${row.id}`}
-                    type="button"
-                    className={`${styles.skuPickerBtn} ${row.skuId ? styles.skuSelected : ""}`}
-                    onClick={() => openPicker(row.id)}
-                  >
-                    {row.skuId || "Select SKU…"}
-                    <Icon name="sku-picker-chevron" size={14} row={row} />
-                  </button>
-                </div>
-
-                <div className={styles.inputGroup} style={{ minWidth: "180px", maxWidth: "260px" }}>
-                  <label className={styles.inputLabel} htmlFor={`channel-${row.id}`}>Sales Channel</label>
-                  <select
-                    id={`channel-${row.id}`}
-                    className={styles.itemSelect}
-                    value={row.salesChannel}
-                    onChange={(e) => updateRow(row.id, "salesChannel", e.target.value)}
-                  >
-                    <option value="">— Select Channel —</option>
-                    {SALES_CHANNELS.map((ch) => (
-                      <option key={ch} value={ch}>{ch}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Inline SKU picker */}
-              {row.pickerOpen && (
-                <div className={styles.pickerPanel}>
-                  <div className={styles.pickerSearchWrap}>
-                    <Icon name="icon-9c4a10ac" size={15} className={styles.pickerSearchIcon} />
-                    <input
-                      type="text"
-                      placeholder="Search SKU ID…"
-                      value={row.pickerSearch}
-                      onChange={(e) => handlePickerSearch(row.id, e.target.value)}
-                      className={styles.pickerSearch}
-                      autoFocus
-                    />
-                  </div>
-                  <div className={styles.pickerList}>
-                    {loadingListings ? (
-                      <div className={styles.pickerEmpty}>Loading listings…</div>
-                    ) : filteredListings.length === 0 ? (
-                      <div className={styles.pickerEmpty}>No SKUs match your search.</div>
-                    ) : (
-                      filteredListings.slice(0, 60).map((item) => (
-                        <div
-                          key={item.skuId}
-                          className={`${styles.pickerItem} ${row.skuId === item.skuId ? styles.pickerItemSelected : ""}`}
-                          onClick={() => selectSku(row.id, item.skuId)}
-                        >
-                          <span className={styles.pickerSkuId}>{item.skuId}</span>
-                          <span className={styles.pickerMeta}>
-                            {item.vertical} · {item.marketplace || "Direct"}
-                          </span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Section: Unit Metrics */}
-              <div className={styles.metricsSection}>
-                <div className={styles.metricsSectionTitle}>
-                  <Icon name="icon-7cfeb828" size={14} />
-                  Unit Metrics
-                </div>
-                <div className={styles.formRow}>
-                  {[
-                    { key: "grossUnits", label: "Gross Units" },
-                    { key: "logisticsReturns", label: "Logistics Returns" },
-                    { key: "customerReturns", label: "Customer Returns" },
-                    { key: "cancellations", label: "Cancellations" },
-                  ].map(({ key, label }) => (
-                    <div key={key} className={styles.inputGroup}>
-                      <label className={styles.inputLabel} htmlFor={`${key}-${row.id}`}>{label}</label>
-                      <input
-                        id={`${key}-${row.id}`}
-                        type="number"
-                        min="0"
-                        value={row[key]}
-                        onChange={(e) => updateRow(row.id, key, e.target.value)}
-                        className={styles.itemInput}
-                        placeholder="0"
-                      />
-                    </div>
-                  ))}
-
-                  {/* Net Units — auto-calculated */}
-                  <div className={styles.inputGroup}>
-                    <div className={styles.netUnitsLabelRow}>
-                      <label className={styles.inputLabel} htmlFor={`netUnits-${row.id}`}>Net Units</label>
-                      {row.netUnitsManual ? (
-                        <button
-                          type="button"
-                          className={styles.autoResetBtn}
-                          onClick={() => resetNetUnitsToAuto(row.id)}
-                          title="Reset to auto-calculated"
-                        >
-                          ↺ Auto
-                        </button>
-                      ) : (
-                        <span className={styles.autoTag}>Auto</span>
-                      )}
-                    </div>
-                    <input
-                      id={`netUnits-${row.id}`}
-                      type="number"
-                      value={row.netUnits}
-                      onChange={(e) => updateRow(row.id, "netUnits", e.target.value)}
-                      className={`${styles.itemInput} ${mismatch ? styles.mismatchInput : ""} ${!row.netUnitsManual ? styles.autoInput : ""}`}
-                      placeholder="0"
-                    />
-                    {mismatch && (
-                      <span className={styles.mismatchHint}>
-                        ⚠ Calculated: {computeNetUnits(row)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Section: Financial Metrics */}
-              <div className={styles.metricsSection}>
-                <div className={styles.metricsSectionTitle}>
-                  <Icon name="icon-7e710d4a" size={14} />
-                  Financial Metrics
-                </div>
-                <div className={styles.formRow}>
-                  {[
-                    { key: "netSales", label: "Net Sales (₹)" },
-                    { key: "totalExpenses", label: "Total Expenses (₹)" },
-                    { key: "otherBenefits", label: "Other Benefits (₹)" },
-                    { key: "projectedBankSettlement", label: "Proj. Bank Settlement (₹)" },
-                  ].map(({ key, label }) => (
-                    <div key={key} className={styles.inputGroup}>
-                      <label className={styles.inputLabel} htmlFor={`${key}-${row.id}`}>{label}</label>
-                      <div className={styles.currencyInputWrap}>
-                        <span className={styles.currencySymbol}>₹</span>
-                        <input
-                          id={`${key}-${row.id}`}
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={row[key]}
-                          onChange={(e) => updateRow(row.id, key, e.target.value)}
-                          className={`${styles.itemInput} ${styles.currencyInput}`}
-                          placeholder="0.00"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <SalesRowCard
+              key={row.id} row={row} idx={idx} mismatch={mismatch} canRemove={rows.length > 1}
+              loadingListings={loadingListings} filteredListings={filteredListings}
+              onRemoveRow={removeRow} onOpenPicker={openPicker} onUpdateRow={updateRow}
+              onPickerSearch={handlePickerSearch} onSelectSku={selectSku}
+              onResetNetUnits={resetNetUnitsToAuto}
+            />
           );
         })}
       </div>
 
       {/* ── Totals Section ── */}
-      {rows.length > 0 && (
-        <div className={styles.totalsSection}>
-          <div className={styles.totalsHeader}>
-            <Icon name="icon-3af5fc37" size={18} />
-            Summary Totals
-          </div>
-          <div className={styles.totalsGrid}>
-            <div className={styles.totalBox}>
-              <span className={styles.totalLabel}>Gross Units</span>
-              <span className={styles.totalValue}>{totals.grossUnits}</span>
-            </div>
-            <div className={styles.totalBox}>
-              <span className={styles.totalLabel}>Log. Returns</span>
-              <span className={styles.totalValue}>{totals.logisticsReturns}</span>
-            </div>
-            <div className={styles.totalBox}>
-              <span className={styles.totalLabel}>Cust. Returns</span>
-              <span className={styles.totalValue}>{totals.customerReturns}</span>
-            </div>
-            <div className={styles.totalBox}>
-              <span className={styles.totalLabel}>Cancellations</span>
-              <span className={styles.totalValue}>{totals.cancellations}</span>
-            </div>
-            <div className={styles.totalBox}>
-              <span className={styles.totalLabel}>Net Units</span>
-              <span className={styles.totalValue}>{totals.netUnits}</span>
-            </div>
-            <div className={styles.totalBox}>
-              <span className={styles.totalLabel}>Net Sales</span>
-              <span className={styles.totalValueCurrency}>₹{(totals.netSales ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            </div>
-            <div className={styles.totalBox}>
-              <span className={styles.totalLabel}>Total Expenses</span>
-              <span className={styles.totalValueCurrency}>₹{(totals.totalExpenses ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            </div>
-            <div className={styles.totalBox}>
-              <span className={styles.totalLabel}>Other Benefits</span>
-              <span className={styles.totalValueCurrency}>₹{(totals.otherBenefits ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            </div>
-            <div className={styles.totalBox}>
-              <span className={styles.totalLabel}>Settlement</span>
-              <span className={styles.totalValueCurrency}>₹{(totals.projectedBankSettlement ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            </div>
-          </div>
-        </div>
-      )}
+      {rows.length > 0 && <TotalsSummary totals={totals} />}
 
       {/* ── Actions Bar ── */}
-      <div className={styles.actionsBar}>
-          <div className={styles.actionsLeft}>
-            <button className={styles.addRowBtn} onClick={addRow} type="button">
-              <Icon name="add-another-product" size={16} />
-              Add Another SKU
-            </button>
-          </div>
-          <div className={styles.actionsMeta}>
-            <span className={styles.rowCount}>{rows.length} SKU{rows.length > 1 ? "s" : ""} · {MONTHS[month - 1]} {year}</span>
-            <button
-              id="submit-sales-log"
-              className={styles.submitBtn}
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              type="button"
-            >
-              {isSubmitting ? (
-                <>
-                  <span className={styles.spinner}></span>
-                  Saving…
-                </>
-              ) : (
-                <>
-                  <Icon name="icon-5ab11cbf" size={16} />
-                  Save {rows.length} Record{rows.length > 1 ? "s" : ""}
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+      <ActionsBar rowCount={rows.length} month={month} year={year}
+        isSubmitting={isSubmitting} onAddRow={addRow} onSubmit={handleSubmit} />
 
       {/* ── Conflict Compare Modal ── */}
       {showConflictModal && (
-        <div className={styles.modalOverlay} onClick={() => setShowConflictModal(false)}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            {/* Modal header */}
-            <div className={styles.modalHeader}>
-              <div className={styles.modalTitle}>
-                <div className={styles.modalWarningIcon}>
-                  <Icon name="icon-cfd589e1" />
-                </div>
-                Duplicate Records Detected
-              </div>
-              <button
-                className={styles.modalCloseBtn}
-                onClick={() => setShowConflictModal(false)}
-                aria-label="Close modal"
-              >
-                <Icon name="remove-this-product" size={18} />
-              </button>
-            </div>
-            <p className={styles.modalSubtitle}>
-              {conflicts.length} record(s) already exist for {MONTHS[month - 1]} {year}. Compare old vs. new data and choose to <strong>Override</strong>, <strong>Keep Both</strong>, or <strong>Skip</strong>.
-            </p>
-
-            {/* Conflict list */}
-            <div className={styles.conflictList}>
-              {conflicts.map((conflict, indx) => (
-                  <div key={`${conflict.key}-conflict-item-${indx}`} className={styles.conflictItem}>
-                    <div className={styles.conflictItemHeader}>
-                      <div className={styles.conflictItemLeft}>
-                        <span className={styles.conflictSkuId}>{conflict.incoming.skuId} ({conflict.incoming.salesChannel || '—'})</span>
-                        <span className={styles.conflictPeriod}>
-                        {MONTHS[(conflict.existing.month ?? month) - 1]} {conflict.existing.year ?? year}
-                      </span>
-                    </div>
-                    <div className={styles.decisionGroup}>
-                      <button
-                        className={`${styles.decisionBtn} ${styles.overrideBtn} ${conflictDecisions[conflict.key] === "override" ? styles.decisionActive : ""}`}
-                        onClick={() =>
-                          setConflictDecisions((prev) => ({ ...prev, [conflict.key]: "override" }))
-                        }
-                      >
-                        Override
-                      </button>
-                      <button
-                        className={`${styles.decisionBtn} ${styles.keepBtn} ${conflictDecisions[conflict.key] === "keep" ? styles.decisionActive : ""}`}
-                        onClick={() =>
-                          setConflictDecisions((prev) => ({ ...prev, [conflict.key]: "keep" }))
-                        }
-                      >
-                        Keep Both
-                      </button>
-                      <button
-                        className={`${styles.decisionBtn} ${styles.skipBtn} ${conflictDecisions[conflict.key] === "skip" ? styles.decisionActive : ""}`}
-                        onClick={() =>
-                          setConflictDecisions((prev) => ({ ...prev, [conflict.key]: "skip" }))
-                        }
-                      >
-                        Skip
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Compare table */}
-                  <div className={styles.compareTable}>
-                    <div className={styles.compareHeaderRow}>
-                      <span className={styles.compareFieldCol}>Field</span>
-                      <span className={styles.compareOldCol}>Existing</span>
-                      <span className={styles.compareNewCol}>New</span>
-                    </div>
-                    {COMPARE_FIELDS.map(({ key, label }) => {
-                      const oldVal = conflict.existing[key];
-                      const newVal = conflict.incoming[key];
-                      const changed = String(oldVal ?? "") !== String(newVal ?? "");
-                      return (
-                        <div key={key} className={`${styles.compareRow} ${changed ? styles.compareChanged : ""}`}>
-                          <span className={styles.compareFieldName}>{label}</span>
-                          <span className={styles.compareOldVal}>{oldVal ?? "—"}</span>
-                          <span className={styles.compareNewVal}>{newVal ?? "—"}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Modal footer */}
-            <div className={styles.modalFooter}>
-              <div className={styles.modalFooterInfo}>
-                {Object.values(conflictDecisions).filter((v) => v === "override").length} override ·{" "}
-                {Object.values(conflictDecisions).filter((v) => v === "keep").length} keep both ·{" "}
-                {Object.values(conflictDecisions).filter((v) => v === "skip").length} skip
-              </div>
-              <div className={styles.modalFooterActions}>
-                <button className={styles.modalCancelBtn} onClick={() => setShowConflictModal(false)}>
-                  Cancel
-                </button>
-                <button className={styles.modalConfirmBtn} onClick={handleConflictResolve}>
-                  Confirm Decisions
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ConflictModal conflicts={conflicts} conflictDecisions={conflictDecisions}
+          month={month} year={year} onClose={closeConflictModal}
+          onDecisionChange={handleDecisionChange} onConfirm={handleConflictResolve} />
       )}
 
       </div>
