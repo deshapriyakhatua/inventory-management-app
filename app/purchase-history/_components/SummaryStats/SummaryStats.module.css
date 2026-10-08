@@ -1,0 +1,8 @@
+/* ── Summary Stats Cards ──────────────────────────────────────── */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-shrink: 0;
+}

@@ -1,0 +1,51 @@
+.td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #334155;
+  color: #e2e8f0;
+  vertical-align: middle;
+}
+
+.tr:hover .td {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.idCell {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+  color: #fff;
+}
+
+.sellerCell {
+  font-weight: 600;
+  color: #3b82f6;
+}
+
+.quantity {
+  font-weight: 600;
+}
+
+.price {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.finalUnitPrice {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  color: #10b981;
+}
+
+.total {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* ── Archived row styling ────────────────────────────────────── */
+.archivedRow .td, .archivedRow .nestedTd {
+  opacity: 0.65;
+}
+
+.archivedRow:hover .td, .archivedRow:hover .nestedTd {
+  background: rgba(239, 68, 68, 0.04);
+  opacity: 0.85;
+}

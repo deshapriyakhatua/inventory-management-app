@@ -1,0 +1,47 @@
+.statCard {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 0.95rem 1.15rem;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  border-color: #475569;
+}
+
+.statIconWrapper {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.statInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.statLabel {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.statValue {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  margin-top: 0.15rem;
+  font-family: 'JetBrains Mono', monospace;
+}

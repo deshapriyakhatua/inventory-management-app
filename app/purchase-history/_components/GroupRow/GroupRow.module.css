@@ -1,0 +1,199 @@
+.td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #334155;
+  color: #e2e8f0;
+  vertical-align: middle;
+}
+
+.tr:hover .td {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+/* Group row styling */
+.groupRow {
+  cursor: pointer;
+  background: rgba(15, 23, 42, 0.4);
+  transition: background 0.15s ease;
+}
+
+.groupRow:hover .td {
+  background: rgba(59, 130, 246, 0.08) !important;
+}
+
+.expandedGroupRow .td {
+  background: rgba(59, 130, 246, 0.12) !important;
+  border-bottom-color: rgba(59, 130, 246, 0.2);
+}
+
+.expandChevronBtn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.expandChevronBtn:hover {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.chevronIcon {
+  transition: transform 0.2s ease;
+}
+
+.chevronRotated {
+  transform: rotate(90deg);
+  color: #3b82f6;
+}
+
+.invoiceCell {
+  font-weight: 600;
+}
+
+.invoiceText {
+  font-family: 'JetBrains Mono', monospace;
+  color: #38bdf8;
+}
+
+.itemCountBadge {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  padding: 0.18rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.copyBtnSmall {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, background 0.2s;
+}
+
+.copyBtnSmall:hover {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+}
+
+/* Nested row & table */
+.nestedRow {
+  background: #0f172a;
+}
+
+.nestedContainer {
+  padding: 0.85rem 1.25rem 1.15rem 2.25rem;
+  background: rgba(15, 23, 42, 0.95);
+  border-bottom: 2px solid #334155;
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.25);
+}
+
+.nestedHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.65rem;
+  padding: 0 0.25rem;
+}
+
+.nestedHeaderTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.nestedTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  background: #1e293b;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #334155;
+}
+
+.nestedTh {
+  background: #0f172a;
+  padding: 0.6rem 0.85rem;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #334155;
+}
+
+.nestedTd {
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+  color: #e2e8f0;
+  vertical-align: middle;
+}
+
+.nestedTable tr:last-child .nestedTd {
+  border-bottom: none;
+}
+
+.nestedTable tr:hover .nestedTd {
+  background: rgba(59, 130, 246, 0.06);
+}
+
+.idCell {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+  color: #fff;
+}
+
+.sellerCell {
+  font-weight: 600;
+  color: #3b82f6;
+}
+
+.quantity {
+  font-weight: 600;
+}
+
+.price {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.finalUnitPrice {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  color: #10b981;
+}
+
+.total {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* ── Archived row styling ────────────────────────────────────── */
+.archivedRow .td, .archivedRow .nestedTd {
+  opacity: 0.65;
+}
+
+.archivedRow:hover .td, .archivedRow:hover .nestedTd {
+  background: rgba(239, 68, 68, 0.04);
+  opacity: 0.85;
+}

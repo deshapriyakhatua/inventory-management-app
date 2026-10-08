@@ -1,0 +1,31 @@
+.status {
+  padding: 0.22rem 0.55rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.received {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.pending {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.partial {
+  background: rgba(59, 130, 246, 0.12);
+  color: #60a5fa;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
