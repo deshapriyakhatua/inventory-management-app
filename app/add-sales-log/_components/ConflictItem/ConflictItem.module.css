@@ -138,6 +138,23 @@
   font-weight: var(--weight-semibold);
 }
 
+/* Touch: invisible hit area of at least --control-h-touch; the visual size is unchanged. */
+@media (pointer: coarse) {
+  .decision {
+    position: relative;
+  }
+
+  .decision::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, var(--control-h-touch));
+    height: max(100%, var(--control-h-touch));
+    content: "";
+    transform: translate(-50%, -50%);
+  }
+}
+
 @media (prefers-contrast: more) {
   .oldValue {
     color: var(--color-text-muted);

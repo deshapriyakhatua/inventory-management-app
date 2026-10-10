@@ -33,18 +33,20 @@
   line-height: var(--leading-normal);
 }
 
+/* Mobile: actions take their own full-width row (toolbars inside can stretch); 640px+: inline, right-aligned. */
 .actions {
   display: flex;
-  flex: 0 1 auto;
+  flex: 1 1 100%;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: var(--space-2);
 }
 
-@media (max-width: 640px) {
+@media (min-width: 640px) {
   .actions {
-    justify-content: flex-start;
+    flex: 0 1 auto;
+    justify-content: flex-end;
   }
 }
 

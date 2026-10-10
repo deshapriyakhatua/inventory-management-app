@@ -103,18 +103,32 @@
   overscroll-behavior: contain;
 }
 
-@media (max-width: 768px) {
+/* size="auto": bottom sheet below 768px, regular centered dialog from 768px. */
+.overlay[data-size="auto"] {
+  align-items: flex-end;
+  padding: 0;
+}
+
+.overlay[data-size="auto"] .panel {
+  width: 100%;
+  max-width: none;
+  max-height: 90dvh;
+  margin-top: auto;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+@media (min-width: 768px) {
   .overlay[data-size="auto"] {
-    align-items: flex-end;
-    padding: 0;
+    align-items: center;
+    padding: var(--space-4);
   }
 
   .overlay[data-size="auto"] .panel {
-    width: 100%;
-    max-width: none;
-    max-height: 90dvh;
-    margin-top: auto;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    width: min(100%, 48rem);
+    max-width: var(--page-max-w);
+    max-height: calc(100dvh - var(--space-8));
+    margin-top: 0;
+    border-radius: var(--radius-lg);
   }
 }
 

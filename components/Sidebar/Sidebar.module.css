@@ -248,6 +248,7 @@
     top: 0;
     z-index: var(--z-sticky);
     display: flex;
+    flex: 0 0 auto;
     align-items: center;
     gap: var(--space-3);
     width: 100%;
@@ -289,6 +290,27 @@
 @media (min-width: 768px) {
     .sidebar {
         border-right: 1px solid var(--color-border);
+    }
+}
+
+/* Touch: nav rows reach --control-h-touch; the brand link gets an invisible hit area. */
+@media (pointer: coarse) {
+    .navItem {
+        min-height: var(--control-h-touch);
+    }
+
+    .mobileBrand {
+        position: relative;
+    }
+
+    .mobileBrand::after {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: max(100%, var(--control-h-touch));
+        height: max(100%, var(--control-h-touch));
+        content: "";
+        transform: translate(-50%, -50%);
     }
 }
 

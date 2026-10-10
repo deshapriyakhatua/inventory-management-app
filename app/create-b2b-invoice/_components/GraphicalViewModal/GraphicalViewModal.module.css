@@ -13,7 +13,7 @@
 
 .parties {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
 }
 
@@ -47,6 +47,7 @@
   color: var(--color-text);
   font-size: var(--text-lg);
   font-weight: var(--weight-semibold);
+  overflow-wrap: anywhere;
 }
 
 .infoText {

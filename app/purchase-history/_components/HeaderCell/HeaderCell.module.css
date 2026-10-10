@@ -36,3 +36,20 @@
 .isActive {
   color: var(--color-accent);
 }
+
+/* Touch: invisible hit area of at least --control-h-touch; the visual size is unchanged. */
+@media (pointer: coarse) {
+  .sortButton {
+    position: relative;
+  }
+
+  .sortButton::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, var(--control-h-touch));
+    height: max(100%, var(--control-h-touch));
+    content: "";
+    transform: translate(-50%, -50%);
+  }
+}

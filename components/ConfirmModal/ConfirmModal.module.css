@@ -26,20 +26,26 @@
   line-height: var(--leading-normal);
 }
 
+/* Mobile: full-width buttons, primary on top; 640px+: one right-aligned row. */
 .actions {
   display: flex;
+  flex-direction: column-reverse;
   align-items: center;
   justify-content: flex-end;
   gap: var(--space-3);
   margin-top: var(--space-5);
 }
 
-@media (max-width: 640px) {
+.actions > * {
+  width: 100%;
+}
+
+@media (min-width: 640px) {
   .actions {
-    flex-direction: column-reverse;
+    flex-direction: row;
   }
 
   .actions > * {
-    width: 100%;
+    width: auto;
   }
 }

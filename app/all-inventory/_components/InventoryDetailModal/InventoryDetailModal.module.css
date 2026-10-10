@@ -1,6 +1,6 @@
 .header {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-6);
     margin-bottom: var(--space-7);
 }
@@ -101,6 +101,7 @@
     font-weight: var(--weight-bold);
     letter-spacing: var(--tracking-tight);
     font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
 }
 
 .isHighlight .metricValue {

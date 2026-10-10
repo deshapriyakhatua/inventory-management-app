@@ -136,6 +136,8 @@
   --control-h-sm: 2rem;
   --control-h-md: 2.5rem;
   --control-h-lg: 3rem;
+  /* Minimum hit area on coarse pointers (WCAG 2.5.5 / Apple HIG 44pt). */
+  --control-h-touch: 2.75rem;
 }
 
 :root[data-theme="dark"] {

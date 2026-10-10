@@ -139,6 +139,19 @@
   width: var(--control-h-lg);
 }
 
+/* Touch: invisible hit area of at least --control-h-touch; the visual size is unchanged. */
+@media (pointer: coarse) {
+  .root::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, var(--control-h-touch));
+    height: max(100%, var(--control-h-touch));
+    content: "";
+    transform: translate(-50%, -50%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .root {
     transition-duration: var(--duration-instant);

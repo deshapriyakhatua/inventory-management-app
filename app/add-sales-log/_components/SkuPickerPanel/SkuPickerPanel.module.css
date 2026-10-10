@@ -99,6 +99,13 @@
   font-size: var(--text-xs);
 }
 
+/* Touch: rows reach --control-h-touch. */
+@media (pointer: coarse) {
+  .item {
+    min-height: var(--control-h-touch);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .item:active {
     transform: none;

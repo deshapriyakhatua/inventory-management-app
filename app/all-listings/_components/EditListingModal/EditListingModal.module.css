@@ -182,6 +182,13 @@
     }
 }
 
+/* Touch: rows reach --control-h-touch. */
+@media (pointer: coarse) {
+    .pillRow {
+        min-height: var(--control-h-touch);
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .pill:active {
         transform: none;

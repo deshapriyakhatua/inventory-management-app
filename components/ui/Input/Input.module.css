@@ -112,6 +112,17 @@
   border-color: var(--color-border-focus);
 }
 
+@media (pointer: coarse) {
+  .root,
+  .control:not(.file) {
+    min-height: var(--control-h-touch);
+  }
+
+  .root .control {
+    min-height: calc(var(--control-h-touch) - 2px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .root,
   .control {

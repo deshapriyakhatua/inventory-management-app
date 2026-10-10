@@ -46,6 +46,7 @@
   line-height: var(--leading-tight);
   font-variant-numeric: tabular-nums;
   color: var(--color-text);
+  overflow-wrap: anywhere;
 }
 
 .valueSuccess {

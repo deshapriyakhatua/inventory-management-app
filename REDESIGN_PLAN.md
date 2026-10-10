@@ -421,8 +421,9 @@ Standard "list page" pattern (7.2) applies to all.
   - Done in code. Manual slow-motion browser review of Modal/Sheet/Sidebar still pending (owner). Known gaps left as-is: Sidebar animates `width` (D-16); Sheet not draggable until its enter animation ends; menus/hover previews and overlays whose data is nulled on close have no exit animation.
 - [x] **T-6.3 Accessibility pass** · M · Dep: T-6.1
   - Contrast AA both themes, focus order, ARIA labels on icon buttons, table semantics, form label association, `aria-live` for toasts, 200% text zoom without layout break (rem spacing), `prefers-*` queries tested with browser emulation.
-- [ ] **T-6.4 Responsive pass** · M · Dep: T-6.1
+- [x] **T-6.4 Responsive pass** · M · Dep: T-6.1
   - Verify every route at 360/768/1024/1280 px: no horizontal page scroll, touch targets ≥ 44px on mobile, sidebar sheet works.
+  - Done in code (static audit). Manual per-route browser check still pending (owner). Mobile sidebar is a right-side Sheet (Sheet supports right/bottom only).
 - [ ] **T-6.5 Docs** · S · Dep: T-6.1
   - Replace default `README.md` content with a UI section: structure (section 3), conventions (section 4), how to add a primitive/page. Keep this plan as `REDESIGN_PLAN.md` with all boxes ticked.
 - [ ] **T-6.6 File-size limits** · M · Dep: T-6.1

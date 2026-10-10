@@ -49,7 +49,7 @@ export default function Modal({
     const dialog = dialogRef.current;
     if (!dialog) return;
     if (!open) return;
-    if (size === "auto" && window.matchMedia("(max-width: 768px)").matches) {
+    if (size === "auto" && !window.matchMedia("(min-width: 768px)").matches) {
       dialog.style.setProperty("--modal-transform-origin", "50% 100%");
       return;
     }

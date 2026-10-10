@@ -71,6 +71,18 @@
   opacity: 0.6;
 }
 
+/* Touch: the invisible input grows to at least --control-h-touch around the box. */
+@media (pointer: coarse) {
+  .control {
+    inset: auto;
+    top: 50%;
+    left: 50%;
+    width: max(100%, var(--control-h-touch));
+    height: max(100%, var(--control-h-touch));
+    transform: translate(-50%, -50%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .box {
     transition-duration: var(--duration-instant);

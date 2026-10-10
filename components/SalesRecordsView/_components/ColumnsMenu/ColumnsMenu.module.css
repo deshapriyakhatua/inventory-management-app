@@ -5,7 +5,7 @@
 .menu {
     position: absolute;
     top: calc(100% + var(--space-1));
-    right: 0;
+    left: 0;
     z-index: var(--z-sticky);
     display: flex;
     flex-direction: column;
@@ -18,7 +18,7 @@
     border-radius: var(--radius-sm);
     background: var(--color-surface-raised);
     box-shadow: var(--shadow-md);
-    transform-origin: top right;
+    transform-origin: top left;
     animation: var(--keyframes-fade-in) var(--duration-fast) var(--ease-out);
 }
 
@@ -44,4 +44,20 @@
 .item .checkbox {
     width: var(--control-h-sm);
     height: var(--control-h-sm);
+}
+
+/* Mobile: the trigger starts its toolbar row, so the menu opens rightwards; 768px+: right-aligned. */
+@media (min-width: 768px) {
+    .menu {
+        right: 0;
+        left: auto;
+        transform-origin: top right;
+    }
+}
+
+/* Touch: rows reach --control-h-touch. */
+@media (pointer: coarse) {
+    .item {
+        min-height: var(--control-h-touch);
+    }
 }

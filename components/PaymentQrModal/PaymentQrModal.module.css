@@ -42,7 +42,7 @@
 
 .grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: 1fr;
   gap: var(--space-6);
 }
 
@@ -186,9 +186,9 @@
   flex: 1 1 6.5rem;
 }
 
-@media (max-width: 768px) {
+@media (min-width: 768px) {
   .grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 }
 

@@ -62,6 +62,13 @@
   transform: translateY(-70%) rotate(45deg);
 }
 
+@media (pointer: coarse) {
+  .root,
+  .control {
+    min-height: var(--control-h-touch);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .control {
     transition-duration: var(--duration-instant);
