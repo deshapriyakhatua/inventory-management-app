@@ -10,6 +10,7 @@ import { Button, Icon, IconButton, Sheet } from "@/components/ui";
 import cx from "@/components/ui/cx";
 import { useAuth } from "@/components/AuthProvider";
 import styles from "./Sidebar.module.css";
+import mobileStyles from "./MobileTopBar.module.css";
 
 function formatRole(role) {
     if (!role) return "Employee";
@@ -18,16 +19,16 @@ function formatRole(role) {
 
 function MobileTopBar({ onOpen }) {
     return (
-        <div className={styles.mobileTopBar}>
+        <div className={mobileStyles.mobileTopBar}>
             <IconButton
                 name="toggle-sidebar"
                 size="md"
                 variant="ghost"
                 aria-label="Open navigation menu"
                 onClick={onOpen}
-                className={styles.mobileToggle}
+                className={mobileStyles.mobileToggle}
             />
-            <Link href="/" className={styles.mobileBrand}>
+            <Link href="/" className={mobileStyles.mobileBrand}>
                 CRAZYKUDI
             </Link>
         </div>
@@ -196,10 +197,10 @@ export default function Sidebar() {
                     closeLabel="Close navigation"
                     closeOnScrim
                 >
-                    <div className={styles.mobileSheetContent}>
+                    <div className={mobileStyles.mobileSheetContent}>
                         {renderNavItems(true)}
                     </div>
-                    <div className={styles.sheetFooter}>
+                    <div className={mobileStyles.sheetFooter}>
                         <div className={styles.userPanel}>
                             <div className={styles.userAvatar}>{userInitials}</div>
                             <div className={styles.userMeta}>

@@ -1,0 +1,86 @@
+.mobileTopBar {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky);
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    min-height: 4rem;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--material-regular);
+    backdrop-filter: blur(var(--blur-thin));
+    -webkit-backdrop-filter: blur(var(--blur-thin));
+}
+
+.mobileToggle {
+    flex-shrink: 0;
+}
+
+.mobileBrand {
+    color: var(--color-text);
+    text-decoration: none;
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-tight);
+}
+
+.mobileSheetContent {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding-bottom: var(--space-4);
+}
+
+.sheetFooter {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
+}
+
+.mobileToggle:focus-visible,
+.mobileBrand:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+}
+
+/* Touch: the brand link gets an invisible hit area. */
+@media (pointer: coarse) {
+    .mobileBrand {
+        position: relative;
+    }
+
+    .mobileBrand::after {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: max(100%, var(--control-h-touch));
+        height: max(100%, var(--control-h-touch));
+        content: "";
+        transform: translate(-50%, -50%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mobileTopBar {
+        transition: none;
+    }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+    .mobileTopBar {
+        background: var(--color-surface);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+}
+
+@media (prefers-contrast: more) {
+    .mobileTopBar {
+        border-color: var(--color-border-strong);
+    }
+}
