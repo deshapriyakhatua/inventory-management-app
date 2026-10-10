@@ -1,4 +1,6 @@
+import Button from "@/components/ui/Button/Button";
 import Icon from "@/components/ui/Icon/Icon";
+import Table from "@/components/ui/Table/Table";
 import { formatDateGB } from "../../createB2bInvoiceUtils";
 import StatusBadge from "../StatusBadge/StatusBadge";
 import styles from "./RecentInvoiceRow.module.css";
@@ -10,61 +12,59 @@ export default function RecentInvoiceRow({
   onOpenPaymentQrModal,
 }) {
   return (
-    <tr>
-      <td style={{ fontWeight: "700", color: "#60a5fa" }}>
-        {inv.invoiceNumber}
-      </td>
-      <td>
+    <Table.Row>
+      <Table.Cell className={styles.invNumber}>{inv.invoiceNumber}</Table.Cell>
+      <Table.Cell className={styles.nowrap}>
         {inv.invoiceDate ? formatDateGB(inv.invoiceDate) : "-"}
-      </td>
-      <td>{inv.buyerDetails?.businessName || "N/A"}</td>
-      <td>{inv.lineItems?.length || 0} items</td>
-      <td style={{ fontWeight: "700", color: "#34d399" }}>
+      </Table.Cell>
+      <Table.Cell>{inv.buyerDetails?.businessName || "N/A"}</Table.Cell>
+      <Table.Cell className={styles.nowrap}>{inv.lineItems?.length || 0} items</Table.Cell>
+      <Table.Cell numeric className={styles.grandTotal}>
         ₹{(inv.grandTotal || 0).toLocaleString("en-IN")}
-      </td>
-      <td style={{ fontWeight: "600", color: "#f87171" }}>
+      </Table.Cell>
+      <Table.Cell numeric className={styles.balance}>
         ₹{(inv.balanceAmount || 0).toLocaleString("en-IN")}
-      </td>
-      <td>
+      </Table.Cell>
+      <Table.Cell>
         <StatusBadge status={inv.paymentStatus} />
-      </td>
-      <td>
-        <div className={styles.recentActionGroup}>
-          <button
-            type="button"
-            className={styles.recentViewBtn}
+      </Table.Cell>
+      <Table.Cell>
+        <div className={styles.actions}>
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<Icon name="view-graphical" size={14} />}
             onClick={() => onOpenGraphicalModal(inv)}
             title="View Graphical Invoice & Inventory Images"
           >
-            <Icon name="view-graphical" size={14} />
             View
-          </button>
-          <button
-            type="button"
-            className={styles.recentPdfBtn}
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<Icon name="view-and-download-invoice-pdf" size={14} />}
             onClick={() => onOpenPdfModal(inv)}
             title="View & Download Invoice PDF"
           >
-            <Icon name="view-and-download-invoice-pdf" size={14} />
             PDF
-          </button>
+          </Button>
           {(inv.paymentStatus === "Pending" ||
             inv.paymentStatus === "Partially Paid" ||
             (inv.balanceAmount !== undefined
               ? inv.balanceAmount > 0
               : (inv.grandTotal || 0) - (inv.receivedAmount || 0) > 0)) && (
-            <button
-              type="button"
-              className={styles.recentQrBtn}
+            <Button
+              variant="secondary"
+              size="sm"
+              leftIcon={<Icon name="payment-qr-balance" size={14} />}
               onClick={() => onOpenPaymentQrModal(inv)}
               title="Generate Custom Payment QR for Remaining Balance"
             >
-              <Icon name="payment-qr-balance" size={14} />
               Payment QR
-            </button>
+            </Button>
           )}
         </div>
-      </td>
-    </tr>
+      </Table.Cell>
+    </Table.Row>
   );
 }

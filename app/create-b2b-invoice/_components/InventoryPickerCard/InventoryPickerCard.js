@@ -1,34 +1,38 @@
+import Image from "next/image";
 import Icon from "@/components/ui/Icon/Icon";
+import cx from "@/components/ui/cx";
 import styles from "./InventoryPickerCard.module.css";
 
 export default function InventoryPickerCard({ inv, isSelected, onClick }) {
   return (
     <button
       type="button"
-      className={`${styles.pickerCard} ${
-        isSelected ? styles.pickerCardSelected : ""
-      }`}
+      className={cx(styles.root, isSelected && styles.isSelected)}
       onClick={onClick}
+      aria-pressed={isSelected}
     >
-      <div className={styles.pickerCardImg}>
+      <span className={styles.media}>
         {inv.imageUrl ? (
-          <img src={inv.imageUrl} alt={inv.inventoryId} />
+          <Image
+            src={inv.imageUrl}
+            alt={inv.inventoryId}
+            fill
+            sizes="10rem"
+            className={styles.image}
+            unoptimized
+          />
         ) : (
-          <span className={styles.pickerCardNoImg}>No Image</span>
+          <span className={styles.noImage}>No Image</span>
         )}
         {isSelected && (
-          <span className={styles.pickerSelectedTick}>
+          <span className={styles.tick}>
             <Icon name="icon-5ab11cbf" size={12} />
           </span>
         )}
-      </div>
-      <span className={styles.pickerCardId}>{inv.inventoryId}</span>
+      </span>
+      <span className={styles.cardId}>{inv.inventoryId}</span>
       {inv.currentStock !== undefined && (
-        <span
-          className={`${styles.pickerCardStock} ${
-            inv.currentStock <= 5 ? styles.pickerCardLowStock : ""
-          }`}
-        >
+        <span className={cx(styles.stock, inv.currentStock <= 5 && styles.stockLow)}>
           Stock: {inv.currentStock ?? 0}
         </span>
       )}

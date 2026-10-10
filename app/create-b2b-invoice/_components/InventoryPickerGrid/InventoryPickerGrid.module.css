@@ -1,28 +1,11 @@
-.pickerGrid {
-  padding: 12px 24px 24px 24px;
-  overflow-y: auto;
+/* The grid scrolls on its own (as before) so search, selection bar and footer stay in view. */
+.root {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 14px;
-  max-height: 460px;
-}
-
-.pickerGrid::-webkit-scrollbar {
-  width: 6px;
-}
-.pickerGrid::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
-}
-
-.pickerLoading, .pickerEmpty {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  color: #71717a;
-  font-size: 14px;
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  align-content: start;
+  gap: var(--space-3);
+  max-height: 28.75rem;
+  overflow-y: auto;
+  padding: var(--space-1);
+  scrollbar-width: thin;
 }

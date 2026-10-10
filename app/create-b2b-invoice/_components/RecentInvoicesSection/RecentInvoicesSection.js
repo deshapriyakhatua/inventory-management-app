@@ -1,8 +1,14 @@
+import Button from "@/components/ui/Button/Button";
+import Card from "@/components/ui/Card/Card";
+import EmptyState from "@/components/ui/EmptyState/EmptyState";
 import Icon from "@/components/ui/Icon/Icon";
+import Table from "@/components/ui/Table/Table";
 import RecentInvoiceRow from "../RecentInvoiceRow/RecentInvoiceRow";
 import styles from "./RecentInvoicesSection.module.css";
 
-// History Section
+const COLUMNS = 8;
+
+// History Section. `.recentSection` stays on the root: the module's @media print block hides it.
 export default function RecentInvoicesSection({
   recentInvoices,
   isLoadingHistory,
@@ -11,56 +17,57 @@ export default function RecentInvoicesSection({
   onOpenPdfModal,
   onOpenPaymentQrModal,
 }) {
+  const isEmpty = recentInvoices.length === 0;
+  // Skeleton rows only while nothing is listed yet; refreshes keep the current rows visible.
+  const isInitialLoading = isLoadingHistory && isEmpty;
+
   return (
-    <div className={styles.recentSection}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-        <h2 className={styles.recentTitle} style={{ marginBottom: 0 }}>
-          Recent B2B Invoices ({recentInvoices.length})
-        </h2>
-        <button
-          type="button"
-          className={styles.tabBtn}
+    <Card as="section" padding="lg" className={styles.recentSection}>
+      <div className={styles.header}>
+        <h2 className={styles.title}>Recent B2B Invoices ({recentInvoices.length})</h2>
+        <Button
+          variant="secondary"
+          size="sm"
+          leftIcon={<Icon name="refresh" size={16} />}
           onClick={onRefresh}
-          disabled={isLoadingHistory}
+          loading={isLoadingHistory}
         >
-          <Icon name="refresh" size={16} />
           Refresh History
-        </button>
+        </Button>
       </div>
 
-      <table className={styles.invoiceListTable}>
-        <thead>
-          <tr>
-            <th>Invoice #</th>
-            <th>Date</th>
-            <th>Customer</th>
-            <th>Items</th>
-            <th>Grand Total</th>
-            <th>Balance</th>
-            <th>Status</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {recentInvoices.length === 0 ? (
-            <tr>
-              <td colSpan="8" style={{ textAlign: "center", color: "#a1a1aa", padding: "20px" }}>
-                {isLoadingHistory ? "Loading invoices..." : "No B2B invoices generated yet."}
-              </td>
-            </tr>
-          ) : (
-            recentInvoices.map((inv) => (
-              <RecentInvoiceRow
-                key={inv._id}
-                inv={inv}
-                onOpenGraphicalModal={onOpenGraphicalModal}
-                onOpenPdfModal={onOpenPdfModal}
-                onOpenPaymentQrModal={onOpenPaymentQrModal}
-              />
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
+      <Table
+        className={styles.table}
+        loading={isInitialLoading}
+        loadingRows={4}
+        columns={COLUMNS}
+        caption={isInitialLoading ? "Loading invoices..." : undefined}
+        empty={!isLoadingHistory && isEmpty ? <EmptyState title="No B2B invoices generated yet." /> : undefined}
+      >
+        <Table.Head>
+          <Table.Row hover={false}>
+            <Table.Cell as="th">Invoice #</Table.Cell>
+            <Table.Cell as="th">Date</Table.Cell>
+            <Table.Cell as="th">Customer</Table.Cell>
+            <Table.Cell as="th">Items</Table.Cell>
+            <Table.Cell as="th" numeric>Grand Total</Table.Cell>
+            <Table.Cell as="th" numeric>Balance</Table.Cell>
+            <Table.Cell as="th">Status</Table.Cell>
+            <Table.Cell as="th">Action</Table.Cell>
+          </Table.Row>
+        </Table.Head>
+        <Table.Body>
+          {recentInvoices.map((inv) => (
+            <RecentInvoiceRow
+              key={inv._id}
+              inv={inv}
+              onOpenGraphicalModal={onOpenGraphicalModal}
+              onOpenPdfModal={onOpenPdfModal}
+              onOpenPaymentQrModal={onOpenPaymentQrModal}
+            />
+          ))}
+        </Table.Body>
+      </Table>
+    </Card>
   );
 }

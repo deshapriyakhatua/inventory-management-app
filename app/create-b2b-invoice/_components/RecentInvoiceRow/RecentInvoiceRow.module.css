@@ -1,99 +1,25 @@
-.recentActionGroup {
+.invNumber {
+  color: var(--color-accent);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.grandTotal {
+  color: var(--color-success);
+  font-weight: var(--weight-semibold);
+}
+
+.balance {
+  color: var(--color-danger);
+  font-weight: var(--weight-semibold);
+}
+
+.actions {
   display: flex;
   align-items: center;
-  gap: 6px;
-}
-
-.recentViewBtn,
-.recentPdfBtn,
-.recentQrBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: all 0.2s ease;
-}
-
-.recentViewBtn {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: rgba(59, 130, 246, 0.3);
-  color: #60a5fa;
-}
-.recentViewBtn:hover {
-  background: rgba(59, 130, 246, 0.25);
-  border-color: rgba(59, 130, 246, 0.5);
-}
-
-.recentPdfBtn {
-  background: rgba(16, 185, 129, 0.15);
-  border-color: rgba(16, 185, 129, 0.3);
-  color: #34d399;
-}
-.recentPdfBtn:hover {
-  background: rgba(16, 185, 129, 0.25);
-  border-color: rgba(16, 185, 129, 0.5);
-}
-
-.recentQrBtn {
-  background: rgba(236, 72, 153, 0.15);
-  border-color: rgba(236, 72, 153, 0.3);
-  color: #f472b6;
-}
-.recentQrBtn:hover {
-  background: rgba(236, 72, 153, 0.25);
-  border-color: rgba(236, 72, 153, 0.5);
-}
-
-/* Recent Invoices Action Buttons */
-.recentActionGroup {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.recentViewBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 6px;
-  cursor: pointer;
-  background: rgba(99, 102, 241, 0.12);
-  color: #a5b4fc;
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  transition: all 0.2s ease;
-}
-
-.recentViewBtn:hover {
-  background: rgba(99, 102, 241, 0.25);
-  color: #ffffff;
-  border-color: #6366f1;
-}
-
-.recentPdfBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 6px;
-  cursor: pointer;
-  background: rgba(16, 185, 129, 0.12);
-  color: #6ee7b7;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  transition: all 0.2s ease;
-}
-
-.recentPdfBtn:hover {
-  background: rgba(16, 185, 129, 0.25);
-  color: #ffffff;
-  border-color: #10b981;
+  gap: var(--space-2);
 }

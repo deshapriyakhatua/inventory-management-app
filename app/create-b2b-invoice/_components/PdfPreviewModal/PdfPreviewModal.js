@@ -1,10 +1,14 @@
 import InvoicePdfPreview from "@/components/InvoicePdfPreview/InvoicePdfPreview";
+import Button from "@/components/ui/Button/Button";
+import Checkbox from "@/components/ui/Checkbox/Checkbox";
+import Modal from "@/components/ui/Modal/Modal";
 import styles from "./PdfPreviewModal.module.css";
 
 // PDF Preview Modal (Recent History).
 // INVOICE DOCUMENT EXCEPTION (REDESIGN_PLAN 8.1): <InvoicePdfPreview ref={modalPdfRef} .../>
 // is the node handed to downloadInvoicePdf (html2canvas/jsPDF) by page.js, which also
-// creates modalPdfRef. The element, its props and the ref are moved here verbatim.
+// creates modalPdfRef. The element, its props and the ref must not change; only the
+// modal chrome around it is redesigned (same chrome as /all-invoices).
 export default function PdfPreviewModal({
   pdfModalInvoice,
   modalPdfRef,
@@ -15,43 +19,27 @@ export default function PdfPreviewModal({
   onClose,
 }) {
   return (
-    <div className={styles.pdfModalOverlay} onClick={onClose}>
-      <div
-        className={styles.pdfModalContent}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
-          <label style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: "#ffffff", fontSize: "13px", cursor: "pointer", marginRight: "12px", userSelect: "none" }}>
-            <input
-              type="checkbox"
-              checked={showQrCodePdfModal}
-              onChange={onShowQrCodeChange}
-              style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#ec4899" }}
-            />
+    <Modal
+      open
+      onClose={onClose}
+      size="xl"
+      ariaLabel={`Invoice #${pdfModalInvoice.invoiceNumber}`}
+      className={styles.panel}
+    >
+      <div className={styles.root}>
+        <div className={styles.toolbar}>
+          <label className={styles.qrToggle}>
+            <Checkbox checked={showQrCodePdfModal} onChange={onShowQrCodeChange} />
             <span>Show QR Code</span>
           </label>
-          <button
-            type="button"
-            className={styles.downloadPdfBtn}
-            style={{ padding: "8px 18px", background: "#10b981" }}
-            onClick={onDownloadPdf}
-            disabled={isDownloadingPdfModal}
-          >
+          <Button onClick={onDownloadPdf} loading={isDownloadingPdfModal}>
             {isDownloadingPdfModal ? "Downloading..." : "Download PDF"}
-          </button>
-          <button
-            type="button"
-            className={styles.pickerCloseBtn}
-            style={{ color: "#ffffff", fontSize: "20px" }}
-            onClick={onClose}
-          >
-            ✕
-          </button>
+          </Button>
         </div>
 
         {/* Reusable Exact Replica PDF Component */}
         <InvoicePdfPreview ref={modalPdfRef} invoice={pdfModalInvoice} showQrCode={showQrCodePdfModal} />
       </div>
-    </div>
+    </Modal>
   );
 }
