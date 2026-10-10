@@ -1,0 +1,40 @@
+.pickerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 24px 16px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pickerTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #f4f4f5;
+  margin: 0 0 4px 0;
+}
+
+.pickerSubtitle {
+  font-size: 13px;
+  color: #a1a1aa;
+  margin: 0;
+}
+
+.pickerCloseBtn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #a1a1aa;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pickerCloseBtn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+}

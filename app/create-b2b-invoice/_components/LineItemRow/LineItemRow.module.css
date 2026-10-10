@@ -1,0 +1,89 @@
+.tableInput {
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 13px;
+  width: 100%;
+}
+
+.removeBtn {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.removeBtn:hover {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+/* Inventory Picker Cell Button */
+.inventoryPickerBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: #a1a1aa;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.inventoryPickerBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #3b82f6;
+  color: #f4f4f5;
+}
+
+.inventoryPickerBtnFilled {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #ffffff;
+}
+
+.pickerBtnImg {
+  width: 24px;
+  height: 24px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
+}
+
+.pickerBtnIcon {
+  display: flex;
+  align-items: center;
+  color: #60a5fa;
+  flex-shrink: 0;
+}
+
+.pickerBtnId {
+  font-weight: 600;
+  color: #60a5fa;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pickerBtnPlaceholder {
+  color: #71717a;
+  flex: 1;
+}
+
+.pickerBtnChevron {
+  color: #71717a;
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
