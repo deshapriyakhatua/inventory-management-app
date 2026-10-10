@@ -1,5 +1,22 @@
 import Icon from "@/components/ui/Icon/Icon";
+import IconButton from "@/components/ui/IconButton/IconButton";
+import Input from "@/components/ui/Input/Input";
+import SegmentedControl from "@/components/ui/SegmentedControl/SegmentedControl";
+import Select from "@/components/ui/Select/Select";
 import styles from "./InvoicesControlBar.module.css";
+
+const VIEW_OPTIONS = [
+  { value: "active", label: "Active Invoices" },
+  {
+    value: "archived",
+    label: (
+      <span className={styles.segment}>
+        Archived Invoices
+        <Icon name="trash" size={14} />
+      </span>
+    ),
+  },
+];
 
 export default function InvoicesControlBar({
   showArchived,
@@ -12,58 +29,47 @@ export default function InvoicesControlBar({
   onRefresh,
   loading,
 }) {
-  return (
-    <div className={styles.controlBar}>
-      <div className={styles.tabGroup}>
-        <button
-          type="button"
-          className={`${styles.tabItem} ${!showArchived ? styles.activeTabItem : ""}`}
-          onClick={onShowActive}
-        >
-          Active Invoices
-        </button>
-        <button
-          type="button"
-          className={`${styles.tabItem} ${showArchived ? styles.activeTabItem : ""}`}
-          onClick={onShowArchived}
-        >
-          Archived Invoices 🗑️
-        </button>
-      </div>
+  const handleViewChange = (value) => (value === "archived" ? onShowArchived() : onShowActive());
 
-      <div className={styles.searchBox}>
-        <Icon name="icon-9c4a10ac" size={18} className={styles.searchIcon} />
-        <input
+  return (
+    <div className={styles.root}>
+      <SegmentedControl
+        aria-label="Active or archived invoices"
+        options={VIEW_OPTIONS}
+        value={showArchived ? "archived" : "active"}
+        onValueChange={handleViewChange}
+      />
+
+      <div className={styles.search}>
+        <Input
           type="text"
-          className={styles.searchInput}
+          aria-label="Search Invoice #, Customer Name, SKU..."
           placeholder="Search Invoice #, Customer Name, SKU..."
+          leading={<Icon name="icon-9c4a10ac" size={16} />}
           value={search}
           onChange={onSearchChange}
         />
       </div>
 
-      <div className={styles.filterGroup}>
-        <select
-          className={styles.statusSelect}
-          value={statusFilter}
-          onChange={onStatusFilterChange}
-        >
-          <option value="All">All Statuses</option>
-          <option value="Pending">Pending</option>
-          <option value="Paid">Paid</option>
-          <option value="Partially Paid">Partially Paid</option>
-          <option value="Cancelled">Cancelled</option>
-        </select>
+      <div className={styles.filters}>
+        <div className={styles.filter}>
+          <Select aria-label="Status" value={statusFilter} onChange={onStatusFilterChange}>
+            <option value="All">All Statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="Paid">Paid</option>
+            <option value="Partially Paid">Partially Paid</option>
+            <option value="Cancelled">Cancelled</option>
+          </Select>
+        </div>
 
-        <button
-          type="button"
-          className={styles.refreshBtn}
+        <IconButton
+          name="refresh"
+          variant="secondary"
+          loading={loading}
           onClick={onRefresh}
-          disabled={loading}
-        >
-          <Icon name="refresh" size={16} />
-          Refresh
-        </button>
+          title="Refresh"
+          aria-label="Refresh"
+        />
       </div>
     </div>
   );

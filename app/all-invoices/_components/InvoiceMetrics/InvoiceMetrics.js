@@ -3,20 +3,20 @@ import styles from "./InvoiceMetrics.module.css";
 
 export default function InvoiceMetrics({ invoiceCount, totalRevenue, totalReceived, totalBalance }) {
   return (
-    <div className={styles.metricsGrid}>
-      <MetricCard tone="Blue" icon="📄" label="Total Invoices">
+    <div className={styles.root}>
+      <MetricCard tone="accent" iconName="pdf-preview" label="Total Invoices">
         {invoiceCount}
       </MetricCard>
 
-      <MetricCard tone="Green" icon="₹" label="Total Revenue">
+      <MetricCard tone="success" iconName="icon-7e710d4a" label="Total Revenue">
         ₹{totalRevenue.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
       </MetricCard>
 
-      <MetricCard tone="Amber" icon="💳" label="Total Received">
+      <MetricCard tone="warning" iconName="icon-3790acba" label="Total Received">
         ₹{totalReceived.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
       </MetricCard>
 
-      <MetricCard tone="Red" icon="⚠️" label="Outstanding Balance">
+      <MetricCard tone="danger" iconName="icon-cfd589e1" label="Outstanding Balance">
         ₹{totalBalance.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
       </MetricCard>
     </div>

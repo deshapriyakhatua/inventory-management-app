@@ -1,3 +1,4 @@
+import Table from "@/components/ui/Table/Table";
 import { formatDateGB } from "../../allInvoicesUtils";
 import InvoiceActionsMenu from "../InvoiceActionsMenu/InvoiceActionsMenu";
 import StatusBadge from "../StatusBadge/StatusBadge";
@@ -10,31 +11,31 @@ export default function InvoiceRow({ inv, showArchived, isMenuOpen, menuHandlers
       : Math.max(0, (inv.grandTotal || 0) - (inv.receivedAmount || 0));
 
   return (
-    <tr>
-      <td className={styles.invNumber}>{inv.invoiceNumber}</td>
-      <td>{inv.invoiceDate ? formatDateGB(inv.invoiceDate) : "-"}</td>
-      <td className={styles.customerName}>
+    <Table.Row>
+      <Table.Cell className={styles.invNumber}>{inv.invoiceNumber}</Table.Cell>
+      <Table.Cell className={styles.nowrap}>{inv.invoiceDate ? formatDateGB(inv.invoiceDate) : "-"}</Table.Cell>
+      <Table.Cell className={styles.customerName}>
         {inv.buyerDetails?.businessName || "N/A"}
-      </td>
-      <td>{inv.lineItems?.length || 0} items</td>
-      <td style={{ fontWeight: "700", color: "#34d399" }}>
+      </Table.Cell>
+      <Table.Cell className={styles.nowrap}>{inv.lineItems?.length || 0} items</Table.Cell>
+      <Table.Cell numeric className={styles.grandTotal}>
         ₹{(inv.grandTotal || 0).toLocaleString("en-IN")}
-      </td>
-      <td>₹{(inv.receivedAmount || 0).toLocaleString("en-IN")}</td>
-      <td style={{ fontWeight: "600", color: invBalance > 0 ? "#f87171" : "#a1a1aa" }}>
+      </Table.Cell>
+      <Table.Cell numeric>₹{(inv.receivedAmount || 0).toLocaleString("en-IN")}</Table.Cell>
+      <Table.Cell numeric className={invBalance > 0 ? styles.balanceDue : styles.balanceClear}>
         ₹{invBalance.toLocaleString("en-IN")}
-      </td>
-      <td>
+      </Table.Cell>
+      <Table.Cell>
         <StatusBadge status={inv.paymentStatus} />
-      </td>
-      <td style={{ position: "relative" }}>
+      </Table.Cell>
+      <Table.Cell>
         <InvoiceActionsMenu
           inv={inv}
           showArchived={showArchived}
           isOpen={isMenuOpen}
           {...menuHandlers}
         />
-      </td>
-    </tr>
+      </Table.Cell>
+    </Table.Row>
   );
 }

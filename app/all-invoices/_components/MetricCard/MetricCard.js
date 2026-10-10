@@ -1,21 +1,25 @@
+import Card from "@/components/ui/Card/Card";
+import Icon from "@/components/ui/Icon/Icon";
+import cx from "@/components/ui/cx";
 import styles from "./MetricCard.module.css";
 
-// tone: "Blue" | "Green" | "Amber" | "Red" -> styles.iconBlue / iconGreen / iconAmber / iconRed
 const TONE_CLASS = {
-  Blue: styles.iconBlue,
-  Green: styles.iconGreen,
-  Amber: styles.iconAmber,
-  Red: styles.iconRed,
+  accent: styles.toneAccent,
+  success: styles.toneSuccess,
+  warning: styles.toneWarning,
+  danger: styles.toneDanger,
 };
 
-export default function MetricCard({ tone, icon, label, children }) {
+export default function MetricCard({ tone = "accent", iconName, label, children }) {
   return (
-    <div className={styles.metricCard}>
-      <div className={`${styles.metricIcon} ${TONE_CLASS[tone]}`}>{icon}</div>
-      <div className={styles.metricInfo}>
-        <span className={styles.metricLabel}>{label}</span>
-        <span className={styles.metricValue}>{children}</span>
+    <Card className={styles.root}>
+      <span aria-hidden="true" className={cx(styles.icon, TONE_CLASS[tone])}>
+        <Icon name={iconName} size={22} />
+      </span>
+      <div className={styles.info}>
+        <span className={styles.label}>{label}</span>
+        <span className={styles.value}>{children}</span>
       </div>
-    </div>
+    </Card>
   );
 }

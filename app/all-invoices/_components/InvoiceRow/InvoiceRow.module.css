@@ -1,9 +1,29 @@
 .invNumber {
-  font-weight: 700;
-  color: #60a5fa;
+  color: var(--color-accent);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
 }
 
 .customerName {
-  font-weight: 600;
-  color: #f4f4f5;
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.grandTotal {
+  color: var(--color-success);
+  font-weight: var(--weight-semibold);
+}
+
+.balanceDue {
+  color: var(--color-danger);
+  font-weight: var(--weight-semibold);
+}
+
+.balanceClear {
+  color: var(--color-text-muted);
+  font-weight: var(--weight-semibold);
 }
