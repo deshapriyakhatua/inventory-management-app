@@ -219,7 +219,7 @@ const InvoicePdfPreview = forwardRef(({ invoice, showQrCode = true }, ref) => {
               <div>Bank Name : {bankName}</div>
               <div>Bank Account No. : {accountNo}</div>
               <div>IFSC code : {ifscCode}</div>
-              <div>Account Holder's Name : {accountHolderName}</div>
+              <div>Account Holder&apos;s Name : {accountHolderName}</div>
               {upiId && <div>UPI ID : {upiId}</div>}
             </div>
           </div>
@@ -299,6 +299,8 @@ const InvoicePdfPreview = forwardRef(({ invoice, showQrCode = true }, ref) => {
           <div className={styles.sampleQrGrid}>
             <div className={styles.qrCard}>
               <div className={styles.qrTitle}>Scan & pay</div>
+              {/* Plain <img>: html2canvas captures this QR for the PDF; next/image's lazy loading could leave it blank. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
                   `upi://pay?pa=${upiId}&pn=${accountHolderName}&am=${displayBalance}`

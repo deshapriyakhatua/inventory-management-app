@@ -141,9 +141,9 @@ export default function DashboardPage() {
     };
 
     // Safe data arrays
-    const safeInventoryData = Array.isArray(inventoryData) ? inventoryData : [];
-    const safeListingsData = Array.isArray(listingsData) ? listingsData : [];
-    const safeSalesData = Array.isArray(salesData) ? salesData : [];
+    const safeInventoryData = useMemo(() => (Array.isArray(inventoryData) ? inventoryData : []), [inventoryData]);
+    const safeListingsData = useMemo(() => (Array.isArray(listingsData) ? listingsData : []), [listingsData]);
+    const safeSalesData = useMemo(() => (Array.isArray(salesData) ? salesData : []), [salesData]);
 
     // Map skuId to vertical from listings
     const skuVerticalMap = useMemo(() => {

@@ -196,6 +196,8 @@ export default function PaymentQrModal({ isOpen, onClose, invoice }) {
             </div>
 
             <div className={styles.qrFrame}>
+              {/* Plain <img>: the QR card is captured for download; next/image's lazy loading could leave it blank. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={qrImageUrl} alt="Payment QR Code" className={styles.qrImg} />
             </div>
 

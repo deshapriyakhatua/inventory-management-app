@@ -414,7 +414,7 @@ Standard "list page" pattern (7.2) applies to all.
 
 ### PHASE 6 — Polish, accessibility, cleanup
 
-- [ ] **T-6.1 Cleanup + guard green** · M · Dep: all of Phases 3–5
+- [x] **T-6.1 Cleanup + guard green** · M · Dep: all of Phases 3–5
   - Delete unused CSS classes (verify with grep per file), unused `components/Toast`, `RefreshIcon`, duplicated keyframes. `npm run check:ui` passes with zero violations apart from the allow-list.
 - [ ] **T-6.2 Motion pass** · M · Dep: T-6.1
   - Audit every interactive element for R1 (press feedback), R3 (no input lock), R4 (symmetric paths), R15 (compositor-only). Slow-motion review of Modal/Sheet/Sidebar.
@@ -424,6 +424,10 @@ Standard "list page" pattern (7.2) applies to all.
   - Verify every route at 360/768/1024/1280 px: no horizontal page scroll, touch targets ≥ 44px on mobile, sidebar sheet works.
 - [ ] **T-6.5 Docs** · S · Dep: T-6.1
   - Replace default `README.md` content with a UI section: structure (section 3), conventions (section 4), how to add a primitive/page. Keep this plan as `REDESIGN_PLAN.md` with all boxes ticked.
+- [ ] **T-6.6 File-size limits** · M · Dep: T-6.1
+  - Section 10 requires no page file > 400 lines and no component file > 300. After Phase 5 the over-limit files are: `create-b2b-invoice/page.js` (802), `purchase-history/page.js` (635), `all-invoices/page.js` (629), `all-listings/page.js` (569), `all-inventory/page.js` (558), `app/page.js` (413), `add-listing/page.js` (406); `Sidebar.module.css` (323), `SalesRecordsView.js` (310), `ui/Icon/icons.js` (308). `InvoicePdfPreview.*` is exempt (8.1).
+  - Move page state, effects and data loading into route-local hooks (`app/<route>/_hooks/useX.js`), verbatim; one page per commit; no visual or behavior change. Effects keep their original deps (`useEffectEvent` where already used).
+  - Acceptance: line limits met; lint/build/check:ui green; fetch/toast multiset unchanged per route.
 
 ### 7.1 Standard "form page" pattern
 ```

@@ -52,8 +52,30 @@ is_exempt() {
     svg:components/MarketplaceLogo/MarketplaceLogo.js)
       return 0
       ;;
+    inline:components/InvoicePdfPreview/InvoicePdfPreview.js)
+      # Plan 8.1: the invoice document keeps a fixed, print-safe layout.
+      return 0
+      ;;
   esac
   return 1
+}
+
+# Plan 8.4: @media print blocks keep their behavior, so their contents are not
+# checked. Lines inside them are blanked so reported line numbers stay accurate.
+without_print_blocks() {
+  awk '
+    !inprint && /@media[[:space:]]+print/ { inprint = 1; depth = 0 }
+    inprint {
+      line = $0
+      opens = gsub(/\{/, "{", line)
+      closes = gsub(/\}/, "}", line)
+      depth += opens - closes
+      print ""
+      if (depth <= 0 && opens + closes > 0) inprint = 0
+      next
+    }
+    { print }
+  ' "$1"
 }
 
 scan_css_pattern() {
@@ -68,7 +90,7 @@ scan_css_pattern() {
     if is_exempt "$category" "$relative"; then
       continue
     fi
-    matches="$(grep -nE "$pattern" "$file" || true)"
+    matches="$(without_print_blocks "$file" | grep -nE "$pattern" || true)"
     while IFS= read -r line; do
       [[ -z "$line" ]] && continue
       record_violation "$category" "$relative:$line"
@@ -178,6 +200,9 @@ fi
 
 while IFS= read -r location; do
   [[ -z "$location" ]] && continue
+  if is_exempt inline "${location%:*}"; then
+    continue
+  fi
   record_violation inline "$location"
 done <<< "$INLINE_RESULTS"
 

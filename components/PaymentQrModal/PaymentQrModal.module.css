@@ -207,7 +207,3 @@
   }
 }
 
-.dlBtnJpg:disabled, .dlBtnPng:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
