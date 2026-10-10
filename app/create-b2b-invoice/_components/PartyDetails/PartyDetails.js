@@ -1,4 +1,6 @@
-import Icon from "@/components/ui/Icon/Icon";
+import FormField from "@/components/ui/FormField/FormField";
+import Input from "@/components/ui/Input/Input";
+import Select from "@/components/ui/Select/Select";
 import { GST_STATES } from "@/utils/gstStates";
 import FormCard from "../FormCard/FormCard";
 import styles from "./PartyDetails.module.css";
@@ -6,62 +8,50 @@ import styles from "./PartyDetails.module.css";
 // Card 2: Customer & Seller Summary
 export default function PartyDetails({ sellerDetails, buyerDetails, onBuyerFieldChange }) {
   return (
-    <FormCard>
-      <div className={styles.sellerSummaryBanner}>
-        <div>
+    <FormCard
+      icon="icon-a887788a"
+      title="Issued To (Customer)"
+      lead={
+        <div className={styles.sellerBanner}>
           <span className={styles.sellerBannerLabel}>Seller:</span>{" "}
           <span className={styles.sellerBannerName}>{sellerDetails.businessName || "N/A"}</span>
           <span className={styles.sellerBannerGst}> • GSTIN: {sellerDetails.gstNo || "N/A"}</span>
         </div>
-      </div>
-
-      <h3 className={styles.sectionTitle}>
-        <Icon name="icon-a887788a" />
-        Issued To (Customer)
-      </h3>
+      }
+    >
       <div className={styles.formGrid}>
-        <div className={styles.inputGroup}>
-          <label className={styles.label}>Customer Name *</label>
-          <input
+        <FormField label="Customer Name">
+          <Input
             type="text"
-            className={styles.input}
             value={buyerDetails.businessName}
             onChange={(e) => onBuyerFieldChange("businessName", e.target.value)}
             required
           />
-        </div>
-        <div className={styles.inputGroup}>
-          <label className={styles.label}>Contact No</label>
-          <input
+        </FormField>
+        <FormField label="Contact No">
+          <Input
             type="text"
-            className={styles.input}
             value={buyerDetails.phoneNo || ""}
             onChange={(e) => onBuyerFieldChange("phoneNo", e.target.value)}
             placeholder="e.g. +91 9876543210"
           />
-        </div>
-        <div className={styles.inputGroup}>
-          <label className={styles.label}>Full Address</label>
-          <input
+        </FormField>
+        <FormField label="Full Address">
+          <Input
             type="text"
-            className={styles.input}
             value={buyerDetails.address}
             onChange={(e) => onBuyerFieldChange("address", e.target.value)}
           />
-        </div>
-        <div className={styles.inputGroup}>
-          <label className={styles.label}>GSTIN Number</label>
-          <input
+        </FormField>
+        <FormField label="GSTIN Number">
+          <Input
             type="text"
-            className={styles.input}
             value={buyerDetails.gstNo}
             onChange={(e) => onBuyerFieldChange("gstNo", e.target.value)}
           />
-        </div>
-        <div className={styles.inputGroup}>
-          <label className={styles.label}>State</label>
-          <select
-            className={styles.select}
+        </FormField>
+        <FormField label="State">
+          <Select
             value={buyerDetails.state}
             onChange={(e) => onBuyerFieldChange("state", e.target.value)}
           >
@@ -70,8 +60,8 @@ export default function PartyDetails({ sellerDetails, buyerDetails, onBuyerField
                 {st}
               </option>
             ))}
-          </select>
-        </div>
+          </Select>
+        </FormField>
       </div>
     </FormCard>
   );

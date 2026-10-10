@@ -1,4 +1,7 @@
-import Icon from "@/components/ui/Icon/Icon";
+import Button from "@/components/ui/Button/Button";
+import FormField from "@/components/ui/FormField/FormField";
+import Input from "@/components/ui/Input/Input";
+import Select from "@/components/ui/Select/Select";
 import { GST_STATES } from "@/utils/gstStates";
 import FormCard from "../FormCard/FormCard";
 import styles from "./InvoiceMetaSection.module.css";
@@ -18,68 +21,48 @@ export default function InvoiceMetaSection({
   onPaymentStatusChange,
 }) {
   return (
-    <FormCard>
-      <h3 className={styles.sectionTitle}>
-        <Icon name="icon-f5ba4e77" />
-        Invoice Header Info
-      </h3>
-
+    <FormCard icon="icon-f5ba4e77" title="Invoice Header Info">
       <div className={styles.formGrid}>
-        <div className={styles.inputGroup}>
-          <label className={styles.label}>Invoice No</label>
-          <div className={styles.idRow}>
-            <input
+        <div className={styles.idRow}>
+          <FormField label="Invoice No" className={styles.idField}>
+            <Input
               type="text"
-              className={styles.input}
               value={invoiceNumber}
               onChange={onInvoiceNumberChange}
               placeholder="e.g. CZ-A9743"
               required
             />
-            <button
-              type="button"
-              className={styles.generateBtn}
-              onClick={onGenerateId}
-              disabled={isGeneratingId}
-            >
-              {isGeneratingId ? "..." : "Generate"}
-            </button>
-          </div>
+          </FormField>
+          <Button
+            variant="secondary"
+            onClick={onGenerateId}
+            loading={isGeneratingId}
+          >
+            {isGeneratingId ? "..." : "Generate"}
+          </Button>
         </div>
 
-        <div className={styles.inputGroup}>
-          <label className={styles.label}>Date</label>
-          <input
+        <FormField label="Date">
+          <Input
             type="date"
-            className={styles.input}
             value={invoiceDate}
             onChange={onInvoiceDateChange}
             required
           />
-        </div>
+        </FormField>
 
-        <div className={styles.inputGroup}>
-          <label className={styles.label}>Place of Supply</label>
-          <select
-            className={styles.select}
-            value={placeOfSupply}
-            onChange={onPlaceOfSupplyChange}
-          >
+        <FormField label="Place of Supply">
+          <Select value={placeOfSupply} onChange={onPlaceOfSupplyChange}>
             {GST_STATES.map((st) => (
               <option key={st} value={st}>
                 {st}
               </option>
             ))}
-          </select>
-        </div>
+          </Select>
+        </FormField>
 
-        <div className={styles.inputGroup}>
-          <label className={styles.label}>Payment Status</label>
-          <select
-            className={styles.select}
-            value={paymentStatus}
-            onChange={onPaymentStatusChange}
-          >
+        <FormField label="Payment Status">
+          <Select value={paymentStatus} onChange={onPaymentStatusChange}>
             <option
               value="Pending"
               disabled={paymentStatus !== "Cancelled" && autoPaymentStatus !== "Pending"}
@@ -99,8 +82,8 @@ export default function InvoiceMetaSection({
               Partially Paid {paymentStatus !== "Cancelled" && autoPaymentStatus === "Partially Paid" ? "(Auto)" : ""}
             </option>
             <option value="Cancelled">Cancelled</option>
-          </select>
-        </div>
+          </Select>
+        </FormField>
       </div>
     </FormCard>
   );

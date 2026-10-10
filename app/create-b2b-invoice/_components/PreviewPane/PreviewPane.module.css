@@ -1,0 +1,18 @@
+/*
+ * The invoice paper is a fixed 800px light page (+ its own wrapper padding, ≈ 840px) styled by
+ * InvoicePdfPreview.module.css. .root scrolls horizontally when the viewport is narrower;
+ * .stage sizes to the preview's max-content width (or the full width when wider) so the
+ * preview is never squeezed or clipped on the left by its centred flex wrapper.
+ * No background/colour/transform/filter here: dark mode must not reach the paper or the capture.
+ */
+.root {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.stage {
+  width: max-content;
+  min-width: 100%;
+}

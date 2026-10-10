@@ -1,17 +1,40 @@
-.tableInput {
-  padding: 8px 10px;
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-  font-size: 13px;
-  width: 100%;
-}
-
+/* Same row look as TaxSummary .summaryRow (these rows render inside its summary box). */
 .summaryRow {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  font-size: 14px;
-  color: #d4d4d8;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+}
+
+.amount {
+  font-variant-numeric: tabular-nums;
+}
+
+.amountInput {
+  width: 7rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.balanceRow {
+  color: var(--color-danger);
+  font-weight: var(--weight-bold);
+}
+
+.qrRow {
+  margin-top: var(--space-1);
+  padding-top: var(--space-2);
+  border-top: 1px dashed var(--color-border);
+}
+
+.qrToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  user-select: none;
 }

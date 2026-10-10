@@ -1,11 +1,12 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useEffectEvent, useRef } from "react";
 import styles from "./page.module.css";
 import { toast } from "sonner";
 
 import { downloadInvoicePdf } from "@/utils/generatePdf";
 import { calculatePaymentStatus } from "@/lib/paymentStatus";
 import PaymentQrModal from "@/components/PaymentQrModal/PaymentQrModal";
+import PageShell from "@/components/ui/PageShell/PageShell";
 
 import CompanySettingsModal from "./_components/CompanySettingsModal/CompanySettingsModal";
 import CursorImageTooltip from "./_components/CursorImageTooltip/CursorImageTooltip";
@@ -249,8 +250,7 @@ export default function CreateB2BInvoicePage() {
   const [buyerDetails, setBuyerDetails] = useState({
     businessName: "",
     phoneNo: "",
-    address:
-      "",
+    address: "",
     gstNo: "NA",
     state: "",
   });
@@ -276,12 +276,14 @@ export default function CreateB2BInvoicePage() {
     "All goods checked before dispatch.\nGoods once sold will not taken back.\nOpening video is must for any claims. We are not responsible for any damages once goods leave our premises. Any dispute will be subject to Barrackpore jurisdiction only."
   );
 
-  useEffect(() => {
+  // Mount-only load; useEffectEvent keeps it from re-running when fetchRecentInvoices changes identity
+  const loadOnMount = useEffectEvent(() => {
     fetchNextInvoiceId();
     fetchInventoryList();
     fetchRecentInvoices();
     fetchCompanySettings();
-  }, []);
+  });
+  useEffect(() => { loadOnMount(); }, []);
 
   // Fetch Saved Company & Bank Settings from Database
   const fetchCompanySettings = async () => {
@@ -392,7 +394,7 @@ export default function CreateB2BInvoicePage() {
   // Line Item Change Handlers
   const handleLineItemChange = (index, field, value) => {
     const updated = [...lineItems];
-    updated[index][field] = value;
+    updated[index] = { ...updated[index], [field]: value };
 
     if (field === "inventoryId" && value) {
       const selectedItem = inventoryList.find((i) => i.inventoryId === value);
@@ -643,8 +645,7 @@ export default function CreateB2BInvoicePage() {
   const handleCloseGraphicalModal = () => setShowGraphicalModal(false);
 
   return (
-    <div className={styles.container}>
-      {/* Top Header */}
+    <PageShell>
       <InvoicePageHeader
         activeTab={activeTab}
         showQrCode={showQrCode}
@@ -656,9 +657,8 @@ export default function CreateB2BInvoicePage() {
         onDownloadPdf={handleDownloadPdf}
       />
 
-      {/* Main Content */}
       {activeTab === "form" ? (
-        <form onSubmit={handleSubmitInvoice}>
+        <form className={styles.form} onSubmit={handleSubmitInvoice}>
           <InvoiceMetaSection
             invoiceNumber={invoiceNumber}
             invoiceDate={invoiceDate}
@@ -797,6 +797,6 @@ export default function CreateB2BInvoicePage() {
         onClose={() => setShowPaymentQrModal(false)}
         invoice={paymentQrInvoice}
       />
-    </div>
+    </PageShell>
   );
 }

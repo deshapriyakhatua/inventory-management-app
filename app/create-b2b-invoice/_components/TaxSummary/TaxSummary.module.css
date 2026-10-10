@@ -1,71 +1,60 @@
-.tableInput {
-  padding: 8px 10px;
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-  font-size: 13px;
-  width: 100%;
-}
-
-/* Form Calculations Footer */
+/* Form Calculations Footer: summary box is full width on mobile, right-aligned 24rem from 768px. */
 .summaryContainer {
   display: flex;
   justify-content: flex-end;
-  margin-top: 20px;
 }
 
 .summaryBox {
-  width: 380px;
-  max-width: 100%;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 12px;
-  padding: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
 }
 
+/* Shared row look; PaymentSection repeats it for its rows inside this box. */
 .summaryRow {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  font-size: 14px;
-  color: #d4d4d8;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+}
+
+.amount {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.amountInput {
+  width: 7rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 .grandTotalRow {
-  font-size: 18px;
-  font-weight: 700;
-  color: #10b981;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-  padding-top: 10px;
-  margin-top: 4px;
+  margin-top: var(--space-1);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-strong);
+  color: var(--color-success);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
 }
 
-.submitBtn {
-  margin-top: 24px;
+.grandTotalRow .amount {
+  color: var(--color-success);
+}
+
+.submitButton {
   width: 100%;
-  padding: 14px;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  color: #ffffff;
-  font-size: 16px;
-  font-weight: 700;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
-  transition: all 0.2s ease;
 }
 
-.submitBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
-}
-
-.submitBtn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
+@media (min-width: 768px) {
+  .summaryBox {
+    max-width: 24rem;
+  }
 }
