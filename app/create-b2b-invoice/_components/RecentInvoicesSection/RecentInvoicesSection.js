@@ -24,7 +24,7 @@ export default function RecentInvoicesSection({
   return (
     <Card as="section" padding="lg" className={styles.recentSection}>
       <div className={styles.header}>
-        <h2 className={styles.title}>Recent B2B Invoices ({recentInvoices.length})</h2>
+        <h2 id="recent-b2b-invoices-title" className={styles.title}>Recent B2B Invoices ({recentInvoices.length})</h2>
         <Button
           variant="secondary"
           size="sm"
@@ -38,6 +38,7 @@ export default function RecentInvoicesSection({
 
       <Table
         className={styles.table}
+        aria-labelledby="recent-b2b-invoices-title"
         loading={isInitialLoading}
         loadingRows={4}
         columns={COLUMNS}

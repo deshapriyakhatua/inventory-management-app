@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useId, useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Button, Icon, Modal } from "@/components/ui";
 import styles from "./PaymentQrModal.module.css";
@@ -14,6 +14,7 @@ export default function PaymentQrModal({ isOpen, onClose, invoice }) {
   const [isDownloadingPng, setIsDownloadingPng] = useState(false);
 
   const qrCardRef = useRef(null);
+  const fieldId = useId();
 
   useEffect(() => {
     if (invoice) {
@@ -139,12 +140,13 @@ export default function PaymentQrModal({ isOpen, onClose, invoice }) {
       <div className={styles.grid}>
         <div className={styles.formSection}>
           <div className={styles.inputGroup}>
-            <label className={styles.label}>QR Amount (₹)</label>
+            <label className={styles.label} htmlFor={`${fieldId}-amount`}>QR Amount (₹)</label>
             <div className={styles.amountWrapper}>
               <span className={styles.currencyPrefix}>₹</span>
               <input
                 type="number"
                 step="any"
+                id={`${fieldId}-amount`}
                 className={`${styles.input} ${styles.amountInput}`}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
@@ -155,8 +157,9 @@ export default function PaymentQrModal({ isOpen, onClose, invoice }) {
           </div>
 
           <div className={styles.inputGroup}>
-            <label className={styles.label}>Payee UPI ID</label>
+            <label className={styles.label} htmlFor={`${fieldId}-upi`}>Payee UPI ID</label>
             <input
+              id={`${fieldId}-upi`}
               type="text"
               className={styles.input}
               value={upiId}
@@ -165,8 +168,9 @@ export default function PaymentQrModal({ isOpen, onClose, invoice }) {
           </div>
 
           <div className={styles.inputGroup}>
-            <label className={styles.label}>Payee Business Name</label>
+            <label className={styles.label} htmlFor={`${fieldId}-payee`}>Payee Business Name</label>
             <input
+              id={`${fieldId}-payee`}
               type="text"
               className={styles.input}
               value={payeeName}
@@ -175,8 +179,9 @@ export default function PaymentQrModal({ isOpen, onClose, invoice }) {
           </div>
 
           <div className={styles.inputGroup}>
-            <label className={styles.label}>Payment Remark / Note</label>
+            <label className={styles.label} htmlFor={`${fieldId}-note`}>Payment Remark / Note</label>
             <input
+              id={`${fieldId}-note`}
               type="text"
               className={styles.input}
               value={note}

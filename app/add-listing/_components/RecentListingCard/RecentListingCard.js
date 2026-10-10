@@ -35,7 +35,7 @@ export default function RecentListingCard({ item, deleting, deleteDisabled, onDe
 
             <div className={styles.info}>
                 <div className={styles.idRow}>
-                    <MarketplaceLogo marketplace={item.marketplace} size={18} />
+                    <MarketplaceLogo marketplace={item.marketplace} size={18} label={item.marketplace} />
                     <p className={styles.sku}>{item.skuId}</p>
                     <IconButton
                         name="copy-inventory-id"

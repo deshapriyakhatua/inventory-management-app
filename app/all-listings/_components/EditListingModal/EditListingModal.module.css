@@ -123,9 +123,9 @@
 }
 
 .pillActive .verticalShort {
-    border-color: var(--color-accent);
+    border-color: var(--color-accent-fill);
     color: var(--color-text-on-accent);
-    background: var(--color-accent);
+    background: var(--color-accent-fill);
 }
 
 .verticalName {
@@ -157,7 +157,7 @@
 
 .tagsEmpty {
     padding-inline: var(--space-1);
-    color: var(--color-text-subtle);
+    color: var(--color-text-muted);
     font-size: var(--text-sm);
     font-style: italic;
 }

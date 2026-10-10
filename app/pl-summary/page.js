@@ -155,8 +155,8 @@ export default function PLSummaryPage() {
 
                     {summary.skuBreakdown?.length > 0 ? (
                         <section className={styles.section}>
-                            <h2 className={styles.sectionTitle}>SKU Breakdown</h2>
-                            <Table columns={6}>
+                            <h2 id="pl-sku-breakdown-title" className={styles.sectionTitle}>SKU Breakdown</h2>
+                            <Table columns={6} aria-labelledby="pl-sku-breakdown-title">
                                 <Table.Head>
                                     <Table.Row hover={false}>
                                         <Table.Cell as="th">SKU ID</Table.Cell>
@@ -189,8 +189,8 @@ export default function PLSummaryPage() {
 
                     {summary.inventoryBreakdown?.length > 0 && (
                         <section className={styles.section}>
-                            <h2 className={styles.sectionTitle}>Inventory COGS (FIFO)</h2>
-                            <Table columns={5}>
+                            <h2 id="pl-inventory-cogs-title" className={styles.sectionTitle}>Inventory COGS (FIFO)</h2>
+                            <Table columns={5} aria-labelledby="pl-inventory-cogs-title">
                                 <Table.Head>
                                     <Table.Row hover={false}>
                                         <Table.Cell as="th">Inventory ID</Table.Cell>

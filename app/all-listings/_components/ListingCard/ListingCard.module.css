@@ -117,7 +117,7 @@
     justify-content: center;
     gap: var(--space-2);
     height: 100%;
-    color: var(--color-text-subtle);
+    color: var(--color-text-muted);
     font-size: var(--text-md);
 }
 
@@ -192,5 +192,20 @@
     .root:has(.open:hover),
     .root:has(.open:active) {
         transform: none;
+    }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+    .root .action {
+        background: var(--color-surface);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+}
+
+@media (prefers-contrast: more) {
+    .root .action {
+        background: var(--color-surface);
+        box-shadow: 0 0 0 1px var(--color-border-strong);
     }
 }

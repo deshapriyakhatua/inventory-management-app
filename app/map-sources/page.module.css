@@ -99,6 +99,7 @@
   width: 2.75rem;
   height: 2.75rem;
   border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
   background: var(--color-surface-raised);
 }
 
@@ -192,7 +193,7 @@
 }
 
 .subtle {
-  color: var(--color-text-subtle);
+  color: var(--color-text-muted);
 }
 
 .section {

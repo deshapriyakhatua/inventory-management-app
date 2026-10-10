@@ -304,10 +304,10 @@ export default function UploadSalesLog() {
             {parsedData.length > 0 && (
                 <Card padding="md" className={styles.preview}>
                     <div className={styles.previewHeader}>
-                        <h2 className={styles.previewTitle}>Data Preview</h2>
+                        <h2 id="upload-preview-title" className={styles.previewTitle}>Data Preview</h2>
                         <span className={styles.previewCount}>{parsedData.length} records found</span>
                     </div>
-                    <Table maxHeight="25rem" columns={8}>
+                    <Table maxHeight="25rem" columns={8} aria-labelledby="upload-preview-title">
                         <Table.Head>
                             <tr>
                                 <Table.Cell as="th" className={styles.stickyColumn}>

@@ -68,7 +68,7 @@
   height: 1.25rem;
   border-radius: var(--radius-pill);
   color: var(--color-text-on-accent);
-  background: var(--color-accent);
+  background: var(--color-accent-fill);
 }
 
 .media {

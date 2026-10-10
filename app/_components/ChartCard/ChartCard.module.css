@@ -29,5 +29,5 @@
   min-height: 12.5rem;
   margin: 0;
   font-size: var(--text-md);
-  color: var(--color-text-subtle);
+  color: var(--color-text-muted);
 }

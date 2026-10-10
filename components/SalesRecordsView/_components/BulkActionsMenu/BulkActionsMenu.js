@@ -1,12 +1,24 @@
+import { useRef } from "react";
 import Button from "@/components/ui/Button/Button";
 import Icon from "@/components/ui/Icon/Icon";
 import cx from "@/components/ui/cx";
 import styles from "./BulkActionsMenu.module.css";
 
 export default function BulkActionsMenu({ menuRef, selectedCount, isOpen, onToggle, viewArchived, onAction }) {
+    const triggerRef = useRef(null);
+
     return (
-        <div className={styles.root} ref={menuRef}>
+        <div
+            className={styles.root}
+            ref={menuRef}
+            onKeyDown={(e) => {
+                if (e.key !== "Escape" || !isOpen) return;
+                onToggle();
+                triggerRef.current?.focus();
+            }}
+        >
             <Button
+                ref={triggerRef}
                 variant="secondary"
                 className={styles.trigger}
                 aria-haspopup="menu"

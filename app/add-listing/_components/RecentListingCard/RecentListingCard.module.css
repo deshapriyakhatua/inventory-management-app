@@ -43,7 +43,7 @@
 }
 
 .thumbPlaceholder {
-  color: var(--color-text-subtle);
+  color: var(--color-text-muted);
   font-size: var(--text-2xs);
 }
 
@@ -61,9 +61,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 8rem;
+  min-height: 8rem;
   border-radius: var(--radius-sm);
-  color: var(--color-text-subtle);
+  color: var(--color-text-muted);
   background: var(--color-surface-sunken);
   font-size: var(--text-sm);
 }

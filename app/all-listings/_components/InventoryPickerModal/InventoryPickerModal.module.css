@@ -89,7 +89,7 @@
     align-items: center;
     justify-content: center;
     color: var(--color-text-on-accent);
-    background: color-mix(in srgb, var(--color-accent) 55%, transparent);
+    background: color-mix(in srgb, var(--color-accent-fill) 55%, transparent);
 }
 
 .cardId {

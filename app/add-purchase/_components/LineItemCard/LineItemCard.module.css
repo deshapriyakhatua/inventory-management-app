@@ -96,7 +96,7 @@
 
 .pickerPlaceholder {
   flex: 1;
-  color: var(--color-text-subtle);
+  color: var(--color-text-muted);
   font-style: italic;
 }
 

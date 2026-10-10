@@ -75,7 +75,7 @@
 }
 
 .dropHint {
-    color: var(--color-text-subtle);
+    color: var(--color-text-muted);
     font-size: var(--text-sm);
 }
 
@@ -149,7 +149,7 @@
 }
 
 .previewCount {
-    color: var(--color-text-subtle);
+    color: var(--color-text-muted);
     font-size: var(--text-sm);
 }
 

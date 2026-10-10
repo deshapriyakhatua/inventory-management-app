@@ -120,7 +120,7 @@
 
 .pickerPlaceholder {
   flex: 1;
-  color: var(--color-text-subtle);
+  color: var(--color-text-muted);
 }
 
 @media (min-width: 768px) {

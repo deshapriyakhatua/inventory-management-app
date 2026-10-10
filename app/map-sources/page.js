@@ -257,9 +257,10 @@ export default function MapSourcesPage() {
 
               {/* Current Sources */}
               <section className={styles.section}>
-                <h4 className={styles.sectionHeading}>Currently Mapped Suppliers</h4>
+                <h4 id="mapped-suppliers-title" className={styles.sectionHeading}>Currently Mapped Suppliers</h4>
 
                 <Table
+                  aria-labelledby="mapped-suppliers-title"
                   columns={3}
                   empty={hasSources ? undefined : "This item currently has no sellers mapped to it."}
                 >

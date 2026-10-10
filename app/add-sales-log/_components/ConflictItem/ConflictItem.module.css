@@ -120,7 +120,7 @@
 }
 
 .oldValue {
-  color: var(--color-text-subtle);
+  color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
 }
 

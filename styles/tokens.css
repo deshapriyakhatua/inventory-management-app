@@ -15,7 +15,7 @@
   --blur-thick: 24px;
 
   --color-text: #1d1d1f;
-  --color-text-muted: #6e6e73;
+  --color-text-muted: #6a6a6f;
   --color-text-subtle: #86868b;
   --color-text-inverse: #ffffff;
   --color-text-on-accent: #ffffff;
@@ -24,10 +24,17 @@
   --color-border-strong: rgba(0, 0, 0, 0.2);
   --color-border-focus: #0071e3;
 
-  --color-accent: #0071e3;
-  --color-accent-hover: #0077ed;
-  --color-accent-pressed: #006edb;
-  --color-accent-subtle: rgba(0, 113, 227, 0.1);
+  --color-accent: #0068d2;
+  --color-accent-hover: #0074e8;
+  --color-accent-pressed: #0064cc;
+  --color-accent-subtle: rgba(0, 104, 210, 0.1);
+  /* Solid fills behind --color-text-on-accent (buttons, checks, selected badges). */
+  --color-accent-fill: #006ad6;
+  --color-accent-fill-hover: #0074e8;
+  --color-accent-fill-pressed: #0064cc;
+  --color-danger-fill: #c5222f;
+  --color-danger-fill-hover: #b51f2b;
+  --color-success-fill: #187a3e;
 
   --color-success: #187a3e;
   --color-success-subtle: rgba(24, 122, 62, 0.1);
@@ -38,9 +45,9 @@
   --color-danger: #c5222f;
   --color-danger-subtle: rgba(197, 34, 47, 0.1);
   --color-danger-border: rgba(197, 34, 47, 0.3);
-  --color-info: #0969da;
-  --color-info-subtle: rgba(9, 105, 218, 0.1);
-  --color-info-border: rgba(9, 105, 218, 0.3);
+  --color-info: #0967d5;
+  --color-info-subtle: rgba(9, 103, 213, 0.1);
+  --color-info-border: rgba(9, 103, 213, 0.3);
 
   --chart-1: #0071e3;
   --chart-2: #187a3e;
@@ -146,18 +153,25 @@
 
   --color-text: #f8fafc;
   --color-text-muted: #cbd5e1;
-  --color-text-subtle: #94a3b8;
+  --color-text-subtle: #9facbf;
   --color-text-inverse: #0f172a;
   --color-text-on-accent: #ffffff;
 
   --color-border: rgba(148, 163, 184, 0.2);
   --color-border-strong: #475569;
-  --color-border-focus: #0a84ff;
+  --color-border-focus: #158aff;
 
-  --color-accent: #0a84ff;
-  --color-accent-hover: #3b9bff;
-  --color-accent-pressed: #006ad4;
-  --color-accent-subtle: rgba(10, 132, 255, 0.16);
+  --color-accent: #61b0ff;
+  --color-accent-hover: #80c0ff;
+  --color-accent-pressed: #6db6ff;
+  --color-accent-subtle: rgba(97, 176, 255, 0.16);
+  /* Solid fills behind --color-text-on-accent (buttons, checks, selected badges). */
+  --color-accent-fill: #0a66d6;
+  --color-accent-fill-hover: #0a5cc2;
+  --color-accent-fill-pressed: #0952ad;
+  --color-danger-fill: #d42d2d;
+  --color-danger-fill-hover: #b91c1c;
+  --color-success-fill: #15803d;
 
   --color-success: #34d399;
   --color-success-subtle: rgba(52, 211, 153, 0.14);
@@ -165,12 +179,12 @@
   --color-warning: #fbbf24;
   --color-warning-subtle: rgba(251, 191, 36, 0.14);
   --color-warning-border: rgba(251, 191, 36, 0.36);
-  --color-danger: #f87171;
-  --color-danger-subtle: rgba(248, 113, 113, 0.14);
-  --color-danger-border: rgba(248, 113, 113, 0.36);
-  --color-info: #60a5fa;
-  --color-info-subtle: rgba(96, 165, 250, 0.14);
-  --color-info-border: rgba(96, 165, 250, 0.36);
+  --color-danger: #f98c8c;
+  --color-danger-subtle: rgba(249, 140, 140, 0.14);
+  --color-danger-border: rgba(249, 140, 140, 0.36);
+  --color-info: #70aefb;
+  --color-info-subtle: rgba(112, 174, 251, 0.14);
+  --color-info-border: rgba(112, 174, 251, 0.36);
 
   --chart-1: #60a5fa;
   --chart-2: #34d399;
@@ -202,18 +216,25 @@
 
     --color-text: #f8fafc;
     --color-text-muted: #cbd5e1;
-    --color-text-subtle: #94a3b8;
+    --color-text-subtle: #9facbf;
     --color-text-inverse: #0f172a;
     --color-text-on-accent: #ffffff;
 
     --color-border: rgba(148, 163, 184, 0.2);
     --color-border-strong: #475569;
-    --color-border-focus: #0a84ff;
+    --color-border-focus: #158aff;
 
-    --color-accent: #0a84ff;
-    --color-accent-hover: #3b9bff;
-    --color-accent-pressed: #006ad4;
-    --color-accent-subtle: rgba(10, 132, 255, 0.16);
+    --color-accent: #61b0ff;
+    --color-accent-hover: #80c0ff;
+    --color-accent-pressed: #6db6ff;
+    --color-accent-subtle: rgba(97, 176, 255, 0.16);
+    /* Solid fills behind --color-text-on-accent (buttons, checks, selected badges). */
+    --color-accent-fill: #0a66d6;
+    --color-accent-fill-hover: #0a5cc2;
+    --color-accent-fill-pressed: #0952ad;
+    --color-danger-fill: #d42d2d;
+    --color-danger-fill-hover: #b91c1c;
+    --color-success-fill: #15803d;
 
     --color-success: #34d399;
     --color-success-subtle: rgba(52, 211, 153, 0.14);
@@ -221,12 +242,12 @@
     --color-warning: #fbbf24;
     --color-warning-subtle: rgba(251, 191, 36, 0.14);
     --color-warning-border: rgba(251, 191, 36, 0.36);
-    --color-danger: #f87171;
-    --color-danger-subtle: rgba(248, 113, 113, 0.14);
-    --color-danger-border: rgba(248, 113, 113, 0.36);
-    --color-info: #60a5fa;
-    --color-info-subtle: rgba(96, 165, 250, 0.14);
-    --color-info-border: rgba(96, 165, 250, 0.36);
+    --color-danger: #f98c8c;
+    --color-danger-subtle: rgba(249, 140, 140, 0.14);
+    --color-danger-border: rgba(249, 140, 140, 0.36);
+    --color-info: #70aefb;
+    --color-info-subtle: rgba(112, 174, 251, 0.14);
+    --color-info-border: rgba(112, 174, 251, 0.36);
 
     --chart-1: #60a5fa;
     --chart-2: #34d399;
@@ -269,7 +290,10 @@
 }
 
 @media (prefers-reduced-transparency: reduce) {
-  :root {
+  /* Theme selectors repeated so this beats the dark blocks' --material-* (equal specificity, later source). */
+  :root,
+  :root[data-theme="dark"],
+  :root:not([data-theme="light"]) {
     --material-thin: var(--color-surface);
     --material-regular: var(--color-surface);
     --material-thick: var(--color-surface);

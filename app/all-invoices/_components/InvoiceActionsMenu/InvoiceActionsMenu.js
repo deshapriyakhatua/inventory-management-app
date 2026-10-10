@@ -61,7 +61,15 @@ export default function InvoiceActionsMenu({
       : (inv.grandTotal || 0) - (inv.receivedAmount || 0) > 0);
 
   return (
-    <div className={styles.root} data-action-menu>
+    <div
+      className={styles.root}
+      data-action-menu
+      onKeyDown={(e) => {
+        if (e.key !== "Escape" || !isOpen) return;
+        onToggle(e, inv._id);
+        triggerRef.current?.focus();
+      }}
+    >
       <IconButton
         ref={triggerRef}
         name="actions"
