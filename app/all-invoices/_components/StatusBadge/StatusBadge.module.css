@@ -1,0 +1,27 @@
+.statusBadge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.statusPending {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+.statusPaid {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+.statusPartial {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+.statusCancelled {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}

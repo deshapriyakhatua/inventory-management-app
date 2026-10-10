@@ -1,31 +1,22 @@
 "use client";
-import Icon from "@/components/ui/Icon/Icon";
-
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
 import styles from "./page.module.css";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
-import { GST_STATES } from "@/utils/gstStates";
-import InvoicePdfPreview from "@/components/InvoicePdfPreview/InvoicePdfPreview";
 import { downloadInvoicePdf } from "@/utils/generatePdf";
 import { calculatePaymentStatus } from "@/lib/paymentStatus";
 import ConfirmModal from "@/components/ConfirmModal/ConfirmModal";
 import PaymentQrModal from "@/components/PaymentQrModal/PaymentQrModal";
-
-function formatDateGB(dateStr) {
-  if (!dateStr) return "";
-  if (typeof dateStr === "string" && dateStr.includes("-")) {
-    const parts = dateStr.split("T")[0].split("-");
-    if (parts.length === 3) {
-      const [year, month, day] = parts;
-      return `${day}/${month}/${year}`;
-    }
-  }
-  return new Date(dateStr).toLocaleDateString("en-GB");
-}
+import { formatDateGB } from "./allInvoicesUtils";
+import EditInvoiceModal from "./_components/EditInvoiceModal/EditInvoiceModal";
+import GraphicalViewModal from "./_components/GraphicalViewModal/GraphicalViewModal";
+import InvoiceMetrics from "./_components/InvoiceMetrics/InvoiceMetrics";
+import InvoicesControlBar from "./_components/InvoicesControlBar/InvoicesControlBar";
+import InvoicesHeader from "./_components/InvoicesHeader/InvoicesHeader";
+import InvoicesTable from "./_components/InvoicesTable/InvoicesTable";
+import PdfPreviewModal from "./_components/PdfPreviewModal/PdfPreviewModal";
 
 export default function AllInvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -749,977 +740,161 @@ export default function AllInvoicesPage() {
     }
   }, [modalGrandTotal, modalReceived, editingInvoice?.paymentStatus]);
 
+  // ── JSX handlers (moved from inline arrows, identical bodies) ──────
+  const handleToggleMenu = (e, id) => {
+    e.stopPropagation();
+    setOpenMenuId(openMenuId === id ? null : id);
+  };
+  const handleMenuGraphical = (inv) => { setOpenMenuId(null); handleOpenGraphicalModal(inv); };
+  const handleMenuPdf = (inv) => { setOpenMenuId(null); handleOpenPdf(inv); };
+  const handleMenuPaymentQr = (inv) => { setOpenMenuId(null); handleOpenPaymentQr(inv); };
+  const handleMenuEdit = (inv) => { setOpenMenuId(null); handleOpenEdit(inv); };
+  const handleMenuArchive = (inv) => { setOpenMenuId(null); handleArchive(inv._id, inv.invoiceNumber); };
+  const handleMenuRestore = (inv) => { setOpenMenuId(null); handleRestore(inv._id, inv.invoiceNumber); };
+  const handleMenuPermanentDelete = (inv) => { setOpenMenuId(null); handlePermanentDelete(inv._id, inv.invoiceNumber); };
+  const handleShowActive = () => setShowArchived(false);
+  const handleShowArchived = () => setShowArchived(true);
+  const handleSearchChange = (e) => setSearch(e.target.value);
+  const handleStatusFilterChange = (e) => setStatusFilter(e.target.value);
+  const handleCloseEditModal = () => setShowEditModal(false);
+  const handleClosePdfModal = () => setShowPdfModal(false);
+  const handleShowQrCodeChange = (e) => setShowQrCode(e.target.checked);
+  const handleCloseGraphicalModal = () => setShowGraphicalModal(false);
+
+  // Edit modal field handlers
+  const handleEditInvoiceNumberChange = (e) =>
+    setEditingInvoice({ ...editingInvoice, invoiceNumber: e.target.value.toUpperCase() });
+  const handleEditInvoiceDateChange = (e) =>
+    setEditingInvoice({ ...editingInvoice, invoiceDate: e.target.value });
+  const handleEditPlaceOfSupplyChange = (e) =>
+    setEditingInvoice({ ...editingInvoice, placeOfSupply: e.target.value });
+  const handleEditPaymentStatusChange = (e) => {
+    const val = e.target.value;
+    if (val === "Cancelled") {
+      setEditingInvoice({
+        ...editingInvoice,
+        paymentStatus: "Cancelled",
+      });
+    } else {
+      setEditingInvoice({
+        ...editingInvoice,
+        paymentStatus: calculatePaymentStatus(modalGrandTotal, modalReceived),
+      });
+    }
+  };
+  // Shared by the five buyer inputs (businessName, phoneNo, gstNo, address, state)
+  const handleEditBuyerFieldChange = (field, value) =>
+    setEditingInvoice({
+      ...editingInvoice,
+      buyerDetails: {
+        ...editingInvoice.buyerDetails,
+        [field]: value,
+      },
+    });
+  const handleEditUpiIdChange = (e) =>
+    setEditingInvoice({
+      ...editingInvoice,
+      sellerDetails: {
+        ...editingInvoice.sellerDetails,
+        upiId: e.target.value,
+      },
+    });
+  const handleEditShippingFeeChange = (e) =>
+    setEditingInvoice({ ...editingInvoice, shippingFee: Number(e.target.value) });
+  const handleEditDiscountChange = (e) =>
+    setEditingInvoice({ ...editingInvoice, discount: Number(e.target.value) });
+  const handleEditReceivedAmountChange = (e) =>
+    setEditingInvoice({ ...editingInvoice, receivedAmount: Number(e.target.value) });
+
   return (
     <div className={styles.container}>
       {/* Top Header */}
-      <div className={styles.headerRow}>
-        <div className={styles.titleGroup}>
-          <h1 className={styles.title}>All B2B Invoices</h1>
-          <p className={styles.subtitle}>
-            Manage, edit, search, and export all generated sales invoices.
-          </p>
-        </div>
-
-        <div className={styles.headerActions}>
-          <button
-            type="button"
-            className={styles.downloadExcelBtn}
-            onClick={exportInvoicesToExcel}
-            title="Download Invoices Excel Report"
-          >
-            <Icon name="download-invoices-excel-report" size={16} />
-            Download Excel
-          </button>
-
-          <Link href="/create-b2b-invoice" className={styles.createBtn}>
-            <Icon name="add-another-product" size={18} />
-            Create New Invoice
-          </Link>
-        </div>
-      </div>
+      <InvoicesHeader onExport={exportInvoicesToExcel} />
 
       {/* Summary Metrics */}
-      <div className={styles.metricsGrid}>
-        <div className={styles.metricCard}>
-          <div className={`${styles.metricIcon} ${styles.iconBlue}`}>📄</div>
-          <div className={styles.metricInfo}>
-            <span className={styles.metricLabel}>Total Invoices</span>
-            <span className={styles.metricValue}>{invoices.length}</span>
-          </div>
-        </div>
-
-        <div className={styles.metricCard}>
-          <div className={`${styles.metricIcon} ${styles.iconGreen}`}>₹</div>
-          <div className={styles.metricInfo}>
-            <span className={styles.metricLabel}>Total Revenue</span>
-            <span className={styles.metricValue}>
-              ₹{totalRevenue.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-            </span>
-          </div>
-        </div>
-
-        <div className={styles.metricCard}>
-          <div className={`${styles.metricIcon} ${styles.iconAmber}`}>💳</div>
-          <div className={styles.metricInfo}>
-            <span className={styles.metricLabel}>Total Received</span>
-            <span className={styles.metricValue}>
-              ₹{totalReceived.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-            </span>
-          </div>
-        </div>
-
-        <div className={styles.metricCard}>
-          <div className={`${styles.metricIcon} ${styles.iconRed}`}>⚠️</div>
-          <div className={styles.metricInfo}>
-            <span className={styles.metricLabel}>Outstanding Balance</span>
-            <span className={styles.metricValue}>
-              ₹{totalBalance.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-            </span>
-          </div>
-        </div>
-      </div>
+      <InvoiceMetrics
+        invoiceCount={invoices.length}
+        totalRevenue={totalRevenue}
+        totalReceived={totalReceived}
+        totalBalance={totalBalance}
+      />
 
       {/* Control Bar: Tabs, Search & Status Filter */}
-      <div className={styles.controlBar}>
-        <div className={styles.tabGroup}>
-          <button
-            type="button"
-            className={`${styles.tabItem} ${!showArchived ? styles.activeTabItem : ""}`}
-            onClick={() => setShowArchived(false)}
-          >
-            Active Invoices
-          </button>
-          <button
-            type="button"
-            className={`${styles.tabItem} ${showArchived ? styles.activeTabItem : ""}`}
-            onClick={() => setShowArchived(true)}
-          >
-            Archived Invoices 🗑️
-          </button>
-        </div>
-
-        <div className={styles.searchBox}>
-          <Icon name="icon-9c4a10ac" size={18} className={styles.searchIcon} />
-          <input
-            type="text"
-            className={styles.searchInput}
-            placeholder="Search Invoice #, Customer Name, SKU..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        <div className={styles.filterGroup}>
-          <select
-            className={styles.statusSelect}
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="All">All Statuses</option>
-            <option value="Pending">Pending</option>
-            <option value="Paid">Paid</option>
-            <option value="Partially Paid">Partially Paid</option>
-            <option value="Cancelled">Cancelled</option>
-          </select>
-
-          <button
-            type="button"
-            className={styles.refreshBtn}
-            onClick={fetchInvoices}
-            disabled={loading}
-          >
-            <Icon name="refresh" size={16} />
-            Refresh
-          </button>
-        </div>
-      </div>
+      <InvoicesControlBar
+        showArchived={showArchived}
+        onShowActive={handleShowActive}
+        onShowArchived={handleShowArchived}
+        search={search}
+        onSearchChange={handleSearchChange}
+        statusFilter={statusFilter}
+        onStatusFilterChange={handleStatusFilterChange}
+        onRefresh={fetchInvoices}
+        loading={loading}
+      />
 
       {/* Main Invoices Table */}
-      <div className={styles.tableCard}>
-        <table className={styles.invoiceTable}>
-          <thead>
-            <tr>
-              <th>Invoice #</th>
-              <th>Date</th>
-              <th>Customer</th>
-              <th>Items</th>
-              <th>Grand Total</th>
-              <th>Received</th>
-              <th>Balance</th>
-              <th>Status</th>
-              <th style={{ textAlign: "right" }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {invoices.length === 0 ? (
-              <tr>
-                <td colSpan="9" style={{ textAlign: "center", color: "#a1a1aa", padding: "30px" }}>
-                  {loading ? "Loading invoices..." : "No invoices found matching criteria."}
-                </td>
-              </tr>
-            ) : (
-              invoices.map((inv) => {
-                const invBalance =
-                  inv.balanceAmount !== undefined && inv.balanceAmount !== null && inv.balanceAmount !== 0
-                    ? inv.balanceAmount
-                    : Math.max(0, (inv.grandTotal || 0) - (inv.receivedAmount || 0));
-
-                return (
-                  <tr key={inv._id}>
-                    <td className={styles.invNumber}>{inv.invoiceNumber}</td>
-                    <td>{inv.invoiceDate ? formatDateGB(inv.invoiceDate) : "-"}</td>
-                    <td className={styles.customerName}>
-                      {inv.buyerDetails?.businessName || "N/A"}
-                    </td>
-                    <td>{inv.lineItems?.length || 0} items</td>
-                    <td style={{ fontWeight: "700", color: "#34d399" }}>
-                      ₹{(inv.grandTotal || 0).toLocaleString("en-IN")}
-                    </td>
-                    <td>₹{(inv.receivedAmount || 0).toLocaleString("en-IN")}</td>
-                    <td style={{ fontWeight: "600", color: invBalance > 0 ? "#f87171" : "#a1a1aa" }}>
-                      ₹{invBalance.toLocaleString("en-IN")}
-                    </td>
-                    <td>
-                      <span
-                        className={`${styles.statusBadge} ${
-                          inv.paymentStatus === "Paid"
-                            ? styles.statusPaid
-                            : inv.paymentStatus === "Pending"
-                            ? styles.statusPending
-                            : inv.paymentStatus === "Partially Paid"
-                            ? styles.statusPartial
-                            : styles.statusCancelled
-                        }`}
-                      >
-                        {inv.paymentStatus}
-                      </span>
-                    </td>
-                    <td style={{ position: "relative" }}>
-                      <div className={styles.actionMenuWrapper} data-action-menu>
-                        <button
-                          type="button"
-                          className={styles.threeDotsBtn}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenMenuId(openMenuId === inv._id ? null : inv._id);
-                          }}
-                          title="Actions"
-                        >
-                          <Icon name="actions" size={18} />
-                        </button>
-
-                        {openMenuId === inv._id && (
-                          <div className={styles.dropdownMenu}>
-                            {!showArchived ? (
-                              <>
-                                <button
-                                  type="button"
-                                  className={styles.dropdownItem}
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    handleOpenGraphicalModal(inv);
-                                  }}
-                                >
-                                  <Icon name="view-graphical" size={15} />
-                                  View (Graphical)
-                                </button>
-                                <button
-                                  type="button"
-                                  className={styles.dropdownItem}
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    handleOpenPdf(inv);
-                                  }}
-                                >
-                                  <Icon name="pdf-preview" size={15} />
-                                  PDF Preview
-                                </button>
-                                {(inv.paymentStatus === "Pending" ||
-                                  inv.paymentStatus === "Partially Paid" ||
-                                  (inv.balanceAmount !== undefined
-                                    ? inv.balanceAmount > 0
-                                    : (inv.grandTotal || 0) - (inv.receivedAmount || 0) > 0)) && (
-                                  <button
-                                    type="button"
-                                    className={styles.dropdownItem}
-                                    onClick={() => {
-                                      setOpenMenuId(null);
-                                      handleOpenPaymentQr(inv);
-                                    }}
-                                  >
-                                    <Icon name="payment-qr-balance" size={15} />
-                                    Payment QR (Balance)
-                                  </button>
-                                )}
-                                <button
-                                  type="button"
-                                  className={styles.dropdownItem}
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    handleOpenEdit(inv);
-                                  }}
-                                >
-                                  <Icon name="edit-inventory" size={15} />
-                                  Edit Invoice
-                                </button>
-                                <div className={styles.dropdownDivider} />
-                                <button
-                                  type="button"
-                                  className={`${styles.dropdownItem} ${styles.dropdownDanger}`}
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    handleArchive(inv._id, inv.invoiceNumber);
-                                  }}
-                                >
-                                  <Icon name="trash" size={15} />
-                                  Archive
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <button
-                                  type="button"
-                                  className={styles.dropdownItem}
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    handleOpenGraphicalModal(inv);
-                                  }}
-                                >
-                                  <Icon name="view-graphical" size={15} />
-                                  View (Graphical)
-                                </button>
-                                <button
-                                  type="button"
-                                  className={styles.dropdownItem}
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    handleOpenPdf(inv);
-                                  }}
-                                >
-                                  <Icon name="pdf-preview" size={15} />
-                                  PDF Preview
-                                </button>
-                                {(inv.paymentStatus === "Pending" ||
-                                  inv.paymentStatus === "Partially Paid" ||
-                                  (inv.balanceAmount !== undefined
-                                    ? inv.balanceAmount > 0
-                                    : (inv.grandTotal || 0) - (inv.receivedAmount || 0) > 0)) && (
-                                  <button
-                                    type="button"
-                                    className={styles.dropdownItem}
-                                    onClick={() => {
-                                      setOpenMenuId(null);
-                                      handleOpenPaymentQr(inv);
-                                    }}
-                                  >
-                                    <Icon name="payment-qr-balance" size={15} />
-                                    Payment QR (Balance)
-                                  </button>
-                                )}
-                                <button
-                                  type="button"
-                                  className={styles.dropdownItem}
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    handleRestore(inv._id, inv.invoiceNumber);
-                                  }}
-                                >
-                                  <Icon name="restore-invoice" size={15} />
-                                  Restore Invoice
-                                </button>
-                                <div className={styles.dropdownDivider} />
-                                <button
-                                  type="button"
-                                  className={`${styles.dropdownItem} ${styles.dropdownDanger}`}
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    handlePermanentDelete(inv._id, inv.invoiceNumber);
-                                  }}
-                                >
-                                  <Icon name="trash" size={15} />
-                                  Delete Permanently
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+      <InvoicesTable
+        invoices={invoices}
+        loading={loading}
+        showArchived={showArchived}
+        openMenuId={openMenuId}
+        menuHandlers={{
+          onToggle: handleToggleMenu,
+          onGraphical: handleMenuGraphical,
+          onPdf: handleMenuPdf,
+          onPaymentQr: handleMenuPaymentQr,
+          onEdit: handleMenuEdit,
+          onArchive: handleMenuArchive,
+          onRestore: handleMenuRestore,
+          onPermanentDelete: handleMenuPermanentDelete,
+        }}
+      />
 
       {/* EDIT INVOICE MODAL */}
       {showEditModal && editingInvoice && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <div className={styles.modalHeader}>
-              <h2 className={styles.modalTitle}>
-                Edit Invoice #{editingInvoice.invoiceNumber}
-              </h2>
-              <button
-                type="button"
-                className={styles.closeBtn}
-                onClick={() => setShowEditModal(false)}
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveEdit}>
-              <div className={styles.modalSectionTitle}>Invoice Header</div>
-              <div className={styles.modalGrid}>
-                <div className={styles.modalInputGroup}>
-                  <label className={styles.modalLabel}>Invoice Number</label>
-                  <input
-                    type="text"
-                    className={styles.modalInput}
-                    value={editingInvoice.invoiceNumber}
-                    onChange={(e) =>
-                      setEditingInvoice({
-                        ...editingInvoice,
-                        invoiceNumber: e.target.value.toUpperCase(),
-                      })
-                    }
-                    required
-                  />
-                </div>
-
-                <div className={styles.modalInputGroup}>
-                  <label className={styles.modalLabel}>Invoice Date</label>
-                  <input
-                    type="date"
-                    className={styles.modalInput}
-                    value={editingInvoice.invoiceDate || ""}
-                    onChange={(e) =>
-                      setEditingInvoice({
-                        ...editingInvoice,
-                        invoiceDate: e.target.value,
-                      })
-                    }
-                    required
-                  />
-                </div>
-
-                <div className={styles.modalInputGroup}>
-                  <label className={styles.modalLabel}>Place of Supply</label>
-                  <select
-                    className={styles.modalSelect}
-                    value={editingInvoice.placeOfSupply || "19-West Bengal"}
-                    onChange={(e) =>
-                      setEditingInvoice({
-                        ...editingInvoice,
-                        placeOfSupply: e.target.value,
-                      })
-                    }
-                  >
-                    {GST_STATES.map((st) => (
-                      <option key={st} value={st}>
-                        {st}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className={styles.modalInputGroup}>
-                  <label className={styles.modalLabel}>Payment Status</label>
-                  <select
-                    className={styles.modalSelect}
-                    value={editingInvoice.paymentStatus || "Pending"}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === "Cancelled") {
-                        setEditingInvoice({
-                          ...editingInvoice,
-                          paymentStatus: "Cancelled",
-                        });
-                      } else {
-                        setEditingInvoice({
-                          ...editingInvoice,
-                          paymentStatus: calculatePaymentStatus(modalGrandTotal, modalReceived),
-                        });
-                      }
-                    }}
-                  >
-                    <option
-                      value="Pending"
-                      disabled={editingInvoice.paymentStatus !== "Cancelled" && modalAutoStatus !== "Pending"}
-                    >
-                      Pending {editingInvoice.paymentStatus !== "Cancelled" && modalAutoStatus === "Pending" ? "(Auto)" : ""}
-                    </option>
-                    <option
-                      value="Paid"
-                      disabled={editingInvoice.paymentStatus !== "Cancelled" && modalAutoStatus !== "Paid"}
-                    >
-                      Paid {editingInvoice.paymentStatus !== "Cancelled" && modalAutoStatus === "Paid" ? "(Auto)" : ""}
-                    </option>
-                    <option
-                      value="Partially Paid"
-                      disabled={editingInvoice.paymentStatus !== "Cancelled" && modalAutoStatus !== "Partially Paid"}
-                    >
-                      Partially Paid {editingInvoice.paymentStatus !== "Cancelled" && modalAutoStatus === "Partially Paid" ? "(Auto)" : ""}
-                    </option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className={styles.modalSectionTitle}>Customer / Buyer Info</div>
-              <div className={styles.modalGrid}>
-                <div className={styles.modalInputGroup}>
-                  <label className={styles.modalLabel}>Customer Name</label>
-                  <input
-                    type="text"
-                    className={styles.modalInput}
-                    value={editingInvoice.buyerDetails?.businessName || ""}
-                    onChange={(e) =>
-                      setEditingInvoice({
-                        ...editingInvoice,
-                        buyerDetails: {
-                          ...editingInvoice.buyerDetails,
-                          businessName: e.target.value,
-                        },
-                      })
-                    }
-                    required
-                  />
-                </div>
-
-                <div className={styles.modalInputGroup}>
-                  <label className={styles.modalLabel}>Contact No</label>
-                  <input
-                    type="text"
-                    className={styles.modalInput}
-                    value={editingInvoice.buyerDetails?.phoneNo || ""}
-                    onChange={(e) =>
-                      setEditingInvoice({
-                        ...editingInvoice,
-                        buyerDetails: {
-                          ...editingInvoice.buyerDetails,
-                          phoneNo: e.target.value,
-                        },
-                      })
-                    }
-                    placeholder="e.g. +91 9876543210"
-                  />
-                </div>
-
-                <div className={styles.modalInputGroup}>
-                  <label className={styles.modalLabel}>GSTIN</label>
-                  <input
-                    type="text"
-                    className={styles.modalInput}
-                    value={editingInvoice.buyerDetails?.gstNo || ""}
-                    onChange={(e) =>
-                      setEditingInvoice({
-                        ...editingInvoice,
-                        buyerDetails: {
-                          ...editingInvoice.buyerDetails,
-                          gstNo: e.target.value,
-                        },
-                      })
-                    }
-                  />
-                </div>
-
-                <div className={styles.modalInputGroup}>
-                  <label className={styles.modalLabel}>Address</label>
-                  <input
-                    type="text"
-                    className={styles.modalInput}
-                    value={editingInvoice.buyerDetails?.address || ""}
-                    onChange={(e) =>
-                      setEditingInvoice({
-                        ...editingInvoice,
-                        buyerDetails: {
-                          ...editingInvoice.buyerDetails,
-                          address: e.target.value,
-                        },
-                      })
-                    }
-                  />
-                </div>
-
-                <div className={styles.modalInputGroup}>
-                  <label className={styles.modalLabel}>State</label>
-                  <select
-                    className={styles.modalSelect}
-                    value={editingInvoice.buyerDetails?.state || "19-West Bengal"}
-                    onChange={(e) =>
-                      setEditingInvoice({
-                        ...editingInvoice,
-                        buyerDetails: {
-                          ...editingInvoice.buyerDetails,
-                          state: e.target.value,
-                        },
-                      })
-                    }
-                  >
-                    {GST_STATES.map((st) => (
-                      <option key={st} value={st}>
-                        {st}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className={styles.modalSectionTitle}>Line Items</div>
-              {editingInvoice.lineItems.map((item, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1.5fr 1fr 1fr 1fr 1fr 40px",
-                    gap: "8px",
-                    marginBottom: "8px",
-                    alignItems: "center",
-                  }}
-                >
-                  <input
-                    type="text"
-                    className={styles.modalInput}
-                    placeholder="Description / SKU"
-                    value={item.description}
-                    onChange={(e) =>
-                      handleEditLineItemChange(idx, "description", e.target.value)
-                    }
-                  />
-                  <input
-                    type="text"
-                    className={styles.modalInput}
-                    placeholder="HSN"
-                    value={item.hsnCode || "7117"}
-                    onChange={(e) =>
-                      handleEditLineItemChange(idx, "hsnCode", e.target.value)
-                    }
-                  />
-                  <input
-                    type="number"
-                    min="1"
-                    className={styles.modalInput}
-                    placeholder="Qty"
-                    value={item.quantity}
-                    onChange={(e) =>
-                      handleEditLineItemChange(idx, "quantity", e.target.value)
-                    }
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    className={styles.modalInput}
-                    placeholder="Unit Price"
-                    value={item.unitPrice}
-                    onChange={(e) =>
-                      handleEditLineItemChange(idx, "unitPrice", e.target.value)
-                    }
-                  />
-                  <div style={{ color: "#34d399", fontWeight: "600", fontSize: "13px" }}>
-                    ₹{(Number(item.totalAmount) || 0).toFixed(2)}
-                  </div>
-                  <button
-                    type="button"
-                    style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer" }}
-                    onClick={() => removeEditLineItem(idx)}
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-
-              <button
-                type="button"
-                style={{
-                  background: "rgba(59,130,246,0.15)",
-                  color: "#60a5fa",
-                  border: "1px dashed #3b82f6",
-                  padding: "6px 12px",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "12px",
-                  marginTop: "6px",
-                }}
-                onClick={addEditLineItem}
-              >
-                + Add Line Item
-              </button>
-
-              <div className={styles.modalSectionTitle}>Payment & Totals</div>
-              <div className={styles.modalGrid}>
-                <div className={styles.modalInputGroup}>
-                  <label className={styles.modalLabel}>UPI Barcode / UPI ID</label>
-                  <input
-                    type="text"
-                    className={styles.modalInput}
-                    value={editingInvoice.sellerDetails?.upiId || ""}
-                    onChange={(e) =>
-                      setEditingInvoice({
-                        ...editingInvoice,
-                        sellerDetails: {
-                          ...editingInvoice.sellerDetails,
-                          upiId: e.target.value,
-                        },
-                      })
-                    }
-                    placeholder="e.g. 033311501063323@slice"
-                  />
-                </div>
-
-                <div className={styles.modalInputGroup}>
-                  <label className={styles.modalLabel}>Shipping Fee (₹)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className={styles.modalInput}
-                    value={editingInvoice.shippingFee || 0}
-                    onChange={(e) =>
-                      setEditingInvoice({
-                        ...editingInvoice,
-                        shippingFee: Number(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-
-                <div className={styles.modalInputGroup}>
-                  <label className={styles.modalLabel}>Discount (₹)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className={styles.modalInput}
-                    value={editingInvoice.discount || 0}
-                    onChange={(e) =>
-                      setEditingInvoice({
-                        ...editingInvoice,
-                        discount: Number(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-
-                <div className={styles.modalInputGroup}>
-                  <label className={styles.modalLabel}>Received Amount (₹)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className={styles.modalInput}
-                    value={editingInvoice.receivedAmount || 0}
-                    onChange={(e) =>
-                      setEditingInvoice({
-                        ...editingInvoice,
-                        receivedAmount: Number(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className={styles.modalFooter}>
-                <button
-                  type="button"
-                  className={styles.cancelBtn}
-                  onClick={() => setShowEditModal(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className={styles.saveBtn}
-                  disabled={isSavingEdit}
-                >
-                  {isSavingEdit ? "Saving Changes..." : "Save Invoice Changes"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <EditInvoiceModal
+          editingInvoice={editingInvoice}
+          modalAutoStatus={modalAutoStatus}
+          isSavingEdit={isSavingEdit}
+          fieldHandlers={{
+            onInvoiceNumberChange: handleEditInvoiceNumberChange,
+            onInvoiceDateChange: handleEditInvoiceDateChange,
+            onPlaceOfSupplyChange: handleEditPlaceOfSupplyChange,
+            onPaymentStatusChange: handleEditPaymentStatusChange,
+            onBuyerFieldChange: handleEditBuyerFieldChange,
+            onUpiIdChange: handleEditUpiIdChange,
+            onShippingFeeChange: handleEditShippingFeeChange,
+            onDiscountChange: handleEditDiscountChange,
+            onReceivedAmountChange: handleEditReceivedAmountChange,
+          }}
+          onLineItemChange={handleEditLineItemChange}
+          onRemoveLineItem={removeEditLineItem}
+          onAddLineItem={addEditLineItem}
+          onClose={handleCloseEditModal}
+          onSubmit={handleSaveEdit}
+        />
       )}
 
-      {/* VIEW PDF / PRINT MODAL */}
+      {/* VIEW PDF / PRINT MODAL (wraps InvoicePdfPreview; pdfPreviewRef feeds downloadInvoicePdf) */}
       {showPdfModal && viewingInvoice && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent} style={{ width: "880px", background: "#18181b", color: "#ffffff" }}>
-            <div className={styles.pdfModalHeader} style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
-              <label style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: "#ffffff", fontSize: "13px", cursor: "pointer", marginRight: "12px", userSelect: "none" }}>
-                <input
-                  type="checkbox"
-                  checked={showQrCode}
-                  onChange={(e) => setShowQrCode(e.target.checked)}
-                  style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#ec4899" }}
-                />
-                <span>Show QR Code</span>
-              </label>
-              <button
-                type="button"
-                className={styles.createBtn}
-                style={{ padding: "8px 18px", background: "#10b981" }}
-                onClick={handleDownloadPdf}
-                disabled={isDownloadingPdf}
-              >
-                {isDownloadingPdf ? "Downloading..." : "Download PDF"}
-              </button>
-              <button
-                type="button"
-                className={styles.closeBtn}
-                style={{ color: "#ffffff", fontSize: "24px" }}
-                onClick={() => setShowPdfModal(false)}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Reusable Exact Replica PDF Component */}
-            <InvoicePdfPreview ref={pdfPreviewRef} invoice={viewingInvoice} showQrCode={showQrCode} />
-          </div>
-        </div>
+        <PdfPreviewModal
+          viewingInvoice={viewingInvoice}
+          pdfPreviewRef={pdfPreviewRef}
+          showQrCode={showQrCode}
+          onShowQrCodeChange={handleShowQrCodeChange}
+          isDownloadingPdf={isDownloadingPdf}
+          onDownloadPdf={handleDownloadPdf}
+          onClose={handleClosePdfModal}
+        />
       )}
 
       {/* Graphical View Modal (Invoice Details & Inventory Images) */}
       {showGraphicalModal && graphicalModalInvoice && (
-        <div className={styles.modalOverlay} onClick={() => setShowGraphicalModal(false)}>
-          <div className={styles.graphicalModal} onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
-            <div className={styles.pickerHeader}>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                  <h3 className={styles.pickerTitle} style={{ margin: 0 }}>
-                    Invoice #{graphicalModalInvoice.invoiceNumber}
-                  </h3>
-                  <span
-                    className={`${styles.statusBadge} ${
-                      graphicalModalInvoice.paymentStatus === "Paid"
-                        ? styles.statusPaid
-                        : graphicalModalInvoice.paymentStatus === "Pending"
-                        ? styles.statusPending
-                        : graphicalModalInvoice.paymentStatus === "Partially Paid"
-                        ? styles.statusPartial
-                        : styles.statusCancelled
-                    }`}
-                  >
-                    {graphicalModalInvoice.paymentStatus}
-                  </span>
-                </div>
-                <p className={styles.pickerSubtitle} style={{ marginTop: "4px" }}>
-                  Date: {formatDateGB(graphicalModalInvoice.invoiceDate)} • Place of Supply: {graphicalModalInvoice.placeOfSupply || "19-West Bengal"}
-                </p>
-              </div>
-              <button
-                type="button"
-                className={styles.pickerCloseBtn}
-                onClick={() => setShowGraphicalModal(false)}
-              >
-                <Icon name="remove-this-product" />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className={styles.graphicalModalBody}>
-              {/* Customer & Seller Grid */}
-              <div className={styles.graphicalGrid2}>
-                {/* Customer Card */}
-                <div className={styles.graphicalInfoBox}>
-                  <div className={styles.graphicalInfoTitle}>
-                    <Icon name="icon-a887788a" size={16} />
-                    Customer Info
-                  </div>
-                  <div style={{ fontWeight: "700", color: "#ffffff", fontSize: "15px" }}>
-                    {graphicalModalInvoice.buyerDetails?.businessName || "N/A"}
-                  </div>
-                  {graphicalModalInvoice.buyerDetails?.phoneNo && (
-                    <div className={styles.graphicalInfoText}>
-                      Phone: {graphicalModalInvoice.buyerDetails.phoneNo}
-                    </div>
-                  )}
-                  {graphicalModalInvoice.buyerDetails?.address && (
-                    <div className={styles.graphicalInfoText}>
-                      Address: {graphicalModalInvoice.buyerDetails.address}
-                    </div>
-                  )}
-                  <div className={styles.graphicalInfoText}>
-                    GSTIN: {graphicalModalInvoice.buyerDetails?.gstNo || "NA"} | State: {graphicalModalInvoice.buyerDetails?.state || "19-West Bengal"}
-                  </div>
-                </div>
-
-                {/* Seller Card */}
-                <div className={styles.graphicalInfoBox}>
-                  <div className={styles.graphicalInfoTitle}>
-                    <Icon name="icon-d5851a0c" size={16} />
-                    Seller Details
-                  </div>
-                  <div style={{ fontWeight: "700", color: "#ffffff", fontSize: "15px" }}>
-                    {graphicalModalInvoice.sellerDetails?.businessName || "CRAZYKUDI"}
-                  </div>
-                  <div className={styles.graphicalInfoText}>
-                    GSTIN: {graphicalModalInvoice.sellerDetails?.gstNo || "19JHWPK2955Q1ZW"}
-                  </div>
-                  {graphicalModalInvoice.sellerDetails?.bankName && (
-                    <div className={styles.graphicalInfoText}>
-                      Bank: {graphicalModalInvoice.sellerDetails.bankName} (A/C: {graphicalModalInvoice.sellerDetails.accountNo})
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Line Items Graphical View */}
-              <div>
-                <div className={styles.graphicalInfoTitle} style={{ marginBottom: "10px", color: "#ec4899" }}>
-                  <Icon name="icon-d0275ba0" size={16} />
-                  Items & Inventory Images ({graphicalModalInvoice.lineItems?.length || 0})
-                </div>
-
-                <div className={styles.graphicalItemsContainer}>
-                  {graphicalModalInvoice.lineItems?.map((item, idx) => {
-                    const matchedInv = inventoryList.find(
-                      (inv) => inv.inventoryId === item.inventoryId
-                    );
-                    const imgUrl = matchedInv?.imageUrl || item.imageUrl;
-                    const qty = Number(item.quantity) || 1;
-                    const price = Number(item.unitPrice) || 0;
-                    const subtotalAmt = item.amount !== undefined ? Number(item.amount) : qty * price;
-                    const taxRate = Number(item.taxRate !== undefined ? item.taxRate : item.gstRate) || 0;
-                    const taxAmt = item.taxAmount !== undefined ? Number(item.taxAmount) : (subtotalAmt * taxRate) / 100;
-                    const totalAmt = item.totalAmount !== undefined ? Number(item.totalAmount) : subtotalAmt + taxAmt;
-
-                    return (
-                      <div key={idx} className={styles.graphicalItemCard}>
-                        {imgUrl ? (
-                          <img
-                            src={imgUrl}
-                            alt={item.inventoryId || item.description}
-                            className={styles.graphicalItemImg}
-                          />
-                        ) : (
-                          <div className={styles.graphicalItemNoImg}>No Image</div>
-                        )}
-
-                        <div className={styles.graphicalItemDetails}>
-                          {item.inventoryId && (
-                            <span className={styles.graphicalItemIdTag}>
-                              {item.inventoryId}
-                            </span>
-                          )}
-                          <div className={styles.graphicalItemDesc}>{item.description || "Line Item"}</div>
-                          <div className={styles.graphicalItemMeta}>
-                            <span>HSN: {item.hsnCode || "7117"}</span>
-                            <span>•</span>
-                            <span>Qty: {qty}</span>
-                            <span>•</span>
-                            <span>Unit Price: ₹{price.toFixed(2)}</span>
-                            <span>•</span>
-                            <span>GST: {taxRate}% (₹{taxAmt.toFixed(2)})</span>
-                          </div>
-                        </div>
-
-                        <div className={styles.graphicalItemPricing}>
-                          <div className={styles.graphicalItemTotal}>
-                            ₹{totalAmt.toFixed(2)}
-                          </div>
-                          <div className={styles.graphicalItemSub}>
-                            Sub: ₹{subtotalAmt.toFixed(2)}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Financial Summary */}
-              <div className={styles.summaryContainer} style={{ marginTop: 0 }}>
-                <div className={styles.summaryBox} style={{ width: "100%" }}>
-                  <div className={styles.summaryRow}>
-                    <span>Subtotal:</span>
-                    <span>₹{(graphicalModalInvoice.subtotal || 0).toFixed(2)}</span>
-                  </div>
-                  <div className={styles.summaryRow}>
-                    <span>GST Total:</span>
-                    <span>₹{(graphicalModalInvoice.totalTax || 0).toFixed(2)}</span>
-                  </div>
-                  {graphicalModalInvoice.shippingFee > 0 && (
-                    <div className={styles.summaryRow}>
-                      <span>Shipping Fee:</span>
-                      <span>₹{(graphicalModalInvoice.shippingFee || 0).toFixed(2)}</span>
-                    </div>
-                  )}
-                  {graphicalModalInvoice.discount > 0 && (
-                    <div className={styles.summaryRow}>
-                      <span>Discount:</span>
-                      <span>- ₹{(graphicalModalInvoice.discount || 0).toFixed(2)}</span>
-                    </div>
-                  )}
-                  <div className={`${styles.summaryRow} ${styles.grandTotalRow}`}>
-                    <span>Grand Total:</span>
-                    <span>₹{(graphicalModalInvoice.grandTotal || 0).toFixed(2)}</span>
-                  </div>
-                  <div className={styles.summaryRow}>
-                    <span>Received Amount:</span>
-                    <span>₹{(graphicalModalInvoice.receivedAmount || 0).toFixed(2)}</span>
-                  </div>
-                  <div className={styles.summaryRow} style={{ fontWeight: "700", color: "#f87171" }}>
-                    <span>Balance Due:</span>
-                    <span>₹{(graphicalModalInvoice.balanceAmount || 0).toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Notes if present */}
-              {graphicalModalInvoice.notes && (
-                <div className={styles.graphicalInfoBox}>
-                  <div className={styles.graphicalInfoTitle} style={{ color: "#f59e0b" }}>
-                    Notes & Terms
-                  </div>
-                  <div className={styles.graphicalInfoText} style={{ whiteSpace: "pre-line", fontSize: "13px", color: "#a1a1aa" }}>
-                    {graphicalModalInvoice.notes}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <GraphicalViewModal
+          graphicalModalInvoice={graphicalModalInvoice}
+          inventoryList={inventoryList}
+          onClose={handleCloseGraphicalModal}
+        />
       )}
 
       {/* Payment QR Generator Modal */}
