@@ -1,69 +1,59 @@
+import FormField from "@/components/ui/FormField/FormField";
+import Input from "@/components/ui/Input/Input";
+import Select from "@/components/ui/Select/Select";
 import { GST_STATES } from "@/utils/gstStates";
-import styles from "./EditBuyerSection.module.css";
+import EditFormSection from "../EditFormSection/EditFormSection";
 
 // onBuyerFieldChange(field, value) merges into editingInvoice.buyerDetails (page.js).
 export default function EditBuyerSection({ editingInvoice, onBuyerFieldChange }) {
   return (
-    <>
-      <div className={styles.modalSectionTitle}>Customer / Buyer Info</div>
-      <div className={styles.modalGrid}>
-        <div className={styles.modalInputGroup}>
-          <label className={styles.modalLabel}>Customer Name</label>
-          <input
-            type="text"
-            className={styles.modalInput}
-            value={editingInvoice.buyerDetails?.businessName || ""}
-            onChange={(e) => onBuyerFieldChange("businessName", e.target.value)}
-            required
-          />
-        </div>
+    <EditFormSection title="Customer / Buyer Info">
+      <FormField label="Customer Name">
+        <Input
+          type="text"
+          value={editingInvoice.buyerDetails?.businessName || ""}
+          onChange={(e) => onBuyerFieldChange("businessName", e.target.value)}
+          required
+        />
+      </FormField>
 
-        <div className={styles.modalInputGroup}>
-          <label className={styles.modalLabel}>Contact No</label>
-          <input
-            type="text"
-            className={styles.modalInput}
-            value={editingInvoice.buyerDetails?.phoneNo || ""}
-            onChange={(e) => onBuyerFieldChange("phoneNo", e.target.value)}
-            placeholder="e.g. +91 9876543210"
-          />
-        </div>
+      <FormField label="Contact No">
+        <Input
+          type="text"
+          value={editingInvoice.buyerDetails?.phoneNo || ""}
+          onChange={(e) => onBuyerFieldChange("phoneNo", e.target.value)}
+          placeholder="e.g. +91 9876543210"
+        />
+      </FormField>
 
-        <div className={styles.modalInputGroup}>
-          <label className={styles.modalLabel}>GSTIN</label>
-          <input
-            type="text"
-            className={styles.modalInput}
-            value={editingInvoice.buyerDetails?.gstNo || ""}
-            onChange={(e) => onBuyerFieldChange("gstNo", e.target.value)}
-          />
-        </div>
+      <FormField label="GSTIN">
+        <Input
+          type="text"
+          value={editingInvoice.buyerDetails?.gstNo || ""}
+          onChange={(e) => onBuyerFieldChange("gstNo", e.target.value)}
+        />
+      </FormField>
 
-        <div className={styles.modalInputGroup}>
-          <label className={styles.modalLabel}>Address</label>
-          <input
-            type="text"
-            className={styles.modalInput}
-            value={editingInvoice.buyerDetails?.address || ""}
-            onChange={(e) => onBuyerFieldChange("address", e.target.value)}
-          />
-        </div>
+      <FormField label="Address">
+        <Input
+          type="text"
+          value={editingInvoice.buyerDetails?.address || ""}
+          onChange={(e) => onBuyerFieldChange("address", e.target.value)}
+        />
+      </FormField>
 
-        <div className={styles.modalInputGroup}>
-          <label className={styles.modalLabel}>State</label>
-          <select
-            className={styles.modalSelect}
-            value={editingInvoice.buyerDetails?.state || "19-West Bengal"}
-            onChange={(e) => onBuyerFieldChange("state", e.target.value)}
-          >
-            {GST_STATES.map((st) => (
-              <option key={st} value={st}>
-                {st}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-    </>
+      <FormField label="State">
+        <Select
+          value={editingInvoice.buyerDetails?.state || "19-West Bengal"}
+          onChange={(e) => onBuyerFieldChange("state", e.target.value)}
+        >
+          {GST_STATES.map((st) => (
+            <option key={st} value={st}>
+              {st}
+            </option>
+          ))}
+        </Select>
+      </FormField>
+    </EditFormSection>
   );
 }

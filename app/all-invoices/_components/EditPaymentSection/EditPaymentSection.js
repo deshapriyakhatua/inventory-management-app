@@ -1,3 +1,6 @@
+import FormField from "@/components/ui/FormField/FormField";
+import Input from "@/components/ui/Input/Input";
+import EditFormSection from "../EditFormSection/EditFormSection";
 import styles from "./EditPaymentSection.module.css";
 
 export default function EditPaymentSection({
@@ -8,53 +11,45 @@ export default function EditPaymentSection({
   onReceivedAmountChange,
 }) {
   return (
-    <>
-      <div className={styles.modalSectionTitle}>Payment & Totals</div>
-      <div className={styles.modalGrid}>
-        <div className={styles.modalInputGroup}>
-          <label className={styles.modalLabel}>UPI Barcode / UPI ID</label>
-          <input
-            type="text"
-            className={styles.modalInput}
-            value={editingInvoice.sellerDetails?.upiId || ""}
-            onChange={onUpiIdChange}
-            placeholder="e.g. 033311501063323@slice"
-          />
-        </div>
+    <EditFormSection title="Payment & Totals">
+      <FormField label="UPI Barcode / UPI ID">
+        <Input
+          type="text"
+          value={editingInvoice.sellerDetails?.upiId || ""}
+          onChange={onUpiIdChange}
+          placeholder="e.g. 033311501063323@slice"
+        />
+      </FormField>
 
-        <div className={styles.modalInputGroup}>
-          <label className={styles.modalLabel}>Shipping Fee (₹)</label>
-          <input
-            type="number"
-            step="0.01"
-            className={styles.modalInput}
-            value={editingInvoice.shippingFee || 0}
-            onChange={onShippingFeeChange}
-          />
-        </div>
+      <FormField label="Shipping Fee (₹)">
+        <Input
+          type="number"
+          step="0.01"
+          className={styles.numeric}
+          value={editingInvoice.shippingFee || 0}
+          onChange={onShippingFeeChange}
+        />
+      </FormField>
 
-        <div className={styles.modalInputGroup}>
-          <label className={styles.modalLabel}>Discount (₹)</label>
-          <input
-            type="number"
-            step="0.01"
-            className={styles.modalInput}
-            value={editingInvoice.discount || 0}
-            onChange={onDiscountChange}
-          />
-        </div>
+      <FormField label="Discount (₹)">
+        <Input
+          type="number"
+          step="0.01"
+          className={styles.numeric}
+          value={editingInvoice.discount || 0}
+          onChange={onDiscountChange}
+        />
+      </FormField>
 
-        <div className={styles.modalInputGroup}>
-          <label className={styles.modalLabel}>Received Amount (₹)</label>
-          <input
-            type="number"
-            step="0.01"
-            className={styles.modalInput}
-            value={editingInvoice.receivedAmount || 0}
-            onChange={onReceivedAmountChange}
-          />
-        </div>
-      </div>
-    </>
+      <FormField label="Received Amount (₹)">
+        <Input
+          type="number"
+          step="0.01"
+          className={styles.numeric}
+          value={editingInvoice.receivedAmount || 0}
+          onChange={onReceivedAmountChange}
+        />
+      </FormField>
+    </EditFormSection>
   );
 }

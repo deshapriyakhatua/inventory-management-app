@@ -408,7 +408,7 @@ Standard "list page" pattern (7.2) applies to all.
 - [x] **T-5.3 `/all-sellers`** · L · Dep: T-1.6, T-1.5
 - [x] **T-5.4 `/add-sales-log`** · L · Dep: Phase 1
 - [x] **T-5.5 `/purchase-history`** · XL · Dep: T-1.6, T-1.5 — split into 2 PRs: (a) table/filters/toolbar, (b) detail modals/download/export.
-- [ ] **T-5.6 `/all-invoices`** · XL · Dep: T-1.6, T-1.5, T-2.4 — split into 2 PRs: (a) list/toolbar/actions, (b) modals (payment QR, preview, download). Invoice **document** visuals untouched (8.1).
+- [x] **T-5.6 `/all-invoices`** · XL · Dep: T-1.6, T-1.5, T-2.4 — split into 2 PRs: (a) list/toolbar/actions, (b) modals (payment QR, preview, download). Invoice **document** visuals untouched (8.1).
 - [ ] **T-5.7 `/create-b2b-invoice`** · XL · Dep: Phase 1, T-2.4 — 46 inline styles → CSS. Split into sections: `PartyDetails`, `LineItemsTable`, `TaxSummary`, `PaymentSection`, `PreviewPane`. Invoice **document** visuals untouched (8.1).
   - Per-page subtask template for T-5.x: (1) inventory of inline styles and primitives, (2) step (a) split, (3) step (b) restyle, (4) DoD-PG + DoD-SPLIT, (5) mobile layout for tables (horizontal scroll with edge fade or card-row layout < 768px), (6) before/after line counts.
 

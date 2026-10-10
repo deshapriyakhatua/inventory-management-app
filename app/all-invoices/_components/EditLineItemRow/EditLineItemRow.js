@@ -1,64 +1,62 @@
+import IconButton from "@/components/ui/IconButton/IconButton";
+import Input from "@/components/ui/Input/Input";
 import styles from "./EditLineItemRow.module.css";
 
+// Inputs have no visible labels (placeholders only), so each reuses its placeholder as aria-label.
 export default function EditLineItemRow({ item, idx, onChange, onRemove }) {
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1.5fr 1fr 1fr 1fr 1fr 40px",
-        gap: "8px",
-        marginBottom: "8px",
-        alignItems: "center",
-      }}
-    >
-      <input
+    <div className={styles.root}>
+      <Input
         type="text"
-        className={styles.modalInput}
+        className={styles.description}
         placeholder="Description / SKU"
+        aria-label="Description / SKU"
         value={item.description}
         onChange={(e) =>
           onChange(idx, "description", e.target.value)
         }
       />
-      <input
+      <Input
         type="text"
-        className={styles.modalInput}
         placeholder="HSN"
+        aria-label="HSN"
         value={item.hsnCode || "7117"}
         onChange={(e) =>
           onChange(idx, "hsnCode", e.target.value)
         }
       />
-      <input
+      <Input
         type="number"
         min="1"
-        className={styles.modalInput}
+        className={styles.numeric}
         placeholder="Qty"
+        aria-label="Qty"
         value={item.quantity}
         onChange={(e) =>
           onChange(idx, "quantity", e.target.value)
         }
       />
-      <input
+      <Input
         type="number"
         step="0.01"
-        className={styles.modalInput}
+        className={styles.numeric}
         placeholder="Unit Price"
+        aria-label="Unit Price"
         value={item.unitPrice}
         onChange={(e) =>
           onChange(idx, "unitPrice", e.target.value)
         }
       />
-      <div style={{ color: "#34d399", fontWeight: "600", fontSize: "13px" }}>
+      <div className={styles.total}>
         ₹{(Number(item.totalAmount) || 0).toFixed(2)}
       </div>
-      <button
-        type="button"
-        style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer" }}
+      <IconButton
+        name="remove-this-product"
+        size="sm"
+        className={styles.remove}
+        aria-label="Remove line item"
         onClick={() => onRemove(idx)}
-      >
-        ✕
-      </button>
+      />
     </div>
   );
 }

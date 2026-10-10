@@ -241,20 +241,18 @@ export default function AllInvoicesPage() {
   const handleEditLineItemChange = (index, field, value) => {
     if (!editingInvoice) return;
     const updatedItems = [...editingInvoice.lineItems];
-    updatedItems[index][field] = value;
+    const item = { ...updatedItems[index], [field]: value };
 
     // Recalculate row amounts
-    const qty = Number(updatedItems[index].quantity) || 0;
-    const price = Number(updatedItems[index].unitPrice) || 0;
-    const gstRate = Number(updatedItems[index].taxRate) || 0;
+    const qty = Number(item.quantity) || 0;
+    const price = Number(item.unitPrice) || 0;
+    const gstRate = Number(item.taxRate) || 0;
 
     const amount = qty * price;
     const taxAmount = (amount * gstRate) / 100;
     const totalAmount = amount + taxAmount;
 
-    updatedItems[index].amount = amount;
-    updatedItems[index].taxAmount = taxAmount;
-    updatedItems[index].totalAmount = totalAmount;
+    updatedItems[index] = { ...item, amount, taxAmount, totalAmount };
 
     setEditingInvoice({
       ...editingInvoice,
@@ -440,14 +438,16 @@ export default function AllInvoicesPage() {
 
   const modalAutoStatus = calculatePaymentStatus(modalGrandTotal, modalReceived);
 
-  useEffect(() => {
+  // Effect event reads the latest editingInvoice while keeping the original trigger deps.
+  const onModalTotalsChange = useEffectEvent(() => {
     if (editingInvoice && editingInvoice.paymentStatus !== "Cancelled") {
       const autoSt = calculatePaymentStatus(modalGrandTotal, modalReceived);
       if (editingInvoice.paymentStatus !== autoSt) {
         setEditingInvoice((prev) => (prev ? { ...prev, paymentStatus: autoSt } : null));
       }
     }
-  }, [modalGrandTotal, modalReceived, editingInvoice?.paymentStatus]);
+  });
+  useEffect(() => { onModalTotalsChange(); }, [modalGrandTotal, modalReceived, editingInvoice?.paymentStatus]);
 
   // ── JSX handlers (moved from inline arrows, identical bodies) ──────
   const handleToggleMenu = (e, id) => {
