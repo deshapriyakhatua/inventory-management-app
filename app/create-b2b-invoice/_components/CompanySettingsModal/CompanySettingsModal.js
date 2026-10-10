@@ -25,6 +25,7 @@ function SettingsSection({ icon, title, titleId, children }) {
 
 // Company Details, Bank & Terms Modal
 export default function CompanySettingsModal({
+  open,
   sellerDetails,
   notes,
   isSavingCompany,
@@ -38,7 +39,7 @@ export default function CompanySettingsModal({
 
   return (
     <Modal
-      open
+      open={open}
       onClose={onClose}
       size="lg"
       title="Company, Bank & Terms Settings"

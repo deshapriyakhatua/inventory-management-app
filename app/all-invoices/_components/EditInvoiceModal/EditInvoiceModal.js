@@ -8,6 +8,7 @@ import EditPaymentSection from "../EditPaymentSection/EditPaymentSection";
 import styles from "./EditInvoiceModal.module.css";
 
 export default function EditInvoiceModal({
+  open,
   editingInvoice,
   modalAutoStatus,
   isSavingEdit,
@@ -20,7 +21,7 @@ export default function EditInvoiceModal({
 }) {
   return (
     <Modal
-      open
+      open={open}
       onClose={isSavingEdit ? undefined : onClose}
       closeOnScrim={!isSavingEdit}
       size="lg"

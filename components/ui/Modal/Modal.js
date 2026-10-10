@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useIsPresent } from "motion/react";
 import { spring, useMotionPreference } from "@/lib/motion";
 import IconButton from "../IconButton/IconButton";
 import cx from "../cx";
@@ -13,6 +13,17 @@ const sizes = ["sm", "md", "lg", "xl", "auto"];
 const subscribeToClient = () => () => {};
 const getClientSnapshot = () => true;
 const getServerSnapshot = () => false;
+
+// R3: once the overlay starts exiting, let clicks reach the page underneath
+// instead of the fading scrim/panel.
+function PresenceLayer({ className, children, ...rest }) {
+  const isPresent = useIsPresent();
+  return (
+    <div {...rest} className={className} data-exiting={isPresent ? undefined : ""}>
+      {children}
+    </div>
+  );
+}
 
 export default function Modal({
   open,
@@ -80,7 +91,7 @@ export default function Modal({
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div className={styles.overlay} data-size={resolvedSize}>
+        <PresenceLayer className={styles.overlay} data-size={resolvedSize}>
           <motion.div
             className={styles.scrim}
             initial={{ opacity: 0 }}
@@ -124,7 +135,7 @@ export default function Modal({
             )}
             <div className={styles.body}>{children}</div>
           </motion.section>
-        </div>
+        </PresenceLayer>
       )}
     </AnimatePresence>,
     document.body,

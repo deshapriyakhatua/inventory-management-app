@@ -40,11 +40,17 @@
     font-size: var(--text-md);
     text-align: left;
     cursor: pointer;
-    transition: background-color var(--duration-instant) var(--ease-out);
+    transition:
+        background-color var(--duration-instant) var(--ease-out),
+        transform var(--duration-instant) var(--ease-out);
 }
 
 .item:hover {
     background: var(--color-surface-sunken);
+}
+
+.item:active {
+    transform: scale(0.97);
 }
 
 .item:focus-visible {
@@ -58,4 +64,10 @@
 
 .danger:hover {
     background: var(--color-danger-subtle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .item:active {
+        transform: none;
+    }
 }

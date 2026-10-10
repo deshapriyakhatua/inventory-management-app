@@ -320,15 +320,14 @@ export default function AllSellersPage() {
       />
 
       {/* ── Edit Seller Modal ── */}
-      {showEditModal && (
-        <EditSellerModal
-          editFormData={editFormData}
-          editLoading={editLoading}
-          onEditChange={handleEditChange}
-          onSubmit={submitEdit}
-          onClose={closeEditModal}
-        />
-      )}
+      <EditSellerModal
+        open={showEditModal}
+        editFormData={editFormData}
+        editLoading={editLoading}
+        onEditChange={handleEditChange}
+        onSubmit={submitEdit}
+        onClose={closeEditModal}
+      />
     </PageShell>
   );
 }

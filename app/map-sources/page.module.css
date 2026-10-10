@@ -251,3 +251,9 @@
     grid-template-columns: minmax(0, 3fr) minmax(0, 4fr);
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .inventoryItem:active {
+    transform: none;
+  }
+}

@@ -30,7 +30,13 @@
     transition:
         background-color var(--duration-fast) var(--ease-out),
         border-color var(--duration-fast) var(--ease-out),
-        color var(--duration-fast) var(--ease-out);
+        color var(--duration-fast) var(--ease-out),
+        transform var(--duration-fast) var(--ease-out);
+}
+
+.dropzone:active {
+    transform: scale(0.99);
+    transition-duration: var(--duration-instant);
 }
 
 .dropzone:hover,
@@ -184,5 +190,11 @@
 @media (min-width: 640px) {
     .submitButton {
         width: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dropzone:active {
+        transform: none;
     }
 }

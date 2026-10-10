@@ -6,6 +6,7 @@ import { MONTHS } from "../../addSalesLogConfig";
 import ConflictItem from "../ConflictItem/ConflictItem";
 
 export default function ConflictModal({
+  open,
   conflicts,
   conflictDecisions,
   month,
@@ -18,7 +19,7 @@ export default function ConflictModal({
 
   return (
     <Modal
-      open
+      open={open}
       onClose={onClose}
       closeLabel="Close modal"
       size="xl"

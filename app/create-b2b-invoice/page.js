@@ -726,50 +726,48 @@ export default function CreateB2BInvoicePage() {
       />
 
       {/* Inventory Selection Modal */}
-      {inventoryPickerIndex !== null && (
-        <InventoryPickerModal
-          searchRef={pickerSearchRef}
-          inventorySearch={inventorySearch}
-          filteredInventory={filteredInventory}
-          selectedInventoryId={lineItems[inventoryPickerIndex]?.inventoryId}
-          onSearchChange={handleInventorySearchChange}
-          onClearSearch={handleClearInventorySearch}
-          onSelectItem={selectInventoryItem}
-          onClose={closeInventoryPicker}
-        />
-      )}
+      <InventoryPickerModal
+        open={inventoryPickerIndex !== null}
+        searchRef={pickerSearchRef}
+        inventorySearch={inventorySearch}
+        filteredInventory={filteredInventory}
+        selectedInventoryId={lineItems[inventoryPickerIndex]?.inventoryId}
+        onSearchChange={handleInventorySearchChange}
+        onClearSearch={handleClearInventorySearch}
+        onSelectItem={selectInventoryItem}
+        onClose={closeInventoryPicker}
+      />
       {/* Company Details, Bank & Terms Modal */}
-      {isCompanyModalOpen && (
-        <CompanySettingsModal
-          sellerDetails={sellerDetails}
-          notes={notes}
-          isSavingCompany={isSavingCompany}
-          onSellerFieldChange={handleSellerFieldChange}
-          onNotesChange={handleNotesChange}
-          onSave={handleSaveCompanySettings}
-          onClose={handleCloseCompanyModal}
-        />
-      )}
+      <CompanySettingsModal
+        open={isCompanyModalOpen}
+        sellerDetails={sellerDetails}
+        notes={notes}
+        isSavingCompany={isSavingCompany}
+        onSellerFieldChange={handleSellerFieldChange}
+        onNotesChange={handleNotesChange}
+        onSave={handleSaveCompanySettings}
+        onClose={handleCloseCompanyModal}
+      />
       {/* Multi-Select Inventory Modal */}
-      {isMultiSelectOpen && (
-        <MultiSelectInventoryModal
-          searchRef={multiSearchRef}
-          multiSelectSearch={multiSelectSearch}
-          filteredMultiInventory={filteredMultiInventory}
-          selectedInvIds={selectedInvIds}
-          onSearchChange={handleMultiSelectSearchChange}
-          onClearSearch={handleClearMultiSelectSearch}
-          onSelectAllFiltered={handleSelectAllFiltered}
-          onClearSelection={handleClearSelection}
-          onToggleItem={toggleInvSelection}
-          onAddBlankRow={handleAddBlankRow}
-          onAddSelectedItems={handleAddSelectedItems}
-          onClose={closeMultiSelectModal}
-        />
-      )}
+      <MultiSelectInventoryModal
+        open={isMultiSelectOpen}
+        searchRef={multiSearchRef}
+        multiSelectSearch={multiSelectSearch}
+        filteredMultiInventory={filteredMultiInventory}
+        selectedInvIds={selectedInvIds}
+        onSearchChange={handleMultiSelectSearchChange}
+        onClearSearch={handleClearMultiSelectSearch}
+        onSelectAllFiltered={handleSelectAllFiltered}
+        onClearSelection={handleClearSelection}
+        onToggleItem={toggleInvSelection}
+        onAddBlankRow={handleAddBlankRow}
+        onAddSelectedItems={handleAddSelectedItems}
+        onClose={closeMultiSelectModal}
+      />
       {/* PDF Preview Modal */}
-      {showPdfModal && pdfModalInvoice && (
+      {pdfModalInvoice && (
         <PdfPreviewModal
+          open={showPdfModal}
           pdfModalInvoice={pdfModalInvoice}
           modalPdfRef={modalPdfRef}
           showQrCodePdfModal={showQrCodePdfModal}
@@ -781,8 +779,9 @@ export default function CreateB2BInvoicePage() {
       )}
 
       {/* Graphical View Modal (Invoice Details & Inventory Images) */}
-      {showGraphicalModal && graphicalModalInvoice && (
+      {graphicalModalInvoice && (
         <GraphicalViewModal
+          open={showGraphicalModal}
           graphicalModalInvoice={graphicalModalInvoice}
           sellerDetails={sellerDetails}
           inventoryList={inventoryList}

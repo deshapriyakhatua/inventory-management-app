@@ -109,6 +109,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .card:hover,
+  .card:active,
   .card:hover .arrow {
     transform: none;
   }

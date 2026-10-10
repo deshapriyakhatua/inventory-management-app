@@ -8,10 +8,10 @@ import StatusBadge from "../StatusBadge/StatusBadge";
 import styles from "./GraphicalViewModal.module.css";
 
 // Graphical View Modal (Invoice Details & Inventory Images)
-export default function GraphicalViewModal({ graphicalModalInvoice, inventoryList, onClose }) {
+export default function GraphicalViewModal({ open, graphicalModalInvoice, inventoryList, onClose }) {
   return (
     <Modal
-      open
+      open={open}
       onClose={onClose}
       size="lg"
       title={

@@ -7,6 +7,7 @@ import styles from "./MultiSelectInventoryModal.module.css";
 
 // Multi-Select Inventory Modal
 export default function MultiSelectInventoryModal({
+  open,
   searchRef,
   multiSelectSearch,
   filteredMultiInventory,
@@ -22,7 +23,7 @@ export default function MultiSelectInventoryModal({
 }) {
   return (
     <Modal
-      open
+      open={open}
       onClose={onClose}
       size="lg"
       title="Select Inventory Items"

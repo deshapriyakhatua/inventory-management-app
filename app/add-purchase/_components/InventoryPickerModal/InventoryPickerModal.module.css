@@ -117,3 +117,9 @@
 .stockLow {
   color: var(--color-danger);
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .card:active {
+    transform: none;
+  }
+}

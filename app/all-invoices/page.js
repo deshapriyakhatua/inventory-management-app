@@ -560,8 +560,9 @@ export default function AllInvoicesPage() {
       />
 
       {/* EDIT INVOICE MODAL */}
-      {showEditModal && editingInvoice && (
+      {editingInvoice && (
         <EditInvoiceModal
+          open={showEditModal}
           editingInvoice={editingInvoice}
           modalAutoStatus={modalAutoStatus}
           isSavingEdit={isSavingEdit}
@@ -585,8 +586,9 @@ export default function AllInvoicesPage() {
       )}
 
       {/* VIEW PDF / PRINT MODAL (wraps InvoicePdfPreview; pdfPreviewRef feeds downloadInvoicePdf) */}
-      {showPdfModal && viewingInvoice && (
+      {viewingInvoice && (
         <PdfPreviewModal
+          open={showPdfModal}
           viewingInvoice={viewingInvoice}
           pdfPreviewRef={pdfPreviewRef}
           showQrCode={showQrCode}
@@ -598,8 +600,9 @@ export default function AllInvoicesPage() {
       )}
 
       {/* Graphical View Modal (Invoice Details & Inventory Images) */}
-      {showGraphicalModal && graphicalModalInvoice && (
+      {graphicalModalInvoice && (
         <GraphicalViewModal
+          open={showGraphicalModal}
           graphicalModalInvoice={graphicalModalInvoice}
           inventoryList={inventoryList}
           onClose={handleCloseGraphicalModal}

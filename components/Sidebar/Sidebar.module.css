@@ -98,6 +98,7 @@
 
 .navItem:active {
     transform: scale(0.97);
+    transition-duration: var(--duration-instant);
 }
 
 .navItem.active {
@@ -133,8 +134,8 @@
     line-height: var(--leading-normal);
     white-space: nowrap;
     overflow: hidden;
+    /* max-width snaps (0 <-> none is not interpolable); only compositor props animate (R15). */
     transition:
-        max-width var(--duration-base) var(--ease-out),
         opacity var(--duration-base) var(--ease-out),
         transform var(--duration-base) var(--ease-out);
 }
@@ -297,6 +298,11 @@
     .sidebar,
     .mobileTopBar {
         transition: none;
+    }
+
+    .navItem:active,
+    .compactItem .navText {
+        transform: none;
     }
 }
 

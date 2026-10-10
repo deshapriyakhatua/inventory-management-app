@@ -383,11 +383,9 @@ export default function AddSalesLog() {
         isSubmitting={isSubmitting} onAddRow={addRow} onSubmit={handleSubmit} />
 
       {/* ── Conflict Compare Modal ── */}
-      {showConflictModal && (
-        <ConflictModal conflicts={conflicts} conflictDecisions={conflictDecisions}
-          month={month} year={year} onClose={closeConflictModal}
-          onDecisionChange={handleDecisionChange} onConfirm={handleConflictResolve} />
-      )}
+      <ConflictModal open={showConflictModal} conflicts={conflicts} conflictDecisions={conflictDecisions}
+        month={month} year={year} onClose={closeConflictModal}
+        onDecisionChange={handleDecisionChange} onConfirm={handleConflictResolve} />
     </PageShell>
   );
 }

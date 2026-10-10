@@ -63,3 +63,9 @@
     grid-template-columns: repeat(4, 1fr);
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .pill:active:not(:disabled) {
+    transform: none;
+  }
+}

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { toast } from "sonner";
-import { spring } from "@/lib/motion";
+import { spring, useMotionPreference } from "@/lib/motion";
 import { Button, Icon, IconButton, Sheet } from "@/components/ui";
 import cx from "@/components/ui/cx";
 import { useAuth } from "@/components/AuthProvider";
@@ -54,6 +54,7 @@ export default function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
     const { user } = useAuth();
+    const { reducedMotion } = useMotionPreference();
 
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -160,7 +161,7 @@ export default function Sidebar() {
                         aria-current={isActive ? "page" : undefined}
                         title={compact ? item.title : undefined}
                     >
-                        {isActive && <motion.span layoutId="sidebar-active-pill" className={styles.activePill} aria-hidden="true" />}
+                        {isActive && <motion.span layoutId="sidebar-active-pill" transition={reducedMotion ? { duration: 0 } : undefined} className={styles.activePill} aria-hidden="true" />}
                         <span className={styles.iconWrap}>
                             <Icon name={item.icon} size={20} />
                         </span>
@@ -226,7 +227,7 @@ export default function Sidebar() {
             className={cx(styles.sidebar, isExpanded ? styles.isExpanded : styles.isCollapsed)}
             initial={false}
             animate={{ width: isExpanded ? 260 : 72 }}
-            transition={spring.default}
+            transition={reducedMotion ? { duration: 0 } : spring.default}
         >
             <div className={styles.sidebarHeader}>
                 <IconButton

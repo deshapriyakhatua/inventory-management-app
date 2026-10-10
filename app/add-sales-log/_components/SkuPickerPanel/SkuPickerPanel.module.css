@@ -98,3 +98,9 @@
   color: var(--color-text-muted);
   font-size: var(--text-xs);
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .item:active {
+    transform: none;
+  }
+}

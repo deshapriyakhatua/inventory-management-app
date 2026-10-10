@@ -9,6 +9,7 @@ import styles from "./PdfPreviewModal.module.css";
 // is the node handed to downloadInvoicePdf (html2canvas/jsPDF) by page.js. The element, its props
 // and the ref must not change; only the modal chrome around it is redesigned.
 export default function PdfPreviewModal({
+  open,
   viewingInvoice,
   pdfPreviewRef,
   showQrCode,
@@ -19,7 +20,7 @@ export default function PdfPreviewModal({
 }) {
   return (
     <Modal
-      open
+      open={open}
       onClose={onClose}
       size="xl"
       ariaLabel={`Invoice #${viewingInvoice.invoiceNumber}`}

@@ -10,6 +10,7 @@ import styles from "./PdfPreviewModal.module.css";
 // creates modalPdfRef. The element, its props and the ref must not change; only the
 // modal chrome around it is redesigned (same chrome as /all-invoices).
 export default function PdfPreviewModal({
+  open,
   pdfModalInvoice,
   modalPdfRef,
   showQrCodePdfModal,
@@ -20,7 +21,7 @@ export default function PdfPreviewModal({
 }) {
   return (
     <Modal
-      open
+      open={open}
       onClose={onClose}
       size="xl"
       ariaLabel={`Invoice #${pdfModalInvoice.invoiceNumber}`}

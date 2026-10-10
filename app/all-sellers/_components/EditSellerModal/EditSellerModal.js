@@ -52,12 +52,12 @@ function Section({ icon, title, optional, children }) {
   );
 }
 
-export default function EditSellerModal({ editFormData, editLoading, onEditChange, onSubmit, onClose }) {
+export default function EditSellerModal({ open, editFormData, editLoading, onEditChange, onSubmit, onClose }) {
   const f = editFormData;
   const props = (name) => ({ name, value: f[name], onChange: onEditChange, disabled: editLoading });
 
   return (
-    <Modal open onClose={onClose} size="lg" title="Edit Seller Details">
+    <Modal open={open} onClose={onClose} size="lg" title="Edit Seller Details">
       {/* noValidate: the empty Business Name check stays a toast, as before */}
       <form onSubmit={onSubmit} className={styles.form} noValidate>
         <Section icon="icon-4c39cef6" title="Business Information">

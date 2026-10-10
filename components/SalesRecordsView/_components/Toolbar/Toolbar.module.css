@@ -11,7 +11,7 @@
 }
 
 .isSpinning svg {
-    animation: var(--keyframes-spin) 1s linear infinite;
+    animation: var(--keyframes-spin) var(--duration-spin) linear infinite;
 }
 
 @media (min-width: 768px) {

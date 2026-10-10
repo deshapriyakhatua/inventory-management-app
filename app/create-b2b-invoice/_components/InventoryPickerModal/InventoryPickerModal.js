@@ -5,6 +5,7 @@ import styles from "./InventoryPickerModal.module.css";
 
 // Inventory Selection Modal (single line item)
 export default function InventoryPickerModal({
+  open,
   searchRef,
   inventorySearch,
   filteredInventory,
@@ -16,7 +17,7 @@ export default function InventoryPickerModal({
 }) {
   return (
     <Modal
-      open
+      open={open}
       onClose={onClose}
       size="lg"
       title="Select Inventory Item"

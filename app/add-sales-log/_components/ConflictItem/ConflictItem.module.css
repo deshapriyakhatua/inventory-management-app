@@ -143,3 +143,9 @@
     color: var(--color-text-muted);
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .decision:active {
+    transform: none;
+  }
+}

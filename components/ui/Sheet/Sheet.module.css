@@ -6,6 +6,11 @@
   overscroll-behavior: contain;
 }
 
+/* R3: an exiting overlay never swallows input meant for the page. */
+.overlay[data-exiting] {
+  pointer-events: none;
+}
+
 .scrim {
   position: absolute;
   inset: 0;

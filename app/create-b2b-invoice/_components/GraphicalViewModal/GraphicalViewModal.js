@@ -9,6 +9,7 @@ import styles from "./GraphicalViewModal.module.css";
 
 // Graphical View Modal (Invoice Details & Inventory Images)
 export default function GraphicalViewModal({
+  open,
   graphicalModalInvoice,
   sellerDetails,
   inventoryList,
@@ -16,7 +17,7 @@ export default function GraphicalViewModal({
 }) {
   return (
     <Modal
-      open
+      open={open}
       onClose={onClose}
       size="lg"
       title={
