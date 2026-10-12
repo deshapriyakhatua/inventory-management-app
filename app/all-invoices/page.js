@@ -310,14 +310,17 @@ export default function AllInvoicesPage() {
       (sum, item) => sum + (Number(item.amount) || 0),
       0
     );
-    const totalTax = editingInvoice.lineItems.reduce(
+    const itemsTax = editingInvoice.lineItems.reduce(
       (sum, item) => sum + (Number(item.taxAmount) || 0),
       0
     );
+    const shippingFeeVal = Number(editingInvoice.shippingFee || 0);
+    const shippingTax = (shippingFeeVal * 3) / 100;
+    const totalTax = itemsTax + shippingTax;
     const grandTotal =
       subtotal +
-      totalTax +
-      Number(editingInvoice.shippingFee || 0) -
+      shippingFeeVal +
+      totalTax -
       Number(editingInvoice.discount || 0);
     const balanceAmount =
       grandTotal - Number(editingInvoice.receivedAmount || 0);
@@ -722,16 +725,20 @@ export default function AllInvoicesPage() {
       0
     ) || 0;
 
-  const modalTotalTax =
+  const modalItemsTax =
     editingInvoice?.lineItems?.reduce(
       (sum, item) => sum + (Number(item.taxAmount) || 0),
       0
     ) || 0;
 
+  const modalShippingVal = Number(editingInvoice?.shippingFee || 0);
+  const modalShippingTax = (modalShippingVal * 3) / 100;
+  const modalTotalTax = modalItemsTax + modalShippingTax;
+
   const modalGrandTotal =
     modalSubtotal +
-    modalTotalTax +
-    Number(editingInvoice?.shippingFee || 0) -
+    modalShippingVal +
+    modalTotalTax -
     Number(editingInvoice?.discount || 0);
 
   const modalReceived = Number(editingInvoice?.receivedAmount || 0);
@@ -1732,16 +1739,16 @@ export default function AllInvoicesPage() {
                     <span>Subtotal:</span>
                     <span>₹{(graphicalModalInvoice.subtotal || 0).toFixed(2)}</span>
                   </div>
-                  <div className={styles.summaryRow}>
-                    <span>GST Total:</span>
-                    <span>₹{(graphicalModalInvoice.totalTax || 0).toFixed(2)}</span>
-                  </div>
                   {graphicalModalInvoice.shippingFee > 0 && (
                     <div className={styles.summaryRow}>
                       <span>Shipping Fee:</span>
                       <span>₹{(graphicalModalInvoice.shippingFee || 0).toFixed(2)}</span>
                     </div>
                   )}
+                  <div className={styles.summaryRow}>
+                    <span>GST Total:</span>
+                    <span>₹{(graphicalModalInvoice.totalTax || 0).toFixed(2)}</span>
+                  </div>
                   {graphicalModalInvoice.discount > 0 && (
                     <div className={styles.summaryRow}>
                       <span>Discount:</span>

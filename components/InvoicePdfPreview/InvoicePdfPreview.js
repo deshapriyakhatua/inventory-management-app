@@ -64,9 +64,15 @@ const InvoicePdfPreview = forwardRef(({ invoice, showQrCode = true }, ref) => {
   const totalGstAmt = calculatedRows.reduce((sum, item) => sum + item.gstAmt, 0);
   const totalItemAmount = calculatedRows.reduce((sum, item) => sum + item.total, 0);
 
+  const shippingVal = Number(shippingFee) || 0;
+  const shippingGst = (shippingVal * 3) / 100;
+
   const displaySubtotal = Number(subtotal) || totalSubtotal;
-  const displayTotalTax = totalTax !== undefined ? Number(totalTax) : totalGstAmt;
-  const displayGrandTotal = Number(grandTotal) || (displaySubtotal + displayTotalTax + Number(shippingFee || 0) - Number(discount || 0));
+  const displayTotalTax =
+    totalTax !== undefined ? Number(totalTax) : totalGstAmt + shippingGst;
+  const displayGrandTotal =
+    Number(grandTotal) ||
+    displaySubtotal + shippingVal + displayTotalTax - Number(discount || 0);
 
   // Dynamic balance calculation: Grand Total - Received Amount
   const displayReceived = Number(receivedAmount) || 0;
@@ -196,7 +202,7 @@ const InvoicePdfPreview = forwardRef(({ invoice, showQrCode = true }, ref) => {
                 })}
               </td>
               <td></td>
-              <td className={styles.alignRight}>{displayTotalTax.toFixed(2)}</td>
+              <td className={styles.alignRight}>{totalGstAmt.toFixed(2)}</td>
               <td className={styles.alignRight}>
                 {totalItemAmount.toLocaleString("en-IN", {
                   minimumFractionDigits: 2,
@@ -237,18 +243,18 @@ const InvoicePdfPreview = forwardRef(({ invoice, showQrCode = true }, ref) => {
               </div>
 
               <div className={styles.totalRowItem}>
-                <span>GST</span>
-                <span>₹{displayTotalTax.toFixed(2)}</span>
-              </div>
-
-              <div className={styles.totalRowItem}>
                 <span>Shipping</span>
                 <span>
                   ₹
-                  {Number(shippingFee).toLocaleString("en-IN", {
+                  {shippingVal.toLocaleString("en-IN", {
                     minimumFractionDigits: 2,
                   })}
                 </span>
+              </div>
+
+              <div className={styles.totalRowItem}>
+                <span>GST</span>
+                <span>₹{displayTotalTax.toFixed(2)}</span>
               </div>
 
               <div className={styles.totalRowItem}>

@@ -446,9 +446,12 @@ export default function CreateB2BInvoicePage() {
   });
 
   const subtotal = calculatedRows.reduce((sum, item) => sum + item.subTotal, 0);
-  const totalGst = calculatedRows.reduce((sum, item) => sum + item.gstAmt, 0);
+  const itemsGst = calculatedRows.reduce((sum, item) => sum + item.gstAmt, 0);
+  const shippingVal = Number(shippingFee) || 0;
+  const shippingGst = (shippingVal * 3) / 100;
+  const totalGst = itemsGst + shippingGst;
   const grandTotal =
-    subtotal + totalGst + Number(shippingFee || 0) - Number(discount || 0);
+    subtotal + shippingVal + totalGst - Number(discount || 0);
   const balanceAmount = grandTotal - Number(receivedAmount || 0);
   const autoPaymentStatus = calculatePaymentStatus(grandTotal, receivedAmount);
 
@@ -1101,10 +1104,6 @@ export default function CreateB2BInvoicePage() {
                   <span>₹{subtotal.toFixed(2)}</span>
                 </div>
                 <div className={styles.summaryRow}>
-                  <span>GST Total:</span>
-                  <span>₹{totalGst.toFixed(2)}</span>
-                </div>
-                <div className={styles.summaryRow}>
                   <span>Shipping (₹):</span>
                   <input
                     type="number"
@@ -1114,6 +1113,10 @@ export default function CreateB2BInvoicePage() {
                     value={shippingFee}
                     onChange={(e) => setShippingFee(e.target.value)}
                   />
+                </div>
+                <div className={styles.summaryRow}>
+                  <span>GST Total:</span>
+                  <span>₹{totalGst.toFixed(2)}</span>
                 </div>
                 <div className={styles.summaryRow}>
                   <span>Discount (₹):</span>
@@ -1959,16 +1962,16 @@ export default function CreateB2BInvoicePage() {
                     <span>Subtotal:</span>
                     <span>₹{(graphicalModalInvoice.subtotal || 0).toFixed(2)}</span>
                   </div>
-                  <div className={styles.summaryRow}>
-                    <span>GST Total:</span>
-                    <span>₹{(graphicalModalInvoice.totalTax || 0).toFixed(2)}</span>
-                  </div>
                   {graphicalModalInvoice.shippingFee > 0 && (
                     <div className={styles.summaryRow}>
                       <span>Shipping Fee:</span>
                       <span>₹{(graphicalModalInvoice.shippingFee || 0).toFixed(2)}</span>
                     </div>
                   )}
+                  <div className={styles.summaryRow}>
+                    <span>GST Total:</span>
+                    <span>₹{(graphicalModalInvoice.totalTax || 0).toFixed(2)}</span>
+                  </div>
                   {graphicalModalInvoice.discount > 0 && (
                     <div className={styles.summaryRow}>
                       <span>Discount:</span>
