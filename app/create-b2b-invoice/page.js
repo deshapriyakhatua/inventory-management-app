@@ -24,6 +24,7 @@ function formatDateGB(dateStr) {
 
 export default function CreateB2BInvoicePage() {
   const [activeTab, setActiveTab] = useState("form"); // "form" | "preview"
+  const [previewInvoiceData, setPreviewInvoiceData] = useState(null);
   const [isGeneratingId, setIsGeneratingId] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
@@ -486,6 +487,39 @@ export default function CreateB2BInvoicePage() {
     showQrCode,
   };
 
+  // Reset Form for next invoice
+  const resetForm = () => {
+    setBuyerDetails({
+      businessName: "",
+      phoneNo: "",
+      address: "",
+      gstNo: "NA",
+      state: "",
+    });
+    setLineItems([
+      {
+        inventoryId: "",
+        description: "",
+        hsnCode: "7117",
+        quantity: 0,
+        unitPrice: 0,
+        gstRate: 3,
+      },
+    ]);
+    setShippingFee(150);
+    setDiscount(0);
+    setReceivedAmount(0);
+    setShowQrCode(false);
+    setPlaceOfSupply("19-West Bengal");
+    setPaymentStatus("Pending");
+    setInvoiceDate(new Date().toISOString().split("T")[0]);
+  };
+
+  const handleClosePreview = () => {
+    setActiveTab("form");
+    setPreviewInvoiceData(null);
+  };
+
   // Submit Invoice Form
   const handleSubmitInvoice = async (e) => {
     e.preventDefault();
@@ -540,9 +574,15 @@ export default function CreateB2BInvoicePage() {
 
       if (res.ok) {
         toast.success("B2B Invoice created successfully!");
-        fetchRecentInvoices();
-        fetchNextInvoiceId();
+        const savedInvoice = {
+          ...(data.invoice || payload),
+          showQrCode,
+        };
+        setPreviewInvoiceData(savedInvoice);
         setActiveTab("preview");
+        fetchRecentInvoices();
+        resetForm();
+        fetchNextInvoiceId();
       } else {
         toast.error(data.error || "Failed to save invoice");
       }
@@ -558,9 +598,10 @@ export default function CreateB2BInvoicePage() {
   const handleDownloadPdf = async () => {
     if (!pdfPreviewRef.current) return;
     setIsDownloadingPdf(true);
+    const activeInvoice = previewInvoiceData || invoiceDataForPdf;
     try {
-      const fileName = `Invoice_${invoiceNumber || "Draft"}_${(
-        buyerDetails.businessName || "B2B"
+      const fileName = `Invoice_${activeInvoice.invoiceNumber || "Draft"}_${(
+        activeInvoice.buyerDetails?.businessName || "B2B"
       ).replace(/\s+/g, "_")}.pdf`;
       await downloadInvoicePdf(pdfPreviewRef.current, fileName);
       toast.success("PDF generated and downloaded!");
@@ -605,19 +646,22 @@ export default function CreateB2BInvoicePage() {
             <button
               type="button"
               className={styles.tabBtn}
-              onClick={() => setActiveTab("form")}
+              onClick={handleClosePreview}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
-              Close Preview
+              {previewInvoiceData ? "Create New Invoice" : "Close Preview"}
             </button>
           ) : (
             <button
               type="button"
               className={styles.tabBtn}
-              onClick={() => setActiveTab("preview")}
+              onClick={() => {
+                setPreviewInvoiceData(null);
+                setActiveTab("preview");
+              }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -633,7 +677,13 @@ export default function CreateB2BInvoicePage() {
                 <input
                   type="checkbox"
                   checked={showQrCode}
-                  onChange={(e) => setShowQrCode(e.target.checked)}
+                  onChange={(e) => {
+                    const nextVal = e.target.checked;
+                    setShowQrCode(nextVal);
+                    if (previewInvoiceData) {
+                      setPreviewInvoiceData((prev) => (prev ? { ...prev, showQrCode: nextVal } : null));
+                    }
+                  }}
                   style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#ec4899" }}
                 />
                 <span>Print QR Code</span>
@@ -1120,7 +1170,14 @@ export default function CreateB2BInvoicePage() {
         </form>
       ) : (
         /* EXACT REPLICA PDF INVOICE PREVIEW */
-        <InvoicePdfPreview ref={pdfPreviewRef} invoice={invoiceDataForPdf} />
+        <InvoicePdfPreview
+          ref={pdfPreviewRef}
+          invoice={{
+            ...(previewInvoiceData || invoiceDataForPdf),
+            showQrCode,
+          }}
+          showQrCode={showQrCode}
+        />
       )}
 
       {/* History Section */}
