@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import styles from "./page.module.css";
 import { toast } from "sonner";
@@ -38,6 +38,19 @@ export default function AllInvoicesPage() {
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
+  // Edit Modal Inventory Picker & Multi-Select State
+  const [inventoryPickerIndex, setInventoryPickerIndex] = useState(null);
+  const [inventorySearch, setInventorySearch] = useState("");
+  const pickerSearchRef = useRef(null);
+
+  const [isMultiSelectOpen, setIsMultiSelectOpen] = useState(false);
+  const [selectedInvIds, setSelectedInvIds] = useState([]);
+  const [multiSelectSearch, setMultiSelectSearch] = useState("");
+  const multiSearchRef = useRef(null);
+
+  // Floating Cursor Image Preview State
+  const [hoveredImage, setHoveredImage] = useState(null);
+
   // View / Print PDF Modal State
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [viewingInvoice, setViewingInvoice] = useState(null);
@@ -57,6 +70,332 @@ export default function AllInvoicesPage() {
 
   // 3-Dot Dropdown Menu State
   const [openMenuId, setOpenMenuId] = useState(null);
+
+  // GST Sales Report Modal State (Monthly basis)
+  const [showGstModal, setShowGstModal] = useState(false);
+  const [gstMonth, setGstMonth] = useState(() => {
+    const d = new Date();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    return `${d.getFullYear()}-${m}`;
+  });
+  const [gstIncludeArchived, setGstIncludeArchived] = useState(false);
+  const [gstInvoices, setGstInvoices] = useState([]);
+  const [isFetchingGst, setIsFetchingGst] = useState(false);
+  const [isExportingGst, setIsExportingGst] = useState(false);
+
+  useEffect(() => {
+    if (!showGstModal) return;
+    const fetchMonthlyInvoices = async () => {
+      setIsFetchingGst(true);
+      try {
+        const res = await fetch(
+          `/api/employee/b2b-invoice?month=${gstMonth}&status=Paid&archived=${gstIncludeArchived}&limit=all`
+        );
+        const data = await res.json();
+        if (res.ok && data.data) {
+          const paidOnly = (data.data || []).filter((inv) => inv.paymentStatus === "Paid");
+          setGstInvoices(paidOnly);
+        } else {
+          setGstInvoices([]);
+        }
+      } catch (err) {
+        console.error("Error fetching GST invoices:", err);
+        setGstInvoices([]);
+      } finally {
+        setIsFetchingGst(false);
+      }
+    };
+    fetchMonthlyInvoices();
+  }, [showGstModal, gstMonth, gstIncludeArchived]);
+
+  const gstMonthStats = useMemo(() => {
+    let totalTaxable = 0;
+    let totalCgst = 0;
+    let totalSgst = 0;
+    let totalIgst = 0;
+    let totalInvoiceAmount = 0;
+    let totalRows = 0;
+
+    gstInvoices.forEach((inv) => {
+      const sellerGst = inv.sellerDetails?.gstNo?.slice(0, 2) || "19";
+      const buyerGstin =
+        inv.buyerDetails?.gstNo &&
+        inv.buyerDetails.gstNo !== "NA" &&
+        inv.buyerDetails.gstNo !== "N/A"
+          ? inv.buyerDetails.gstNo.trim().toUpperCase()
+          : "";
+      const pos = inv.placeOfSupply || inv.buyerDetails?.state || "West Bengal";
+      const buyerStateCode =
+        buyerGstin.length >= 2
+          ? buyerGstin.slice(0, 2)
+          : pos.includes("-")
+          ? pos.split("-")[0].trim()
+          : "";
+      const isInterState =
+        buyerStateCode && buyerStateCode !== sellerGst
+          ? true
+          : !pos.toLowerCase().includes("west bengal") && !pos.startsWith("19");
+
+      // Items
+      (inv.lineItems || []).forEach((item) => {
+        const qty = Number(item.quantity) || 1;
+        const rate = Number(item.taxRate !== undefined ? item.taxRate : item.gstRate) || 3;
+        const taxable = Number(
+          (item.amount !== undefined ? item.amount : qty * Number(item.unitPrice || 0)).toFixed(2)
+        );
+        const tax = Number(
+          (item.taxAmount !== undefined ? item.taxAmount : (taxable * rate) / 100).toFixed(2)
+        );
+        const igst = isInterState ? tax : 0;
+        const cgst = isInterState ? 0 : Number((tax / 2).toFixed(2));
+        const sgst = isInterState ? 0 : Number((tax - cgst).toFixed(2));
+
+        totalTaxable += taxable;
+        totalCgst += cgst;
+        totalSgst += sgst;
+        totalIgst += igst;
+        totalInvoiceAmount += Number((taxable + tax).toFixed(2));
+        totalRows += 1;
+      });
+
+      // Shipping as part of Composite Supply
+      const ship = Number(inv.shippingFee) || 0;
+      if (ship > 0) {
+        const shipTax = Number(((ship * 3) / 100).toFixed(2));
+        const igst = isInterState ? shipTax : 0;
+        const cgst = isInterState ? 0 : Number((shipTax / 2).toFixed(2));
+        const sgst = isInterState ? 0 : Number((shipTax - cgst).toFixed(2));
+
+        totalTaxable += ship;
+        totalCgst += cgst;
+        totalSgst += sgst;
+        totalIgst += igst;
+        totalInvoiceAmount += Number((ship + shipTax).toFixed(2));
+        totalRows += 1;
+      }
+    });
+
+    return {
+      invoiceCount: gstInvoices.length,
+      rowCount: totalRows,
+      taxable: totalTaxable,
+      cgst: totalCgst,
+      sgst: totalSgst,
+      igst: totalIgst,
+      totalGst: totalCgst + totalSgst + totalIgst,
+      totalAmount: totalInvoiceAmount,
+    };
+  }, [gstInvoices]);
+
+  const handleExportGstReport = () => {
+    const paidInvoices = (gstInvoices || []).filter((inv) => inv.paymentStatus === "Paid");
+    if (!paidInvoices || paidInvoices.length === 0) {
+      toast.error("No paid invoices found for the selected month to export.");
+      return;
+    }
+
+    setIsExportingGst(true);
+
+    try {
+      const headers = [
+        "Date",
+        "Invoice Number",
+        "GSTIN",
+        "Place of Supply",
+        "Pincode",
+        "Taxable Amount",
+        "Quantity",
+        "GST Rate",
+        "IGST",
+        "SGST/UTGST",
+        "CGST",
+        "CESS Rate",
+        "CESS",
+        "Invoice Amount",
+        "HSN/SAC",
+        "e-commerce GSTIN",
+      ];
+
+      const instructions = [
+        "Enter date in dd-mm-yyyy format only.",
+        "Invoice number should be of maximum 16 characters",
+        "Customer GST number if available",
+        "Compulsory if GSTIN is not entered.",
+        "Enter customer address pincode ",
+        "Enter pre GST value.",
+        "Number of item sell ",
+        "GST Rate without %",
+        "Enter IGST amount",
+        "Enter SGST amounr",
+        "Enter CGST amount",
+        "CESS Rate without %",
+        "Enter CESS amount",
+        "Enter total invoice amount (after GST)",
+        "HSN/SAC is manadatory for persons with turnover of more than 2 crore.",
+        "Enter eCommerce GST (TCS) for table 14 generation. (optional)",
+      ];
+
+      const salesRows = [headers, instructions];
+
+      paidInvoices.forEach((inv) => {
+        // Date formatted as dd-mm-yyyy
+        let formattedDate = "";
+        if (inv.invoiceDate) {
+          const d = new Date(inv.invoiceDate);
+          if (!isNaN(d.getTime())) {
+            const day = String(d.getDate()).padStart(2, "0");
+            const m = String(d.getMonth() + 1).padStart(2, "0");
+            const y = d.getFullYear();
+            formattedDate = `${day}-${m}-${y}`;
+          }
+        }
+
+        const invoiceNum = String(inv.invoiceNumber || "").slice(0, 16);
+
+        // GSTIN
+        const gstinRaw = inv.buyerDetails?.gstNo;
+        const gstin =
+          gstinRaw && gstinRaw !== "NA" && gstinRaw !== "N/A"
+            ? String(gstinRaw).trim().toUpperCase()
+            : "";
+
+        // Place of supply (clean state name)
+        let rawPos = inv.placeOfSupply || inv.buyerDetails?.state || "West Bengal";
+        let pos = rawPos.includes("-")
+          ? rawPos.split("-").slice(1).join("-").trim()
+          : rawPos.trim();
+
+        // Pincode
+        let pincode = inv.buyerDetails?.pinCode || "";
+        if (!pincode || String(pincode).trim().length !== 6) {
+          const m = (inv.buyerDetails?.address || "").match(/\b[1-9][0-9]{5}\b/);
+          if (m) pincode = m[0];
+        }
+
+        // Inter-state check
+        const sellerGst = inv.sellerDetails?.gstNo?.slice(0, 2) || "19";
+        const buyerStateCode =
+          gstin.length >= 2
+            ? gstin.slice(0, 2)
+            : rawPos.includes("-")
+            ? rawPos.split("-")[0].trim()
+            : "";
+        const isInterState =
+          buyerStateCode && buyerStateCode !== sellerGst
+            ? true
+            : !rawPos.toLowerCase().includes("west bengal") && !rawPos.startsWith("19");
+
+        // Line Items
+        (inv.lineItems || []).forEach((item) => {
+          const qty = Number(item.quantity) || 1;
+          const rate = Number(item.taxRate !== undefined ? item.taxRate : item.gstRate) || 3;
+          const taxable = Number(
+            (item.amount !== undefined ? item.amount : qty * Number(item.unitPrice || 0)).toFixed(2)
+          );
+          const taxAmt = Number(
+            (item.taxAmount !== undefined ? item.taxAmount : (taxable * rate) / 100).toFixed(2)
+          );
+
+          const igst = isInterState ? taxAmt : 0;
+          const cgst = isInterState ? 0 : Number((taxAmt / 2).toFixed(2));
+          const sgst = isInterState ? 0 : Number((taxAmt - cgst).toFixed(2));
+          const lineTotal = Number((taxable + taxAmt).toFixed(2));
+          const hsn = item.hsnCode || "7117";
+
+          salesRows.push([
+            formattedDate,
+            invoiceNum,
+            gstin,
+            pos,
+            pincode,
+            taxable,
+            qty,
+            rate,
+            igst,
+            sgst,
+            cgst,
+            0,
+            0,
+            lineTotal,
+            hsn,
+            "",
+          ]);
+        });
+
+        // Shipping fee as Composite Supply (3% GST)
+        const shipFee = Number(inv.shippingFee) || 0;
+        if (shipFee > 0) {
+          const shipTaxAmt = Number(((shipFee * 3) / 100).toFixed(2));
+          const igst = isInterState ? shipTaxAmt : 0;
+          const cgst = isInterState ? 0 : Number((shipTaxAmt / 2).toFixed(2));
+          const sgst = isInterState ? 0 : Number((shipTaxAmt - cgst).toFixed(2));
+          const shipTotal = Number((shipFee + shipTaxAmt).toFixed(2));
+          const shipHsn = inv.lineItems?.[0]?.hsnCode || "7117";
+
+          salesRows.push([
+            formattedDate,
+            invoiceNum,
+            gstin,
+            pos,
+            pincode,
+            shipFee,
+            1,
+            3,
+            igst,
+            sgst,
+            cgst,
+            0,
+            0,
+            shipTotal,
+            shipHsn,
+            "",
+          ]);
+        }
+      });
+
+      // Create Workbook
+      const wb = XLSX.utils.book_new();
+
+      // Sheet 1: Sales
+      const salesSheet = XLSX.utils.aoa_to_sheet(salesRows);
+      salesSheet["!cols"] = [
+        { wch: 14 }, // Date
+        { wch: 18 }, // Invoice Number
+        { wch: 20 }, // GSTIN
+        { wch: 20 }, // Place of Supply
+        { wch: 12 }, // Pincode
+        { wch: 16 }, // Taxable Amount
+        { wch: 10 }, // Quantity
+        { wch: 10 }, // GST Rate
+        { wch: 12 }, // IGST
+        { wch: 14 }, // SGST/UTGST
+        { wch: 12 }, // CGST
+        { wch: 12 }, // CESS Rate
+        { wch: 10 }, // CESS
+        { wch: 16 }, // Invoice Amount
+        { wch: 12 }, // HSN/SAC
+        { wch: 20 }, // e-commerce GSTIN
+      ];
+      XLSX.utils.book_append_sheet(wb, salesSheet, "Sales");
+
+      // Sheet 2: return
+      const returnSheet = XLSX.utils.aoa_to_sheet([headers, instructions]);
+      returnSheet["!cols"] = salesSheet["!cols"];
+      XLSX.utils.book_append_sheet(wb, returnSheet, "return");
+
+      // File Name
+      const fileName = `GST_Sales_Report_${gstMonth}_Paid.xlsx`;
+      XLSX.writeFile(wb, fileName);
+
+      toast.success(`GST Paid Sales Report downloaded: ${fileName}`);
+      setShowGstModal(false);
+    } catch (err) {
+      console.error("GST Export Error:", err);
+      toast.error("Failed to export GST sales report");
+    } finally {
+      setIsExportingGst(false);
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -236,20 +575,201 @@ export default function AllInvoicesPage() {
     if (copy.invoiceDate) {
       copy.invoiceDate = new Date(copy.invoiceDate).toISOString().split("T")[0];
     }
+    // Ensure lineItems have inventoryId, description, hsnCode, quantity, unitPrice, taxRate, amount, taxAmount, totalAmount
+    copy.lineItems = (copy.lineItems || []).map((item) => {
+      const qty = Number(item.quantity) || 1;
+      const price = Number(item.unitPrice) || 0;
+      const taxRate = Number(item.taxRate !== undefined ? item.taxRate : (item.gstRate !== undefined ? item.gstRate : 3));
+      const amount = qty * price;
+      const taxAmount = (amount * taxRate) / 100;
+      const totalAmount = amount + taxAmount;
+      return {
+        inventoryId: item.inventoryId || "",
+        description: item.description || item.inventoryId || "",
+        hsnCode: item.hsnCode || "7117",
+        quantity: qty,
+        unitPrice: price,
+        taxRate,
+        amount,
+        taxAmount,
+        totalAmount,
+      };
+    });
     setEditingInvoice(copy);
     setShowEditModal(true);
   };
+
+  // Inventory Picker Handlers (for Edit Modal)
+  const openInventoryPicker = (index) => {
+    setInventoryPickerIndex(index);
+    setInventorySearch("");
+    setTimeout(() => {
+      if (pickerSearchRef.current) {
+        pickerSearchRef.current.focus();
+      }
+    }, 50);
+  };
+
+  const closeInventoryPicker = () => {
+    setInventoryPickerIndex(null);
+    setInventorySearch("");
+  };
+
+  const selectInventoryItem = (inv) => {
+    if (inventoryPickerIndex === null || !editingInvoice) return;
+    const updated = [...editingInvoice.lineItems];
+    if (updated[inventoryPickerIndex]) {
+      updated[inventoryPickerIndex].inventoryId = inv.inventoryId;
+      updated[inventoryPickerIndex].description = inv.inventoryId;
+      updated[inventoryPickerIndex].hsnCode = updated[inventoryPickerIndex].hsnCode || "7117";
+      const qty = Number(updated[inventoryPickerIndex].quantity) || 1;
+      const price = Number(updated[inventoryPickerIndex].unitPrice) || 0;
+      const taxRate = Number(updated[inventoryPickerIndex].taxRate !== undefined ? updated[inventoryPickerIndex].taxRate : 3);
+      const amount = qty * price;
+      const taxAmount = (amount * taxRate) / 100;
+      updated[inventoryPickerIndex].amount = amount;
+      updated[inventoryPickerIndex].taxAmount = taxAmount;
+      updated[inventoryPickerIndex].totalAmount = amount + taxAmount;
+    }
+    setEditingInvoice({
+      ...editingInvoice,
+      lineItems: updated,
+    });
+    closeInventoryPicker();
+  };
+
+  const filteredInventory = useMemo(() => {
+    if (!inventorySearch.trim()) return inventoryList;
+    const q = inventorySearch.toLowerCase().trim();
+    return inventoryList.filter(
+      (inv) =>
+        inv.inventoryId?.toLowerCase().includes(q) ||
+        inv.vertical?.toLowerCase().includes(q)
+    );
+  }, [inventoryList, inventorySearch]);
+
+  // Multi-Select Inventory Handlers (for Edit Modal)
+  const openMultiSelectModal = () => {
+    if (!editingInvoice) return;
+    setIsMultiSelectOpen(true);
+    const existingIds = (editingInvoice.lineItems || [])
+      .map((item) => item.inventoryId)
+      .filter((id) => Boolean(id) && String(id).trim() !== "");
+    setSelectedInvIds(Array.from(new Set(existingIds)));
+    setMultiSelectSearch("");
+    setTimeout(() => {
+      if (multiSearchRef.current) {
+        multiSearchRef.current.focus();
+      }
+    }, 50);
+  };
+
+  const closeMultiSelectModal = () => {
+    setIsMultiSelectOpen(false);
+    setSelectedInvIds([]);
+    setMultiSelectSearch("");
+  };
+
+  const toggleInvSelection = (invId) => {
+    setSelectedInvIds((prev) =>
+      prev.includes(invId) ? prev.filter((id) => id !== invId) : [...prev, invId]
+    );
+  };
+
+  const handleSelectAllFiltered = (filteredList) => {
+    const ids = filteredList.map((i) => i.inventoryId);
+    setSelectedInvIds((prev) => Array.from(new Set([...prev, ...ids])));
+  };
+
+  const handleClearSelection = () => {
+    setSelectedInvIds([]);
+  };
+
+  const handleAddBlankRowFromModal = () => {
+    addEditLineItem();
+    closeMultiSelectModal();
+  };
+
+  const handleAddSelectedItems = () => {
+    if (!editingInvoice) return;
+    const existingMap = new Map();
+    (editingInvoice.lineItems || []).forEach((item) => {
+      if (item.inventoryId) {
+        existingMap.set(item.inventoryId, item);
+      }
+    });
+
+    const customRows = (editingInvoice.lineItems || []).filter(
+      (item) => !item.inventoryId && (item.description || Number(item.unitPrice) > 0)
+    );
+
+    const updatedInvRows = selectedInvIds.map((invId) => {
+      if (existingMap.has(invId)) {
+        return existingMap.get(invId);
+      }
+      return {
+        inventoryId: invId,
+        description: invId,
+        hsnCode: "7117",
+        quantity: 1,
+        unitPrice: 0,
+        taxRate: 3,
+        amount: 0,
+        taxAmount: 0,
+        totalAmount: 0,
+      };
+    });
+
+    const finalRows = [...updatedInvRows, ...customRows];
+    if (finalRows.length === 0) {
+      finalRows.push({
+        inventoryId: "",
+        description: "New Item",
+        hsnCode: "7117",
+        quantity: 1,
+        unitPrice: 0,
+        taxRate: 3,
+        amount: 0,
+        taxAmount: 0,
+        totalAmount: 0,
+      });
+    }
+
+    setEditingInvoice({
+      ...editingInvoice,
+      lineItems: finalRows,
+    });
+    toast.success(`Updated line items with ${selectedInvIds.length} selected item(s)`);
+    closeMultiSelectModal();
+  };
+
+  const filteredMultiInventory = useMemo(() => {
+    if (!multiSelectSearch.trim()) return inventoryList;
+    const q = multiSelectSearch.toLowerCase().trim();
+    return inventoryList.filter(
+      (inv) =>
+        inv.inventoryId?.toLowerCase().includes(q) ||
+        inv.vertical?.toLowerCase().includes(q)
+    );
+  }, [inventoryList, multiSelectSearch]);
 
   // Edit Modal Item Handlers
   const handleEditLineItemChange = (index, field, value) => {
     if (!editingInvoice) return;
     const updatedItems = [...editingInvoice.lineItems];
-    updatedItems[index][field] = value;
+    updatedItems[index] = { ...updatedItems[index], [field]: value };
+
+    if (field === "inventoryId" && value) {
+      const selectedItem = inventoryList.find((i) => i.inventoryId === value);
+      if (selectedItem) {
+        updatedItems[index].description = selectedItem.inventoryId;
+      }
+    }
 
     // Recalculate row amounts
     const qty = Number(updatedItems[index].quantity) || 0;
     const price = Number(updatedItems[index].unitPrice) || 0;
-    const gstRate = Number(updatedItems[index].taxRate) || 0;
+    const gstRate = Number(updatedItems[index].taxRate !== undefined ? updatedItems[index].taxRate : 3) || 0;
 
     const amount = qty * price;
     const taxAmount = (amount * gstRate) / 100;
@@ -298,6 +818,56 @@ export default function AllInvoicesPage() {
     });
   };
 
+  // Live calculation of financial totals in Edit Modal
+  const editCalculations = useMemo(() => {
+    if (!editingInvoice) {
+      return {
+        subtotal: 0,
+        itemsTax: 0,
+        shippingFee: 0,
+        shippingTax: 0,
+        totalTax: 0,
+        discount: 0,
+        grandTotal: 0,
+        receivedAmount: 0,
+        balanceAmount: 0,
+      };
+    }
+
+    const subtotal = (editingInvoice.lineItems || []).reduce((sum, item) => {
+      const qty = Number(item.quantity) || 0;
+      const price = Number(item.unitPrice) || 0;
+      return sum + qty * price;
+    }, 0);
+
+    const itemsTax = (editingInvoice.lineItems || []).reduce((sum, item) => {
+      const qty = Number(item.quantity) || 0;
+      const price = Number(item.unitPrice) || 0;
+      const rate = Number(item.taxRate !== undefined ? item.taxRate : 3) || 0;
+      return sum + (qty * price * rate) / 100;
+    }, 0);
+
+    const shippingFee = Number(editingInvoice.shippingFee) || 0;
+    const shippingTax = (shippingFee * 3) / 100;
+    const totalTax = itemsTax + shippingTax;
+    const discount = Number(editingInvoice.discount) || 0;
+    const grandTotal = subtotal + shippingFee + totalTax - discount;
+    const receivedAmount = Number(editingInvoice.receivedAmount) || 0;
+    const balanceAmount = grandTotal - receivedAmount;
+
+    return {
+      subtotal,
+      itemsTax,
+      shippingFee,
+      shippingTax,
+      totalTax,
+      discount,
+      grandTotal,
+      receivedAmount,
+      balanceAmount,
+    };
+  }, [editingInvoice]);
+
   // Save Edit Submission
   const handleSaveEdit = async (e) => {
     e.preventDefault();
@@ -305,25 +875,12 @@ export default function AllInvoicesPage() {
 
     setIsSavingEdit(true);
 
-    // Recalculate totals
-    const subtotal = editingInvoice.lineItems.reduce(
-      (sum, item) => sum + (Number(item.amount) || 0),
-      0
-    );
-    const itemsTax = editingInvoice.lineItems.reduce(
-      (sum, item) => sum + (Number(item.taxAmount) || 0),
-      0
-    );
-    const shippingFeeVal = Number(editingInvoice.shippingFee || 0);
-    const shippingTax = (shippingFeeVal * 3) / 100;
-    const totalTax = itemsTax + shippingTax;
-    const grandTotal =
-      subtotal +
-      shippingFeeVal +
-      totalTax -
-      Number(editingInvoice.discount || 0);
-    const balanceAmount =
-      grandTotal - Number(editingInvoice.receivedAmount || 0);
+    const {
+      subtotal,
+      totalTax,
+      grandTotal,
+      balanceAmount,
+    } = editCalculations;
 
     const paymentStatus =
       editingInvoice.paymentStatus === "Cancelled"
@@ -766,6 +1323,22 @@ export default function AllInvoicesPage() {
         </div>
 
         <div className={styles.headerActions}>
+          <button
+            type="button"
+            className={styles.downloadGstBtn}
+            onClick={() => setShowGstModal(true)}
+            title="Download GST Filing Sales Report (Monthly)"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            GST Sales Report (Monthly)
+          </button>
+
           <button
             type="button"
             className={styles.downloadExcelBtn}
@@ -1361,85 +1934,239 @@ export default function AllInvoicesPage() {
                 </div>
               </div>
 
-              <div className={styles.modalSectionTitle}>Line Items</div>
-              {editingInvoice.lineItems.map((item, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1.5fr 1fr 1fr 1fr 1fr 40px",
-                    gap: "8px",
-                    marginBottom: "8px",
-                    alignItems: "center",
-                  }}
-                >
-                  <input
-                    type="text"
-                    className={styles.modalInput}
-                    placeholder="Description / SKU"
-                    value={item.description}
-                    onChange={(e) =>
-                      handleEditLineItemChange(idx, "description", e.target.value)
-                    }
-                  />
-                  <input
-                    type="text"
-                    className={styles.modalInput}
-                    placeholder="HSN"
-                    value={item.hsnCode || "7117"}
-                    onChange={(e) =>
-                      handleEditLineItemChange(idx, "hsnCode", e.target.value)
-                    }
-                  />
-                  <input
-                    type="number"
-                    min="1"
-                    className={styles.modalInput}
-                    placeholder="Qty"
-                    value={item.quantity}
-                    onChange={(e) =>
-                      handleEditLineItemChange(idx, "quantity", e.target.value)
-                    }
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    className={styles.modalInput}
-                    placeholder="Unit Price"
-                    value={item.unitPrice}
-                    onChange={(e) =>
-                      handleEditLineItemChange(idx, "unitPrice", e.target.value)
-                    }
-                  />
-                  <div style={{ color: "#34d399", fontWeight: "600", fontSize: "13px" }}>
-                    ₹{(Number(item.totalAmount) || 0).toFixed(2)}
-                  </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "20px", marginBottom: "10px" }}>
+                <div className={styles.modalSectionTitle} style={{ margin: 0 }}>
+                  Line Items ({editingInvoice.lineItems?.length || 0})
+                </div>
+                <div style={{ display: "flex", gap: "8px" }}>
                   <button
                     type="button"
-                    style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer" }}
-                    onClick={() => removeEditLineItem(idx)}
+                    className={styles.addMultiSelectBtn}
+                    onClick={openMultiSelectModal}
+                    title="Select items from inventory catalog"
                   >
-                    ✕
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <line x1="12" y1="5" x2="12" y2="19"></line>
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Select from Inventory
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.addBlankItemBtn}
+                    onClick={addEditLineItem}
+                    title="Add empty custom item row"
+                  >
+                    + Add Blank Item
                   </button>
                 </div>
-              ))}
+              </div>
 
-              <button
-                type="button"
-                style={{
-                  background: "rgba(59,130,246,0.15)",
-                  color: "#60a5fa",
-                  border: "1px dashed #3b82f6",
-                  padding: "6px 12px",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "12px",
-                  marginTop: "6px",
-                }}
-                onClick={addEditLineItem}
-              >
-                + Add Line Item
-              </button>
+              {/* Items Table */}
+              <div className={styles.editItemsTableContainer}>
+                <table className={styles.editItemsTable}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: "23%" }}>Inventory SKU / ID</th>
+                      <th style={{ width: "27%" }}>Description</th>
+                      <th style={{ width: "10%" }}>HSN/SAC</th>
+                      <th style={{ width: "8%" }}>Qty</th>
+                      <th style={{ width: "12%" }}>Unit Price (₹)</th>
+                      <th style={{ width: "7%" }}>GST %</th>
+                      <th style={{ width: "9%" }}>Total (₹)</th>
+                      <th style={{ width: "4%" }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {editingInvoice.lineItems.map((item, idx) => {
+                      const selectedInv = inventoryList.find(
+                        (inv) => inv.inventoryId === item.inventoryId
+                      );
+                      const qty = Number(item.quantity) || 0;
+                      const price = Number(item.unitPrice) || 0;
+                      const rate = Number(item.taxRate !== undefined ? item.taxRate : 3) || 0;
+                      const itemTotal = qty * price * (1 + rate / 100);
+
+                      return (
+                        <tr key={idx}>
+                          <td>
+                            <button
+                              type="button"
+                              className={`${styles.inventoryPickerBtn} ${
+                                item.inventoryId ? styles.inventoryPickerBtnFilled : ""
+                              }`}
+                              onClick={() => openInventoryPicker(idx)}
+                              onMouseEnter={(e) => {
+                                if (selectedInv?.imageUrl) {
+                                  setHoveredImage({
+                                    url: selectedInv.imageUrl,
+                                    id: selectedInv.inventoryId,
+                                    x: e.clientX,
+                                    y: e.clientY,
+                                  });
+                                }
+                              }}
+                              onMouseMove={(e) => {
+                                if (selectedInv?.imageUrl) {
+                                  setHoveredImage((prev) =>
+                                    prev
+                                      ? { ...prev, x: e.clientX, y: e.clientY }
+                                      : {
+                                          url: selectedInv.imageUrl,
+                                          id: selectedInv.inventoryId,
+                                          x: e.clientX,
+                                          y: e.clientY,
+                                        }
+                                  );
+                                }
+                              }}
+                              onMouseLeave={() => setHoveredImage(null)}
+                              title="Click to select inventory item"
+                            >
+                              {selectedInv?.imageUrl ? (
+                                <img
+                                  src={selectedInv.imageUrl}
+                                  alt={item.inventoryId}
+                                  className={styles.pickerBtnImg}
+                                />
+                              ) : (
+                                <span className={styles.pickerBtnIcon}>
+                                  <svg
+                                    width="15"
+                                    height="15"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                  >
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                  </svg>
+                                </span>
+                              )}
+                              <span
+                                className={
+                                  item.inventoryId
+                                    ? styles.pickerBtnId
+                                    : styles.pickerBtnPlaceholder
+                                }
+                              >
+                                {item.inventoryId || "Select SKU..."}
+                              </span>
+                              <span className={styles.pickerBtnChevron}>
+                                <svg
+                                  width="12"
+                                  height="12"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2.5"
+                                >
+                                  <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                              </span>
+                            </button>
+                          </td>
+                          <td>
+                            <input
+                              type="text"
+                              className={styles.modalInput}
+                              style={{ width: "100%" }}
+                              placeholder="Description / SKU"
+                              value={item.description}
+                              onChange={(e) =>
+                                handleEditLineItemChange(idx, "description", e.target.value)
+                              }
+                              required
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="text"
+                              className={styles.modalInput}
+                              style={{ width: "100%" }}
+                              placeholder="HSN"
+                              value={item.hsnCode || "7117"}
+                              onChange={(e) =>
+                                handleEditLineItemChange(idx, "hsnCode", e.target.value)
+                              }
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="number"
+                              min="1"
+                              className={styles.modalInput}
+                              style={{ width: "100%" }}
+                              placeholder="Qty"
+                              value={item.quantity}
+                              onChange={(e) =>
+                                handleEditLineItemChange(idx, "quantity", e.target.value)
+                              }
+                              required
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              className={styles.modalInput}
+                              style={{ width: "100%" }}
+                              placeholder="Unit Price"
+                              value={item.unitPrice}
+                              onChange={(e) =>
+                                handleEditLineItemChange(idx, "unitPrice", e.target.value)
+                              }
+                              required
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.5"
+                              className={styles.modalInput}
+                              style={{ width: "100%" }}
+                              placeholder="GST %"
+                              value={item.taxRate !== undefined ? item.taxRate : 3}
+                              onChange={(e) =>
+                                handleEditLineItemChange(idx, "taxRate", e.target.value)
+                              }
+                            />
+                          </td>
+                          <td style={{ color: "#34d399", fontWeight: "600", fontSize: "13px", whiteSpace: "nowrap" }}>
+                            ₹{itemTotal.toFixed(2)}
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              style={{
+                                background: "rgba(239, 68, 68, 0.1)",
+                                border: "none",
+                                color: "#f87171",
+                                cursor: "pointer",
+                                borderRadius: "6px",
+                                width: "28px",
+                                height: "28px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "13px",
+                              }}
+                              title="Delete row"
+                              onClick={() => removeEditLineItem(idx)}
+                            >
+                              ✕
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
               <div className={styles.modalSectionTitle}>Payment & Totals</div>
               <div className={styles.modalGrid}>
@@ -1511,6 +2238,51 @@ export default function AllInvoicesPage() {
                 </div>
               </div>
 
+              {/* Live Calculations Summary Box */}
+              <div className={styles.editSummaryBox}>
+                <div className={styles.editSummaryRow}>
+                  <span>Subtotal:</span>
+                  <span>₹{editCalculations.subtotal.toFixed(2)}</span>
+                </div>
+                <div className={styles.editSummaryRow}>
+                  <span>Shipping Fee:</span>
+                  <span>₹{editCalculations.shippingFee.toFixed(2)}</span>
+                </div>
+                <div className={styles.editSummaryRow}>
+                  <span>
+                    Total GST (Items + 3% on Shipping):
+                    <span style={{ fontSize: "11px", color: "#a1a1aa", marginLeft: "6px" }}>
+                      (Items: ₹{editCalculations.itemsTax.toFixed(2)} + Shipping: ₹{editCalculations.shippingTax.toFixed(2)})
+                    </span>
+                  </span>
+                  <span>₹{editCalculations.totalTax.toFixed(2)}</span>
+                </div>
+                {editCalculations.discount > 0 && (
+                  <div className={styles.editSummaryRow} style={{ color: "#f87171" }}>
+                    <span>Discount:</span>
+                    <span>-₹{editCalculations.discount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className={`${styles.editSummaryRow} ${styles.editGrandTotalRow}`}>
+                  <span>Grand Total:</span>
+                  <span>₹{editCalculations.grandTotal.toFixed(2)}</span>
+                </div>
+                <div className={styles.editSummaryRow}>
+                  <span>Received Amount:</span>
+                  <span>₹{editCalculations.receivedAmount.toFixed(2)}</span>
+                </div>
+                <div
+                  className={styles.editSummaryRow}
+                  style={{
+                    fontWeight: "700",
+                    color: editCalculations.balanceAmount > 0 ? "#f87171" : "#34d399",
+                  }}
+                >
+                  <span>Balance Due:</span>
+                  <span>₹{editCalculations.balanceAmount.toFixed(2)}</span>
+                </div>
+              </div>
+
               <div className={styles.modalFooter}>
                 <button
                   type="button"
@@ -1529,6 +2301,288 @@ export default function AllInvoicesPage() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Single Inventory Selection Picker Modal */}
+      {inventoryPickerIndex !== null && (
+        <div className={styles.pickerOverlay} onClick={closeInventoryPicker}>
+          <div className={styles.pickerModal} onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className={styles.pickerHeader}>
+              <div>
+                <h3 className={styles.pickerTitle}>Select Inventory Item</h3>
+                <p className={styles.pickerSubtitle}>
+                  Choose an inventory item to insert into this invoice line item.
+                </p>
+              </div>
+              <button
+                type="button"
+                className={styles.pickerCloseBtn}
+                onClick={closeInventoryPicker}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            {/* Search */}
+            <div className={styles.pickerSearch}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={styles.pickerSearchIcon}>
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input
+                ref={pickerSearchRef}
+                type="text"
+                className={styles.pickerSearchInput}
+                placeholder="Search by SKU / Inventory ID or vertical..."
+                value={inventorySearch}
+                onChange={(e) => setInventorySearch(e.target.value)}
+              />
+              {inventorySearch && (
+                <button
+                  type="button"
+                  className={styles.pickerSearchClear}
+                  onClick={() => setInventorySearch("")}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* Grid */}
+            <div className={styles.pickerGrid}>
+              {filteredInventory.length === 0 ? (
+                <div className={styles.pickerEmpty}>
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity: 0.3 }}>
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <span>No inventory items found.</span>
+                </div>
+              ) : (
+                filteredInventory.map((inv) => {
+                  const isSelected =
+                    editingInvoice?.lineItems[inventoryPickerIndex]?.inventoryId === inv.inventoryId;
+                  return (
+                    <button
+                      key={inv._id || inv.inventoryId}
+                      type="button"
+                      className={`${styles.pickerCard} ${
+                        isSelected ? styles.pickerCardSelected : ""
+                      }`}
+                      onClick={() => selectInventoryItem(inv)}
+                    >
+                      <div className={styles.pickerCardImg}>
+                        {inv.imageUrl ? (
+                          <img src={inv.imageUrl} alt={inv.inventoryId} />
+                        ) : (
+                          <span className={styles.pickerCardNoImg}>No Image</span>
+                        )}
+                        {isSelected && (
+                          <span className={styles.pickerSelectedTick}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          </span>
+                        )}
+                      </div>
+                      <span className={styles.pickerCardId}>{inv.inventoryId}</span>
+                      {inv.currentStock !== undefined && (
+                        <span
+                          className={`${styles.pickerCardStock} ${
+                            inv.currentStock <= 5 ? styles.pickerCardLowStock : ""
+                          }`}
+                        >
+                          Stock: {inv.currentStock ?? 0}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Multi-Select Inventory Modal */}
+      {isMultiSelectOpen && (
+        <div className={styles.pickerOverlay} onClick={closeMultiSelectModal}>
+          <div className={styles.pickerModal} onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className={styles.pickerHeader}>
+              <div>
+                <h3 className={styles.pickerTitle}>Select Inventory Items</h3>
+                <p className={styles.pickerSubtitle}>
+                  Choose one or multiple items to batch-update/add to this invoice.
+                </p>
+              </div>
+              <button
+                type="button"
+                className={styles.pickerCloseBtn}
+                onClick={closeMultiSelectModal}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className={styles.pickerSearch}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={styles.pickerSearchIcon}>
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input
+                ref={multiSearchRef}
+                type="text"
+                className={styles.pickerSearchInput}
+                placeholder="Search by SKU / Inventory ID or vertical..."
+                value={multiSelectSearch}
+                onChange={(e) => setMultiSelectSearch(e.target.value)}
+              />
+              {multiSelectSearch && (
+                <button
+                  type="button"
+                  className={styles.pickerSearchClear}
+                  onClick={() => setMultiSelectSearch("")}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* Sub-bar with count & quick select actions */}
+            <div className={styles.multiSelectBar}>
+              <span className={styles.selectedCountTag}>
+                {selectedInvIds.length} item{selectedInvIds.length !== 1 ? "s" : ""} selected
+              </span>
+              <div className={styles.quickSelectActions}>
+                <button
+                  type="button"
+                  className={styles.quickSelectBtn}
+                  onClick={() => handleSelectAllFiltered(filteredMultiInventory)}
+                >
+                  Select All Filtered
+                </button>
+                {selectedInvIds.length > 0 && (
+                  <button
+                    type="button"
+                    className={styles.quickSelectBtn}
+                    style={{ color: "#f87171" }}
+                    onClick={handleClearSelection}
+                  >
+                    Clear Selection
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Grid of Items */}
+            <div className={styles.pickerGrid}>
+              {filteredMultiInventory.length === 0 ? (
+                <div className={styles.pickerEmpty}>
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity: 0.3 }}>
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <span>No inventory items found.</span>
+                </div>
+              ) : (
+                filteredMultiInventory.map((inv) => {
+                  const isSelected = selectedInvIds.includes(inv.inventoryId);
+                  return (
+                    <button
+                      key={inv._id || inv.inventoryId}
+                      type="button"
+                      className={`${styles.pickerCard} ${
+                        isSelected ? styles.pickerCardSelected : ""
+                      }`}
+                      onClick={() => toggleInvSelection(inv.inventoryId)}
+                    >
+                      <div className={styles.pickerCardImg}>
+                        {inv.imageUrl ? (
+                          <img src={inv.imageUrl} alt={inv.inventoryId} />
+                        ) : (
+                          <span className={styles.pickerCardNoImg}>No Image</span>
+                        )}
+                        {isSelected && (
+                          <span className={styles.pickerSelectedTick}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          </span>
+                        )}
+                      </div>
+                      <span className={styles.pickerCardId}>{inv.inventoryId}</span>
+                      {inv.currentStock !== undefined && (
+                        <span
+                          className={`${styles.pickerCardStock} ${
+                            inv.currentStock <= 5 ? styles.pickerCardLowStock : ""
+                          }`}
+                        >
+                          Stock: {inv.currentStock ?? 0}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div className={styles.multiSelectFooter}>
+              <button
+                type="button"
+                className={styles.addBlankBtn}
+                onClick={handleAddBlankRowFromModal}
+              >
+                + Add Blank Row
+              </button>
+
+              <button
+                type="button"
+                className={styles.addSelectedBtn}
+                onClick={handleAddSelectedItems}
+              >
+                {selectedInvIds.length > 0
+                  ? `Apply Selection (${selectedInvIds.length} Item${selectedInvIds.length !== 1 ? "s" : ""})`
+                  : "Apply (0 Items Selected)"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Cursor Image Tooltip */}
+      {hoveredImage && (
+        <div
+          className={styles.cursorImageTooltip}
+          style={{
+            left: `${Math.min(hoveredImage.x + 20, typeof window !== "undefined" ? window.innerWidth - 250 : 800)}px`,
+            top: `${Math.min(hoveredImage.y + 20, typeof window !== "undefined" ? window.innerHeight - 270 : 600)}px`,
+          }}
+        >
+          <img
+            src={hoveredImage.url}
+            alt={hoveredImage.id}
+            className={styles.cursorTooltipImg}
+          />
+          {hoveredImage.id && (
+            <div className={styles.cursorTooltipTag}>{hoveredImage.id}</div>
+          )}
         </div>
       )}
 
@@ -1804,6 +2858,134 @@ export default function AllInvoicesPage() {
         onConfirm={confirmModal.onConfirm}
         onClose={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
       />
+
+      {/* GST Filing Monthly Sales Report Modal */}
+      {showGstModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowGstModal(false)}>
+          <div className={styles.gstModalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "10px",
+                    background: "rgba(139, 92, 246, 0.2)",
+                    color: "#a78bfa",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "18px",
+                  }}
+                >
+                  📊
+                </div>
+                <div>
+                  <h3 className={styles.modalTitle} style={{ margin: 0, fontSize: "18px" }}>
+                    GST Sales Report (GSTR-1 Monthly)
+                  </h3>
+                  <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#a1a1aa" }}>
+                    Paid invoices only • Standard ClearTax &amp; Government compatible format
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className={styles.closeBtn}
+                onClick={() => setShowGstModal(false)}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "16px" }}>
+              <div className={styles.modalGrid} style={{ gridTemplateColumns: "1fr auto", alignItems: "end", margin: 0 }}>
+                <div className={styles.modalInputGroup}>
+                  <label className={styles.modalLabel}>Select Filing Month &amp; Year</label>
+                  <input
+                    type="month"
+                    className={styles.modalInput}
+                    value={gstMonth}
+                    onChange={(e) => setGstMonth(e.target.value)}
+                    style={{ fontSize: "15px", fontWeight: "600" }}
+                  />
+                </div>
+
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", color: "#d4d4d8", fontSize: "13px", cursor: "pointer", paddingBottom: "10px" }}>
+                  <input
+                    type="checkbox"
+                    checked={gstIncludeArchived}
+                    onChange={(e) => setGstIncludeArchived(e.target.checked)}
+                    style={{ width: "16px", height: "16px", accentColor: "#8b5cf6" }}
+                  />
+                  <span>Include Archived</span>
+                </label>
+              </div>
+
+              {/* Monthly Overview Box */}
+              <div className={styles.gstSummaryBox}>
+                <div className={styles.gstSummaryRow}>
+                  <span>Paid Invoices Found:</span>
+                  <strong>{isFetchingGst ? "Loading..." : `${gstMonthStats.invoiceCount} paid invoices (${gstMonthStats.rowCount} line items)`}</strong>
+                </div>
+                <div className={styles.gstSummaryRow}>
+                  <span>Total Taxable Sales (₹):</span>
+                  <strong>₹{gstMonthStats.taxable.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                </div>
+                <div className={styles.gstSummaryRow}>
+                  <span>CGST (₹):</span>
+                  <strong>₹{gstMonthStats.cgst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                </div>
+                <div className={styles.gstSummaryRow}>
+                  <span>SGST (₹):</span>
+                  <strong>₹{gstMonthStats.sgst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                </div>
+                <div className={styles.gstSummaryRow}>
+                  <span>IGST (₹):</span>
+                  <strong>₹{gstMonthStats.igst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                </div>
+                <div className={styles.gstSummaryRow}>
+                  <span>Total GST Tax (₹):</span>
+                  <strong style={{ color: "#34d399" }}>₹{gstMonthStats.totalGst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                </div>
+                <div className={`${styles.gstSummaryRow} ${styles.gstSummaryTotal}`}>
+                  <span>Total Paid Invoice Value (₹):</span>
+                  <span>₹{gstMonthStats.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+
+              {gstMonthStats.invoiceCount === 0 && !isFetchingGst && (
+                <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: "8px", padding: "10px 14px", color: "#fca5a5", fontSize: "13px" }}>
+                  ⚠️ No paid invoices found for {gstMonth}. Only invoices with "Paid" status are included for GST filing.
+                </div>
+              )}
+            </div>
+
+            <div className={styles.modalFooter} style={{ marginTop: "24px", borderTop: "1px solid rgba(255, 255, 255, 0.1)", paddingTop: "16px" }}>
+              <button
+                type="button"
+                className={styles.cancelBtn}
+                onClick={() => setShowGstModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles.downloadGstConfirmBtn}
+                onClick={handleExportGstReport}
+                disabled={isFetchingGst || isExportingGst || gstMonthStats.invoiceCount === 0}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                {isExportingGst ? "Generating Excel..." : `Download GST Excel (${gstMonth})`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

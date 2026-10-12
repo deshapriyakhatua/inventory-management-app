@@ -27,7 +27,12 @@ export async function GET(request) {
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status") || "";
     const archived = searchParams.get("archived") === "true";
-    const limit = parseInt(searchParams.get("limit") || "100", 10);
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const month = searchParams.get("month");
+    const year = searchParams.get("year");
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam === "all" || limitParam === "0" ? 0 : parseInt(limitParam || "100", 10);
 
     // Single invoice lookup by ID
     if (id) {
@@ -44,6 +49,26 @@ export async function GET(request) {
       query.paymentStatus = status;
     }
 
+    if (startDate && endDate) {
+      query.invoiceDate = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    } else if (month) {
+      let start, end;
+      if (month.includes("-")) {
+        const [y, m] = month.split("-").map(Number);
+        start = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0));
+        end = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
+      } else {
+        const y = parseInt(year || new Date().getFullYear(), 10);
+        const m = parseInt(month, 10);
+        start = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0));
+        end = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
+      }
+      query.invoiceDate = { $gte: start, $lte: end };
+    }
+
     if (search) {
       const searchRegex = new RegExp(search, "i");
       query.$or = [
@@ -56,10 +81,18 @@ export async function GET(request) {
       ];
     }
 
-    const invoices = await B2BInvoice.find(query)
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .populate("addedBy", "name email role");
+    let queryExec = B2BInvoice.find(query).populate("addedBy", "name email role");
+    if (month || startDate) {
+      queryExec = queryExec.sort({ invoiceDate: 1, invoiceNumber: 1 });
+    } else {
+      queryExec = queryExec.sort({ createdAt: -1 });
+    }
+
+    if (limit > 0) {
+      queryExec = queryExec.limit(limit);
+    }
+
+    const invoices = await queryExec;
 
     return NextResponse.json({ success: true, data: invoices }, { status: 200 });
   } catch (error) {
