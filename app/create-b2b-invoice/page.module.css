@@ -1035,137 +1035,7 @@
   border-color: rgba(236, 72, 153, 0.5);
 }
 
-/* Company & Bank Info Header Button & Banner */
-.companySettingsBtn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid rgba(16, 185, 129, 0.4);
-  background: rgba(16, 185, 129, 0.12);
-  color: #34d399;
-  transition: all 0.2s ease;
-}
 
-.companySettingsBtn:hover {
-  background: rgba(16, 185, 129, 0.22);
-  border-color: rgba(16, 185, 129, 0.6);
-  transform: translateY(-1px);
-}
-
-.sellerSummaryBanner {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  border-radius: 10px;
-  padding: 10px 16px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.sellerBannerLabel {
-  font-size: 12px;
-  font-weight: 600;
-  color: #9ca3af;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.sellerBannerName {
-  font-size: 14px;
-  font-weight: 700;
-  color: #34d399;
-}
-
-.sellerBannerGst {
-  font-size: 12px;
-  color: #a1a1aa;
-}
-
-.sellerBannerEditBtn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #e4e4e7;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.sellerBannerEditBtn:hover {
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.3);
-  color: #ffffff;
-}
-
-/* Company & Bank Modal */
-.companyModal {
-  background: #18181b;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  width: 100%;
-  max-width: 620px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
-  overflow: hidden;
-  animation: fadeIn 0.15s ease-out;
-}
-
-.companyModalBody {
-  padding: 24px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.modalSubSectionTitle {
-  font-size: 14px;
-  font-weight: 700;
-  color: #60a5fa;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.companyModalFooter {
-  padding: 16px 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  display: flex;
-  justify-content: flex-end;
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.companyModalSaveBtn {
-  padding: 10px 24px;
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 14px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.companyModalSaveBtn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-}
 
 /* Multi-Select Inventory Modal Bar & Footer */
 .multiSelectBar {
@@ -1560,4 +1430,270 @@
     display: none !important;
   }
 }
+
+/* Modern Customer Section Styles */
+.customerSectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.customerHeaderTitle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.customerHeaderIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  flex-shrink: 0;
+}
+
+.customerTitleText {
+  font-size: 17px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0 0 2px 0;
+}
+
+.customerSubtitleText {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.selectedBuyerBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #34d399;
+}
+
+.clearBuyerBtn {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.clearBuyerBtn:hover {
+  background: rgba(239, 68, 68, 0.25);
+  color: #ffffff;
+}
+
+.buyerSelectContainer {
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.18);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.buyerSelectLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fbbf24;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.buyerSelectRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.buyerDropdown {
+  flex: 1;
+  background: rgba(18, 18, 20, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #f8fafc;
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.buyerDropdown:focus {
+  border-color: #f59e0b;
+}
+
+.buyerRefreshBtn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.buyerRefreshBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.customerFormStack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.formRowSingle {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formRow3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 768px) {
+  .formRow3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldLabel {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.reqStar {
+  color: #f87171;
+  font-weight: 700;
+}
+
+.waTag {
+  background: rgba(37, 211, 102, 0.15);
+  color: #25d366;
+  border: 1px solid rgba(37, 211, 102, 0.3);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 9.5px;
+  font-weight: 700;
+}
+
+.inputPrimary {
+  font-size: 15px;
+  font-weight: 600;
+  padding: 10px 14px;
+  background: rgba(24, 24, 27, 0.85);
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.inputPrimary:focus {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+
+.addressLabelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.addressHint {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.addressTextarea {
+  min-height: 90px;
+  line-height: 1.5;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  background: rgba(24, 24, 27, 0.85);
+}
+
+/* Inline Card Quantity & Price in Inventory Modal */
+.pickerCardInputs {
+  width: 100%;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.15);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.pickerInputCol {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+}
+
+.pickerInputCol label {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.pickerNumInput {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.pickerNumInput:focus {
+  border-color: #3b82f6;
+  background: rgba(0, 0, 0, 0.9);
+}
+
 

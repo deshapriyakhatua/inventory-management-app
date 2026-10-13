@@ -39,8 +39,6 @@ export default function CreateB2BInvoicePage() {
   // Inventory Modal state
   const [inventoryPickerIndex, setInventoryPickerIndex] = useState(null);
   const [inventorySearch, setInventorySearch] = useState("");
-  const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
-  const [isSavingCompany, setIsSavingCompany] = useState(false);
 
   // PDF Preview Modal state (Recent History)
   const [showPdfModal, setShowPdfModal] = useState(false);
@@ -95,16 +93,26 @@ export default function CreateB2BInvoicePage() {
   // Multi-Select Inventory Modal state
   const [isMultiSelectOpen, setIsMultiSelectOpen] = useState(false);
   const [selectedInvIds, setSelectedInvIds] = useState([]);
+  const [modalItemMeta, setModalItemMeta] = useState({});
   const [multiSelectSearch, setMultiSelectSearch] = useState("");
   const multiSearchRef = useRef(null);
 
   const openMultiSelectModal = () => {
     setIsMultiSelectOpen(true);
-    // Pre-populate selectedInvIds with all items currently present in lineItems
-    const existingIds = lineItems
-      .map((item) => item.inventoryId)
-      .filter((id) => Boolean(id) && String(id).trim() !== "");
+    // Pre-populate selectedInvIds and modalItemMeta with all items currently present in lineItems
+    const initialMeta = {};
+    const existingIds = [];
+    lineItems.forEach((item) => {
+      if (item.inventoryId && String(item.inventoryId).trim() !== "") {
+        existingIds.push(item.inventoryId);
+        initialMeta[item.inventoryId] = {
+          quantity: item.quantity || 1,
+          unitPrice: item.unitPrice || 0,
+        };
+      }
+    });
     setSelectedInvIds(Array.from(new Set(existingIds)));
+    setModalItemMeta(initialMeta);
     setMultiSelectSearch("");
     setTimeout(() => {
       if (multiSearchRef.current) {
@@ -116,18 +124,41 @@ export default function CreateB2BInvoicePage() {
   const closeMultiSelectModal = () => {
     setIsMultiSelectOpen(false);
     setSelectedInvIds([]);
+    setModalItemMeta({});
     setMultiSelectSearch("");
   };
 
   const toggleInvSelection = (invId) => {
-    setSelectedInvIds((prev) =>
-      prev.includes(invId) ? prev.filter((id) => id !== invId) : [...prev, invId]
-    );
+    setSelectedInvIds((prev) => {
+      if (prev.includes(invId)) {
+        return prev.filter((id) => id !== invId);
+      } else {
+        setModalItemMeta((meta) => {
+          if (!meta[invId]) {
+            return {
+              ...meta,
+              [invId]: { quantity: 1, unitPrice: 0 }
+            };
+          }
+          return meta;
+        });
+        return [...prev, invId];
+      }
+    });
   };
 
   const handleSelectAllFiltered = (filteredList) => {
     const ids = filteredList.map((i) => i.inventoryId);
     setSelectedInvIds((prev) => Array.from(new Set([...prev, ...ids])));
+    setModalItemMeta((prev) => {
+      const nextMeta = { ...prev };
+      ids.forEach((id) => {
+        if (!nextMeta[id]) {
+          nextMeta[id] = { quantity: 1, unitPrice: 0 };
+        }
+      });
+      return nextMeta;
+    });
   };
 
   const handleClearSelection = () => {
@@ -148,18 +179,17 @@ export default function CreateB2BInvoicePage() {
       (item) => !item.inventoryId && (item.description || item.unitPrice > 0)
     );
 
-    // Build list of inventory item rows based on selectedInvIds
+    // Build list of inventory item rows based on selectedInvIds and modal inputs
     const updatedInvRows = selectedInvIds.map((invId) => {
-      if (existingMap.has(invId)) {
-        return existingMap.get(invId); // preserve existing quantities, prices, etc.
-      }
+      const meta = modalItemMeta[invId] || {};
+      const existing = existingMap.get(invId);
       return {
         inventoryId: invId,
-        description: invId,
-        hsnCode: "7117",
-        quantity: 1,
-        unitPrice: 0,
-        gstRate: 3,
+        description: existing?.description || invId,
+        hsnCode: existing?.hsnCode || "7117",
+        quantity: Number(meta.quantity) > 0 ? Number(meta.quantity) : (existing?.quantity || 1),
+        unitPrice: Number(meta.unitPrice) >= 0 ? Number(meta.unitPrice) : (existing?.unitPrice || 0),
+        gstRate: existing?.gstRate ?? 3,
       };
     });
 
@@ -316,33 +346,6 @@ export default function CreateB2BInvoicePage() {
       }
     } catch (err) {
       console.error("Failed to fetch company settings:", err);
-    }
-  };
-
-  // Save Company & Bank Settings to Database
-  const handleSaveCompanySettings = async () => {
-    setIsSavingCompany(true);
-    try {
-      const res = await fetch("/api/employee/company-settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...sellerDetails,
-          notes,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        toast.success("Company & bank info saved to database!");
-        setIsCompanyModalOpen(false);
-      } else {
-        toast.error(data.error || "Failed to save company settings");
-      }
-    } catch (err) {
-      console.error("Save company settings error:", err);
-      toast.error("Network error while saving company settings");
-    } finally {
-      setIsSavingCompany(false);
     }
   };
 
@@ -726,18 +729,6 @@ export default function CreateB2BInvoicePage() {
         </div>
 
         <div className={styles.actionHeaderButtons}>
-          <button
-            type="button"
-            className={styles.companySettingsBtn}
-            onClick={() => setIsCompanyModalOpen(true)}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
-            </svg>
-            Company & Bank Info
-          </button>
-
           {activeTab === "preview" ? (
             <button
               type="button"
@@ -873,135 +864,81 @@ export default function CreateB2BInvoicePage() {
                   ))}
                 </select>
               </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.label}>Payment Status</label>
-                <select
-                  className={styles.select}
-                  value={paymentStatus}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === "Cancelled") {
-                      setPaymentStatus("Cancelled");
-                    } else {
-                      setPaymentStatus(calculatePaymentStatus(grandTotal, receivedAmount));
-                    }
-                  }}
-                >
-                  <option
-                    value="Pending"
-                    disabled={paymentStatus !== "Cancelled" && autoPaymentStatus !== "Pending"}
-                  >
-                    Pending {paymentStatus !== "Cancelled" && autoPaymentStatus === "Pending" ? "(Auto)" : ""}
-                  </option>
-                  <option
-                    value="Paid"
-                    disabled={paymentStatus !== "Cancelled" && autoPaymentStatus !== "Paid"}
-                  >
-                    Paid {paymentStatus !== "Cancelled" && autoPaymentStatus === "Paid" ? "(Auto)" : ""}
-                  </option>
-                  <option
-                    value="Partially Paid"
-                    disabled={paymentStatus !== "Cancelled" && autoPaymentStatus !== "Partially Paid"}
-                  >
-                    Partially Paid {paymentStatus !== "Cancelled" && autoPaymentStatus === "Partially Paid" ? "(Auto)" : ""}
-                  </option>
-                  <option value="Cancelled">Cancelled</option>
-                </select>
-              </div>
             </div>
           </div>
 
-          {/* Card 2: Customer & Seller Summary */}
+          {/* Card 2: Customer / Buyer */}
           <div className={styles.card}>
-            <div className={styles.sellerSummaryBanner}>
-              <div>
-                <span className={styles.sellerBannerLabel}>Seller:</span>{" "}
-                <span className={styles.sellerBannerName}>{sellerDetails.businessName || "N/A"}</span>
-                <span className={styles.sellerBannerGst}> • GSTIN: {sellerDetails.gstNo || "N/A"}</span>
+            {/* Header of Customer Section */}
+            <div className={styles.customerSectionHeader}>
+              <div className={styles.customerHeaderTitle}>
+                <div className={styles.customerHeaderIcon}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className={styles.customerTitleText}>Issued To (Customer)</h3>
+                  <span className={styles.customerSubtitleText}>Billing and delivery recipient information</span>
+                </div>
               </div>
-            </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <h3 className={styles.sectionTitle} style={{ margin: 0, border: "none", padding: 0 }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="9" cy="7" r="4"></circle>
-                </svg>
-                Issued To (Customer)
-              </h3>
               {selectedBuyerId && (
-                <button
-                  type="button"
-                  onClick={handleClearBuyer}
-                  style={{
-                    fontSize: 12,
-                    background: "rgba(239, 68, 68, 0.15)",
-                    color: "#f87171",
-                    border: "1px solid rgba(239, 68, 68, 0.3)",
-                    padding: "4px 10px",
-                    borderRadius: 6,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                  title="Clear selected buyer to enter a new one"
-                >
-                  ✕ Clear / New Customer
-                </button>
+                <div className={styles.selectedBuyerBadge}>
+                  <span>✓ Saved Buyer Selected</span>
+                  <button
+                    type="button"
+                    onClick={handleClearBuyer}
+                    className={styles.clearBuyerBtn}
+                    title="Clear to enter a new customer"
+                  >
+                    Clear / New
+                  </button>
+                </div>
               )}
             </div>
 
-            {/* Quick Select from Saved / Old Buyers */}
-            <div style={{
-              background: "rgba(245, 158, 11, 0.08)",
-              border: "1px solid rgba(245, 158, 11, 0.22)",
-              borderRadius: 10,
-              padding: "12px 16px",
-              marginBottom: 18,
-              display: "flex",
-              flexDirection: "column",
-              gap: 8,
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: "#fbbf24", display: "flex", alignItems: "center", gap: 6 }}>
-                  <span>Select From Old Buyers ({buyersList.length} saved):</span>
-                </label>
-                {isLoadingBuyers && <span style={{ fontSize: 12, color: "#a1a1aa" }}>Loading buyers...</span>}
-              </div>
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            {/* Quick Choose from Saved Buyers */}
+            <div className={styles.buyerSelectContainer}>
+              <label className={styles.buyerSelectLabel}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span>Quick Fill from Saved Customers ({buyersList.length}):</span>
+              </label>
+              <div className={styles.buyerSelectRow}>
                 <select
-                  className={styles.select}
+                  className={styles.buyerDropdown}
                   value={selectedBuyerId}
                   onChange={(e) => handleBuyerSelect(e.target.value)}
-                  style={{ flex: 1, borderColor: selectedBuyerId ? "#f59e0b" : undefined }}
                 >
-                  <option value="">-- Choose an existing buyer (or type manually below) --</option>
+                  <option value="">-- Choose an existing customer (or enter details below) --</option>
                   {buyersList.map((b) => (
                     <option key={b._id} value={b._id}>
-                      {b.businessName} {b.phoneNo ? `(${b.phoneNo})` : ""} {b.state ? `— ${b.state}` : ""}
+                      {b.businessName} {b.phoneNo ? `• ${b.phoneNo}` : ""} {b.state ? `• ${b.state}` : ""}
                     </option>
                   ))}
                 </select>
                 <button
                   type="button"
                   onClick={fetchBuyers}
-                  title="Refresh Buyers List"
-                  className={styles.secondaryBtn}
-                  style={{ padding: "8px 12px", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  title="Refresh saved customers"
+                  className={styles.buyerRefreshBtn}
                 >
-                  <RefreshIcon isSpinning={isLoadingBuyers} size={16} />
+                  <RefreshIcon isSpinning={isLoadingBuyers} size={15} />
                 </button>
               </div>
             </div>
 
-            <div className={styles.formGrid}>
-              <div className={styles.inputGroup}>
-                <label className={styles.label}>Customer Name *</label>
+            {/* Customer Inputs - Split into logical, spacious rows */}
+            <div className={styles.customerFormStack}>
+              {/* Row 1: Business / Customer Name (Full Width, Prominent) */}
+              <div className={styles.formRowSingle}>
+                <label className={styles.fieldLabel}>Customer / Company Name <span className={styles.reqStar}>*</span></label>
                 <input
                   type="text"
-                  className={styles.input}
+                  className={`${styles.input} ${styles.inputPrimary}`}
                   list="buyers-autocomplete"
                   value={buyerDetails.businessName}
                   onChange={(e) => {
@@ -1014,6 +951,7 @@ export default function CreateB2BInvoicePage() {
                       setBuyerDetails({
                         businessName: matched.businessName,
                         phoneNo: matched.phoneNo || "",
+                        whatsAppNo: matched.whatsAppNo || "",
                         address: matched.address || "",
                         gstNo: matched.gstNo || "NA",
                         state: matched.state || "19-West Bengal",
@@ -1021,15 +959,13 @@ export default function CreateB2BInvoicePage() {
                         contactPerson: matched.contactPerson || "",
                         pinCode: matched.pinCode || "",
                       });
-                      if (matched.state) {
-                        setPlaceOfSupply(matched.state);
-                      }
+                      if (matched.state) setPlaceOfSupply(matched.state);
                     } else {
                       setSelectedBuyerId("");
                       setBuyerDetails({ ...buyerDetails, businessName: val });
                     }
                   }}
-                  placeholder="Enter or select customer name"
+                  placeholder="e.g. Acme Retailers / Rahul Sharma"
                   required
                 />
                 <datalist id="buyers-autocomplete">
@@ -1040,57 +976,125 @@ export default function CreateB2BInvoicePage() {
                   ))}
                 </datalist>
               </div>
-              <div className={styles.inputGroup}>
-                <label className={styles.label}>Contact No</label>
+
+              {/* Row 2: Contact Person | Phone Number | WhatsApp Number */}
+              <div className={styles.formRow3}>
+                <div className={styles.fieldGroup}>
+                  <label className={styles.fieldLabel}>Contact Person</label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={buyerDetails.contactPerson || ""}
+                    onChange={(e) =>
+                      setBuyerDetails({ ...buyerDetails, contactPerson: e.target.value })
+                    }
+                    placeholder="e.g. Rahul Sharma"
+                  />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label className={styles.fieldLabel}>Phone / Mobile</label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={buyerDetails.phoneNo || ""}
+                    onChange={(e) =>
+                      setBuyerDetails({ ...buyerDetails, phoneNo: e.target.value })
+                    }
+                    placeholder="e.g. +91 9876543210"
+                  />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label className={styles.fieldLabel}>
+                    <span>WhatsApp Number</span>
+                    <span className={styles.waTag}>WA</span>
+                  </label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={buyerDetails.whatsAppNo || ""}
+                    onChange={(e) =>
+                      setBuyerDetails({ ...buyerDetails, whatsAppNo: e.target.value })
+                    }
+                    placeholder="e.g. +91 9876543210"
+                  />
+                </div>
+              </div>
+
+              {/* Row 3: GSTIN Number | State | PIN Code */}
+              <div className={styles.formRow3}>
+                <div className={styles.fieldGroup}>
+                  <label className={styles.fieldLabel}>GSTIN Number</label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={buyerDetails.gstNo || ""}
+                    onChange={(e) =>
+                      setBuyerDetails({ ...buyerDetails, gstNo: e.target.value })
+                    }
+                    placeholder="e.g. 19ABCDE1234F1Z5 or NA"
+                  />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label className={styles.fieldLabel}>State of Supply</label>
+                  <select
+                    className={styles.select}
+                    value={buyerDetails.state || "19-West Bengal"}
+                    onChange={(e) => {
+                      const selectedState = e.target.value;
+                      setBuyerDetails({ ...buyerDetails, state: selectedState });
+                      if (selectedState) setPlaceOfSupply(selectedState);
+                    }}
+                  >
+                    {GST_STATES.map((st) => (
+                      <option key={st} value={st}>
+                        {st}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label className={styles.fieldLabel}>PIN Code</label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={buyerDetails.pinCode || ""}
+                    onChange={(e) =>
+                      setBuyerDetails({ ...buyerDetails, pinCode: e.target.value })
+                    }
+                    placeholder="e.g. 700090"
+                  />
+                </div>
+              </div>
+
+              {/* Row 4: Email Address */}
+              <div className={styles.formRowSingle}>
+                <label className={styles.fieldLabel}>Email Address</label>
                 <input
-                  type="text"
+                  type="email"
                   className={styles.input}
-                  value={buyerDetails.phoneNo || ""}
+                  value={buyerDetails.email || ""}
                   onChange={(e) =>
-                    setBuyerDetails({ ...buyerDetails, phoneNo: e.target.value })
+                    setBuyerDetails({ ...buyerDetails, email: e.target.value })
                   }
-                  placeholder="e.g. +91 9876543210"
+                  placeholder="e.g. customer@example.com"
                 />
               </div>
-              <div className={styles.inputGroup}>
-                <label className={styles.label}>Full Address</label>
-                <input
-                  type="text"
-                  className={styles.input}
-                  value={buyerDetails.address}
+
+              {/* Row 5: Full Address (Spacious Textarea) */}
+              <div className={styles.formRowSingle}>
+                <div className={styles.addressLabelRow}>
+                  <label className={styles.fieldLabel}>Full Billing & Shipping Address</label>
+                  <span className={styles.addressHint}>Street, shop no., locality & landmark</span>
+                </div>
+                <textarea
+                  rows={3}
+                  className={`${styles.textarea} ${styles.addressTextarea}`}
+                  value={buyerDetails.address || ""}
                   onChange={(e) =>
                     setBuyerDetails({ ...buyerDetails, address: e.target.value })
                   }
+                  placeholder="e.g. 12/A, Ground Floor, Central Market, Beside HDFC Bank, Kolkata - 700001"
                 />
-              </div>
-              <div className={styles.inputGroup}>
-                <label className={styles.label}>GSTIN Number</label>
-                <input
-                  type="text"
-                  className={styles.input}
-                  value={buyerDetails.gstNo}
-                  onChange={(e) =>
-                    setBuyerDetails({ ...buyerDetails, gstNo: e.target.value })
-                  }
-                />
-              </div>
-              <div className={styles.inputGroup}>
-                <label className={styles.label}>State</label>
-                <select
-                  className={styles.select}
-                  value={buyerDetails.state}
-                  onChange={(e) => {
-                    const selectedState = e.target.value;
-                    setBuyerDetails({ ...buyerDetails, state: selectedState });
-                    if (selectedState) setPlaceOfSupply(selectedState);
-                  }}
-                >
-                  {GST_STATES.map((st) => (
-                    <option key={st} value={st}>
-                      {st}
-                    </option>
-                  ))}
-                </select>
               </div>
             </div>
           </div>
@@ -1609,189 +1613,7 @@ export default function CreateB2BInvoicePage() {
           </div>
         </div>
       )}
-      {/* Company Details, Bank & Terms Modal */}
-      {isCompanyModalOpen && (
-        <div className={styles.pickerOverlay} onClick={() => setIsCompanyModalOpen(false)}>
-          <div className={styles.companyModal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.pickerHeader}>
-              <div>
-                <h3 className={styles.pickerTitle}>Company, Bank & Terms Settings</h3>
-                <p className={styles.pickerSubtitle}>
-                  Pre-filled seller information, payment bank details, and invoice terms.
-                </p>
-              </div>
-              <button
-                type="button"
-                className={styles.pickerCloseBtn}
-                onClick={() => setIsCompanyModalOpen(false)}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            </div>
 
-            <div className={styles.companyModalBody}>
-              {/* Company Details */}
-              <div>
-                <div className={styles.modalSubSectionTitle}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                  </svg>
-                  Company Details
-                </div>
-                <div className={styles.formGrid}>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.label}>Company Name</label>
-                    <input
-                      type="text"
-                      className={styles.input}
-                      value={sellerDetails.businessName}
-                      onChange={(e) =>
-                        setSellerDetails({ ...sellerDetails, businessName: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.label}>Address</label>
-                    <input
-                      type="text"
-                      className={styles.input}
-                      value={sellerDetails.address}
-                      onChange={(e) =>
-                        setSellerDetails({ ...sellerDetails, address: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.label}>State</label>
-                    <select
-                      className={styles.select}
-                      value={sellerDetails.state || "19-West Bengal"}
-                      onChange={(e) =>
-                        setSellerDetails({ ...sellerDetails, state: e.target.value })
-                      }
-                    >
-                      {GST_STATES.map((st) => (
-                        <option key={st} value={st}>
-                          {st}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.label}>GSTIN</label>
-                    <input
-                      type="text"
-                      className={styles.input}
-                      value={sellerDetails.gstNo}
-                      onChange={(e) =>
-                        setSellerDetails({ ...sellerDetails, gstNo: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Bank & Payment Details */}
-              <div>
-                <div className={styles.modalSubSectionTitle} style={{ color: "#10b981" }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="2" y="5" width="20" height="14" rx="2"></rect>
-                    <line x1="2" y1="10" x2="22" y2="10"></line>
-                  </svg>
-                  Bank & Payment Details
-                </div>
-                <div className={styles.formGrid}>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.label}>Bank Name</label>
-                    <input
-                      type="text"
-                      className={styles.input}
-                      placeholder="e.g. Slice Small Finance Bank"
-                      value={sellerDetails.bankName}
-                      onChange={(e) =>
-                        setSellerDetails({ ...sellerDetails, bankName: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.label}>Account Number</label>
-                    <input
-                      type="text"
-                      className={styles.input}
-                      placeholder="e.g. 033311501063323"
-                      value={sellerDetails.accountNo}
-                      onChange={(e) =>
-                        setSellerDetails({ ...sellerDetails, accountNo: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.label}>IFSC Code</label>
-                    <input
-                      type="text"
-                      className={styles.input}
-                      placeholder="e.g. NESF0000333"
-                      value={sellerDetails.ifscCode}
-                      onChange={(e) =>
-                        setSellerDetails({ ...sellerDetails, ifscCode: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.label}>UPI Barcode / UPI ID</label>
-                    <input
-                      type="text"
-                      className={styles.input}
-                      placeholder="e.g. 033311501063323@slice"
-                      value={sellerDetails.upiId || ""}
-                      onChange={(e) =>
-                        setSellerDetails({ ...sellerDetails, upiId: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Notes & Terms */}
-              <div>
-                <div className={styles.modalSubSectionTitle} style={{ color: "#f59e0b" }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                  </svg>
-                  Notes & Terms
-                </div>
-                <div className={styles.inputGroup}>
-                  <textarea
-                    rows="4"
-                    className={styles.textarea}
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Terms & Conditions or notes..."
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.companyModalFooter}>
-              <button
-                type="button"
-                className={styles.companyModalSaveBtn}
-                onClick={handleSaveCompanySettings}
-                disabled={isSavingCompany}
-              >
-                {isSavingCompany ? "Saving..." : "Save & Done"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {/* Multi-Select Inventory Modal */}
       {isMultiSelectOpen && (
         <div className={styles.pickerOverlay} onClick={closeMultiSelectModal}>
@@ -1883,14 +1705,22 @@ export default function CreateB2BInvoicePage() {
               ) : (
                 filteredMultiInventory.map((inv) => {
                   const isSelected = selectedInvIds.includes(inv.inventoryId);
+                  const itemMeta = modalItemMeta[inv.inventoryId] || { quantity: 1, unitPrice: 0 };
                   return (
-                    <button
+                    <div
                       key={inv._id || inv.inventoryId}
-                      type="button"
                       className={`${styles.pickerCard} ${
                         isSelected ? styles.pickerCardSelected : ""
                       }`}
                       onClick={() => toggleInvSelection(inv.inventoryId)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          toggleInvSelection(inv.inventoryId);
+                        }
+                      }}
                     >
                       <div className={styles.pickerCardImg}>
                         {inv.imageUrl ? (
@@ -1916,7 +1746,56 @@ export default function CreateB2BInvoicePage() {
                           Stock: {inv.currentStock ?? 0}
                         </span>
                       )}
-                    </button>
+
+                      {/* Quantity & Price inputs for selected card */}
+                      {isSelected && (
+                        <div
+                          className={styles.pickerCardInputs}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className={styles.pickerInputCol}>
+                            <label className={styles.pickerInputLabel}>Qty</label>
+                            <input
+                              type="number"
+                              min="1"
+                              className={styles.pickerNumInput}
+                              value={itemMeta.quantity ?? 1}
+                              onChange={(e) => {
+                                const val = e.target.value === "" ? "" : Math.max(1, parseInt(e.target.value, 10) || 1);
+                                setModalItemMeta((prev) => ({
+                                  ...prev,
+                                  [inv.inventoryId]: {
+                                    ...prev[inv.inventoryId],
+                                    quantity: val,
+                                  },
+                                }));
+                              }}
+                            />
+                          </div>
+                          <div className={styles.pickerInputCol}>
+                            <label className={styles.pickerInputLabel}>Price (₹)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="any"
+                              placeholder="0"
+                              className={styles.pickerNumInput}
+                              value={itemMeta.unitPrice ?? ""}
+                              onChange={(e) => {
+                                const val = e.target.value === "" ? "" : Math.max(0, parseFloat(e.target.value) || 0);
+                                setModalItemMeta((prev) => ({
+                                  ...prev,
+                                  [inv.inventoryId]: {
+                                    ...prev[inv.inventoryId],
+                                    unitPrice: val,
+                                  },
+                                }));
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   );
                 })
               )}
