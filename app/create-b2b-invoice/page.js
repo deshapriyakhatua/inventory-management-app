@@ -250,11 +250,16 @@ export default function CreateB2BInvoicePage() {
   const [buyerDetails, setBuyerDetails] = useState({
     businessName: "",
     phoneNo: "",
-    address:
-      "",
+    address: "",
     gstNo: "NA",
     state: "",
+    email: "",
+    contactPerson: "",
+    pinCode: "",
   });
+  const [buyersList, setBuyersList] = useState([]);
+  const [selectedBuyerId, setSelectedBuyerId] = useState("");
+  const [isLoadingBuyers, setIsLoadingBuyers] = useState(false);
 
   // Line Items
   const [lineItems, setLineItems] = useState([
@@ -282,6 +287,7 @@ export default function CreateB2BInvoicePage() {
     fetchInventoryList();
     fetchRecentInvoices();
     fetchCompanySettings();
+    fetchBuyers();
   }, []);
 
   // Fetch Saved Company & Bank Settings from Database
@@ -337,6 +343,60 @@ export default function CreateB2BInvoicePage() {
     } finally {
       setIsSavingCompany(false);
     }
+  };
+
+  // Fetch Saved Buyers from Database
+  const fetchBuyers = async () => {
+    setIsLoadingBuyers(true);
+    try {
+      const res = await fetch("/api/employee/buyer");
+      const data = await res.json();
+      if (res.ok && data.data) {
+        setBuyersList(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch buyers:", err);
+    } finally {
+      setIsLoadingBuyers(false);
+    }
+  };
+
+  const handleBuyerSelect = (buyerId) => {
+    setSelectedBuyerId(buyerId);
+    if (!buyerId) {
+      return;
+    }
+    const found = buyersList.find((b) => b._id === buyerId);
+    if (found) {
+      setBuyerDetails({
+        businessName: found.businessName || "",
+        phoneNo: found.phoneNo || "",
+        address: found.address || "",
+        gstNo: found.gstNo || "NA",
+        state: found.state || "19-West Bengal",
+        email: found.email || "",
+        contactPerson: found.contactPerson || "",
+        pinCode: found.pinCode || "",
+      });
+      if (found.state) {
+        setPlaceOfSupply(found.state);
+      }
+      toast.info(`Selected buyer: ${found.businessName}`);
+    }
+  };
+
+  const handleClearBuyer = () => {
+    setSelectedBuyerId("");
+    setBuyerDetails({
+      businessName: "",
+      phoneNo: "",
+      address: "",
+      gstNo: "NA",
+      state: "",
+      email: "",
+      contactPerson: "",
+      pinCode: "",
+    });
   };
 
   // Fetch Next Invoice ID (CZ-A0001 pattern)
@@ -492,12 +552,16 @@ export default function CreateB2BInvoicePage() {
 
   // Reset Form for next invoice
   const resetForm = () => {
+    setSelectedBuyerId("");
     setBuyerDetails({
       businessName: "",
       phoneNo: "",
       address: "",
       gstNo: "NA",
       state: "",
+      email: "",
+      contactPerson: "",
+      pinCode: "",
     });
     setLineItems([
       {
@@ -584,6 +648,7 @@ export default function CreateB2BInvoicePage() {
         setPreviewInvoiceData(savedInvoice);
         setActiveTab("preview");
         fetchRecentInvoices();
+        fetchBuyers();
         resetForm();
         fetchNextInvoiceId();
       } else {
@@ -829,25 +894,123 @@ export default function CreateB2BInvoicePage() {
               </div>
             </div>
 
-            <h3 className={styles.sectionTitle}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-              </svg>
-              Issued To (Customer)
-            </h3>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <h3 className={styles.sectionTitle} style={{ margin: 0, border: "none", padding: 0 }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                </svg>
+                Issued To (Customer)
+              </h3>
+              {selectedBuyerId && (
+                <button
+                  type="button"
+                  onClick={handleClearBuyer}
+                  style={{
+                    fontSize: 12,
+                    background: "rgba(239, 68, 68, 0.15)",
+                    color: "#f87171",
+                    border: "1px solid rgba(239, 68, 68, 0.3)",
+                    padding: "4px 10px",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                  title="Clear selected buyer to enter a new one"
+                >
+                  ✕ Clear / New Customer
+                </button>
+              )}
+            </div>
+
+            {/* Quick Select from Saved / Old Buyers */}
+            <div style={{
+              background: "rgba(245, 158, 11, 0.08)",
+              border: "1px solid rgba(245, 158, 11, 0.22)",
+              borderRadius: 10,
+              padding: "12px 16px",
+              marginBottom: 18,
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: "#fbbf24", display: "flex", alignItems: "center", gap: 6 }}>
+                  <span>Select From Old Buyers ({buyersList.length} saved):</span>
+                </label>
+                {isLoadingBuyers && <span style={{ fontSize: 12, color: "#a1a1aa" }}>Loading buyers...</span>}
+              </div>
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <select
+                  className={styles.select}
+                  value={selectedBuyerId}
+                  onChange={(e) => handleBuyerSelect(e.target.value)}
+                  style={{ flex: 1, borderColor: selectedBuyerId ? "#f59e0b" : undefined }}
+                >
+                  <option value="">-- Choose an existing buyer (or type manually below) --</option>
+                  {buyersList.map((b) => (
+                    <option key={b._id} value={b._id}>
+                      {b.businessName} {b.phoneNo ? `(${b.phoneNo})` : ""} {b.state ? `— ${b.state}` : ""}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={fetchBuyers}
+                  title="Refresh Buyers List"
+                  className={styles.secondaryBtn}
+                  style={{ padding: "8px 12px", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}
+                >
+                  <RefreshIcon isSpinning={isLoadingBuyers} size={16} />
+                </button>
+              </div>
+            </div>
+
             <div className={styles.formGrid}>
               <div className={styles.inputGroup}>
                 <label className={styles.label}>Customer Name *</label>
                 <input
                   type="text"
                   className={styles.input}
+                  list="buyers-autocomplete"
                   value={buyerDetails.businessName}
-                  onChange={(e) =>
-                    setBuyerDetails({ ...buyerDetails, businessName: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const matched = buyersList.find(
+                      (b) => b.businessName?.toLowerCase() === val.trim().toLowerCase()
+                    );
+                    if (matched) {
+                      setSelectedBuyerId(matched._id);
+                      setBuyerDetails({
+                        businessName: matched.businessName,
+                        phoneNo: matched.phoneNo || "",
+                        address: matched.address || "",
+                        gstNo: matched.gstNo || "NA",
+                        state: matched.state || "19-West Bengal",
+                        email: matched.email || "",
+                        contactPerson: matched.contactPerson || "",
+                        pinCode: matched.pinCode || "",
+                      });
+                      if (matched.state) {
+                        setPlaceOfSupply(matched.state);
+                      }
+                    } else {
+                      setSelectedBuyerId("");
+                      setBuyerDetails({ ...buyerDetails, businessName: val });
+                    }
+                  }}
+                  placeholder="Enter or select customer name"
                   required
                 />
+                <datalist id="buyers-autocomplete">
+                  {buyersList.map((b) => (
+                    <option key={b._id} value={b.businessName}>
+                      {b.phoneNo ? `Phone: ${b.phoneNo}` : ""} {b.state ? `(${b.state})` : ""}
+                    </option>
+                  ))}
+                </datalist>
               </div>
               <div className={styles.inputGroup}>
                 <label className={styles.label}>Contact No</label>
@@ -888,9 +1051,11 @@ export default function CreateB2BInvoicePage() {
                 <select
                   className={styles.select}
                   value={buyerDetails.state}
-                  onChange={(e) =>
-                    setBuyerDetails({ ...buyerDetails, state: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const selectedState = e.target.value;
+                    setBuyerDetails({ ...buyerDetails, state: selectedState });
+                    if (selectedState) setPlaceOfSupply(selectedState);
+                  }}
                 >
                   {GST_STATES.map((st) => (
                     <option key={st} value={st}>

@@ -170,14 +170,20 @@
   color: #f4f4f5;
 }
 
-/* Control Bar: Search & Status Filter */
+/* Control Bar: Tabs, Grouping, Master Controls */
+.controlsWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
 .controlBar {
   background: rgba(24, 24, 27, 0.65);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
-  padding: 16px 20px;
-  margin-bottom: 24px;
+  padding: 14px 18px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -185,21 +191,118 @@
   flex-wrap: wrap;
 }
 
+/* Grouping Segmented Control */
+.groupingControl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.controlLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #a1a1aa;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.groupingSegmented {
+  display: flex;
+  background: rgba(18, 18, 20, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.groupingBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: #a1a1aa;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.groupingBtn:hover {
+  color: #f4f4f5;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.groupingBtnActive {
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.35);
+}
+
+.expandCollapseBtnGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.miniActionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  color: #d4d4d8;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.miniActionBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+/* Secondary Filter Toolbar */
+.filterToolbar {
+  background: rgba(24, 24, 27, 0.65);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .searchBox {
   position: relative;
   flex: 1;
-  min-width: 260px;
+  min-width: 240px;
 }
 
 .searchInput {
   width: 100%;
-  padding: 10px 14px 10px 38px;
+  padding: 9px 34px 9px 38px;
   border-radius: 8px;
-  background: rgba(18, 18, 20, 0.8);
+  background: rgba(18, 18, 20, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #f4f4f5;
-  font-size: 14px;
+  font-size: 13px;
   outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.searchInput:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 .searchIcon {
@@ -208,21 +311,146 @@
   top: 50%;
   transform: translateY(-50%);
   color: #71717a;
+  pointer-events: none;
+}
+
+.clearSearchBtn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 14px;
+  line-height: 1;
+  border-radius: 4px;
+}
+
+.clearSearchBtn:hover {
+  color: #f4f4f5;
 }
 
 .filterGroup {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filterSelect {
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: rgba(18, 18, 20, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f4f4f5;
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  max-width: 200px;
+}
+
+.filterSelect:focus {
+  border-color: #3b82f6;
+}
+
+.filterSelect option {
+  background: #18181b;
+  color: #ffffff;
+}
+
+.sortSelect {
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: rgba(18, 18, 20, 0.85);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #93c5fd;
+  font-size: 13px;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+}
+
+.sortSelect option {
+  background: #18181b;
+  color: #ffffff;
 }
 
 .statusSelect {
-  padding: 10px 14px;
+  padding: 9px 12px;
   border-radius: 8px;
-  background: rgba(18, 18, 20, 0.8);
+  background: rgba(18, 18, 20, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #f4f4f5;
-  font-size: 14px;
+  font-size: 13px;
+  outline: none;
+}
+
+.statusSelect option {
+  background: #18181b;
+  color: #ffffff;
+}
+
+.resetFiltersBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 8px;
+  color: #fca5a5;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.resetFiltersBtn:hover {
+  background: rgba(239, 68, 68, 0.25);
+  color: #ffffff;
+}
+
+.filterBadgeCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.customDateContainer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(18, 18, 20, 0.85);
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.dateInputLabel {
+  font-size: 12px;
+  color: #a1a1aa;
+  font-weight: 500;
+}
+
+.customDateInput {
+  background: rgba(24, 24, 27, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: #ffffff;
+  padding: 5px 8px;
+  font-size: 12px;
   outline: none;
 }
 
@@ -230,7 +458,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 16px;
+  padding: 9px 16px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -243,6 +471,222 @@
 
 .refreshBtn:hover {
   background: rgba(255, 255, 255, 0.12);
+}
+
+/* Sortable Table Headers */
+.sortableTh {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sortableTh:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+.thContent {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.activeSortTh {
+  color: #60a5fa !important;
+  background: rgba(59, 130, 246, 0.08) !important;
+}
+
+.sortIndicator {
+  display: inline-block;
+  color: #60a5fa;
+  font-size: 11px;
+}
+
+.sortIndicatorInactive {
+  display: inline-block;
+  color: #52525b;
+  font-size: 11px;
+}
+
+/* Group Header Row */
+.groupHeaderRow {
+  background: rgba(30, 30, 38, 0.92) !important;
+  cursor: pointer;
+  border-top: 2px solid rgba(139, 92, 246, 0.25);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background 0.15s ease;
+}
+
+.groupHeaderRow:hover {
+  background: rgba(42, 42, 54, 0.98) !important;
+}
+
+.groupHeaderCell {
+  padding: 12px 18px !important;
+}
+
+.groupHeaderContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.groupHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.groupToggleBtn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e4e4e7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.groupTypeIcon {
+  font-size: 18px;
+}
+
+.groupInfoBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.groupTitleLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.groupTitleText {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.2px;
+}
+
+.groupBadge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(139, 92, 246, 0.2);
+  color: #c4b5fd;
+  border: 1px solid rgba(139, 92, 246, 0.35);
+}
+
+.groupSubtitleText {
+  font-size: 12px;
+  color: #a1a1aa;
+}
+
+.groupHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.groupCountPill {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e4e4e7;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.groupMetricPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(18, 18, 20, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.metricPillLabel {
+  color: #71717a;
+  font-weight: 500;
+}
+
+.metricPillValGreen {
+  color: #34d399;
+  font-weight: 700;
+}
+
+.metricPillValBlue {
+  color: #60a5fa;
+  font-weight: 700;
+}
+
+.metricPillValRed {
+  color: #f87171;
+  font-weight: 700;
+}
+
+.metricPillValMuted {
+  color: #a1a1aa;
+  font-weight: 600;
+}
+
+.groupedRow {
+  background: rgba(20, 20, 24, 0.4);
+  border-left: 3px solid rgba(139, 92, 246, 0.4);
+}
+
+.groupedRow:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.tableRowSubtext {
+  font-size: 12px;
+  color: #71717a;
+  margin-top: 2px;
+}
+
+.emptyTableState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 0;
+}
+
+.tableLoadingState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.loadingSpinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Invoices Table Card */

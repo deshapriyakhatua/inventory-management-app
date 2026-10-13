@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongoose";
 import B2BInvoice from "@/models/B2BInvoice";
+import Buyer from "@/models/Buyer";
 import User from "@/models/User";
 import { decrypt } from "@/lib/session";
 import { cookies } from "next/headers";
@@ -104,6 +105,45 @@ export async function GET(request) {
   }
 }
 
+// Helper: Ensure buyer is saved / updated in Buyer collection
+async function syncBuyerHelper(buyerDetails, userId) {
+  if (!buyerDetails || !buyerDetails.businessName) return;
+  const trimmedName = buyerDetails.businessName.trim();
+  if (!trimmedName) return;
+
+  try {
+    const existing = await Buyer.findOne({
+      businessName: { $regex: new RegExp(`^${trimmedName}$`, "i") },
+    });
+
+    if (existing) {
+      if (buyerDetails.gstNo && buyerDetails.gstNo !== "NA") existing.gstNo = buyerDetails.gstNo;
+      if (buyerDetails.contactPerson) existing.contactPerson = buyerDetails.contactPerson;
+      if (buyerDetails.phoneNo) existing.phoneNo = buyerDetails.phoneNo;
+      if (buyerDetails.email) existing.email = buyerDetails.email;
+      if (buyerDetails.address) existing.address = buyerDetails.address;
+      if (buyerDetails.state) existing.state = buyerDetails.state;
+      if (buyerDetails.pinCode) existing.pinCode = buyerDetails.pinCode;
+      existing.isArchived = false;
+      await existing.save();
+    } else {
+      await Buyer.create({
+        businessName: trimmedName,
+        gstNo: buyerDetails.gstNo || "NA",
+        contactPerson: buyerDetails.contactPerson || "",
+        phoneNo: buyerDetails.phoneNo || "",
+        email: buyerDetails.email || "",
+        address: buyerDetails.address || "",
+        state: buyerDetails.state || "19-West Bengal",
+        pinCode: buyerDetails.pinCode || "",
+        addedBy: userId,
+      });
+    }
+  } catch (err) {
+    console.error("Error syncing Buyer on invoice generation:", err);
+  }
+}
+
 // POST - Create B2B Invoice
 export async function POST(request) {
   try {
@@ -195,6 +235,9 @@ export async function POST(request) {
 
     await newInvoice.save();
 
+    // Auto-sync buyer to individual Buyer model for future selection
+    await syncBuyerHelper(buyerDetails, session.id);
+
     return NextResponse.json(
       { success: true, message: "Invoice created successfully", invoice: newInvoice },
       { status: 201 }
@@ -271,6 +314,10 @@ export async function PUT(request) {
     // Update object fields
     Object.assign(invoice, updateFields);
     await invoice.save();
+
+    if (updateFields.buyerDetails) {
+      await syncBuyerHelper(updateFields.buyerDetails, session.id);
+    }
 
     return NextResponse.json(
       { success: true, message: "Invoice updated successfully", invoice },

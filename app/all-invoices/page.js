@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import styles from "./page.module.css";
 import { toast } from "sonner";
@@ -32,6 +32,23 @@ export default function AllInvoicesPage() {
   const [statusFilter, setStatusFilter] = useState("All");
 
   const [showArchived, setShowArchived] = useState(false);
+
+  // Grouping State: "none" | "customer" | "state"
+  const [groupBy, setGroupBy] = useState("none");
+  const [collapsedGroups, setCollapsedGroups] = useState({});
+
+  // Sorting State
+  const [sortColumn, setSortColumn] = useState("date");
+  const [sortDirection, setSortDirection] = useState("desc");
+  const [sortByOption, setSortByOption] = useState("date_desc");
+
+  // Filtering State
+  const [customerFilter, setCustomerFilter] = useState("All");
+  const [stateFilter, setStateFilter] = useState("All");
+  const [balanceFilter, setBalanceFilter] = useState("all");
+  const [dateFilterPreset, setDateFilterPreset] = useState("all");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
 
   // Edit Modal State
   const [showEditModal, setShowEditModal] = useState(false);
@@ -422,7 +439,7 @@ export default function AllInvoicesPage() {
   useEffect(() => {
     fetchInvoices();
     fetchInventoryList();
-  }, [search, statusFilter, showArchived]);
+  }, [showArchived]);
 
   const handleOpenGraphicalModal = (inv) => {
     setGraphicalModalInvoice(inv);
@@ -437,11 +454,7 @@ export default function AllInvoicesPage() {
   const fetchInvoices = async () => {
     setLoading(true);
     try {
-      let url = `/api/employee/b2b-invoice?archived=${showArchived}&`;
-      if (search) url += `search=${encodeURIComponent(search)}&`;
-      if (statusFilter && statusFilter !== "All")
-        url += `status=${encodeURIComponent(statusFilter)}&`;
-
+      const url = `/api/employee/b2b-invoice?archived=${showArchived}&limit=all`;
       const res = await fetch(url);
       const data = await res.json();
       if (res.ok && data.data) {
@@ -455,6 +468,374 @@ export default function AllInvoicesPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to extract and normalize state name & code
+  const getStateInfo = (rawState) => {
+    if (!rawState) return { key: "unspecified", name: "Unspecified State", code: "" };
+    const str = String(rawState).trim();
+    if (str.includes("-")) {
+      const parts = str.split("-");
+      const code = parts[0].trim();
+      const name = parts.slice(1).join("-").trim();
+      return { key: name.toLowerCase(), name, code };
+    }
+    return { key: str.toLowerCase(), name: str, code: "" };
+  };
+
+  // Dynamic customer filter options with counts
+  const customerOptions = useMemo(() => {
+    const counts = {};
+    invoices.forEach((inv) => {
+      const name = (inv.buyerDetails?.businessName || "").trim();
+      if (name) {
+        counts[name] = (counts[name] || 0) + 1;
+      }
+    });
+    return Object.entries(counts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [invoices]);
+
+  // Dynamic state filter options with counts
+  const stateOptions = useMemo(() => {
+    const counts = {};
+    invoices.forEach((inv) => {
+      const raw = inv.placeOfSupply || inv.buyerDetails?.state || "";
+      const info = getStateInfo(raw);
+      if (!counts[info.key]) {
+        counts[info.key] = { name: info.name, code: info.code, count: 0 };
+      }
+      counts[info.key].count += 1;
+    });
+    return Object.values(counts).sort((a, b) => a.name.localeCompare(b.name));
+  }, [invoices]);
+
+  // Count active applied filters
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (search.trim()) count++;
+    if (statusFilter !== "All") count++;
+    if (customerFilter !== "All") count++;
+    if (stateFilter !== "All") count++;
+    if (balanceFilter !== "all") count++;
+    if (dateFilterPreset !== "all") count++;
+    return count;
+  }, [search, statusFilter, customerFilter, stateFilter, balanceFilter, dateFilterPreset]);
+
+  // Reset all applied filters to default
+  const handleResetFilters = () => {
+    setSearch("");
+    setStatusFilter("All");
+    setCustomerFilter("All");
+    setStateFilter("All");
+    setBalanceFilter("all");
+    setDateFilterPreset("all");
+    setCustomStartDate("");
+    setCustomEndDate("");
+  };
+
+  // Handle table header column click for sorting
+  const handleSortChange = (newColumn) => {
+    if (sortColumn === newColumn) {
+      const nextDir = sortDirection === "asc" ? "desc" : "asc";
+      setSortDirection(nextDir);
+      setSortByOption(`${newColumn}_${nextDir}`);
+    } else {
+      setSortColumn(newColumn);
+      const defaultDir =
+        newColumn === "date" || newColumn === "total" || newColumn === "received" || newColumn === "balance"
+          ? "desc"
+          : "asc";
+      setSortDirection(defaultDir);
+      setSortByOption(`${newColumn}_${defaultDir}`);
+    }
+  };
+
+  // Handle dropdown sort selection
+  const handleDropdownSortChange = (val) => {
+    setSortByOption(val);
+    const [col, dir] = val.split("_");
+    setSortColumn(col);
+    setSortDirection(dir);
+  };
+
+  // 1. Filter invoices according to all active criteria
+  const filteredInvoices = useMemo(() => {
+    return invoices.filter((inv) => {
+      // 1. Search text
+      if (search.trim()) {
+        const q = search.trim().toLowerCase();
+        const invNum = (inv.invoiceNumber || "").toLowerCase();
+        const custName = (inv.buyerDetails?.businessName || "").toLowerCase();
+        const contact = (inv.buyerDetails?.contactPerson || "").toLowerCase();
+        const phone = (inv.buyerDetails?.phoneNo || "").toLowerCase();
+        const hasMatchingItem = (inv.lineItems || []).some(
+          (item) =>
+            (item.inventoryId || "").toLowerCase().includes(q) ||
+            (item.description || "").toLowerCase().includes(q) ||
+            (item.hsnCode || "").toLowerCase().includes(q)
+        );
+
+        if (
+          !invNum.includes(q) &&
+          !custName.includes(q) &&
+          !contact.includes(q) &&
+          !phone.includes(q) &&
+          !hasMatchingItem
+        ) {
+          return false;
+        }
+      }
+
+      // 2. Status
+      if (statusFilter !== "All" && inv.paymentStatus !== statusFilter) {
+        return false;
+      }
+
+      // 3. Customer
+      if (customerFilter !== "All") {
+        const cName = (inv.buyerDetails?.businessName || "").trim();
+        if (cName !== customerFilter) return false;
+      }
+
+      // 4. State
+      if (stateFilter !== "All") {
+        const invState = getStateInfo(inv.placeOfSupply || inv.buyerDetails?.state || "").name;
+        if (invState !== stateFilter) return false;
+      }
+
+      // 5. Balance
+      if (balanceFilter === "has_balance") {
+        const bal =
+          inv.balanceAmount !== undefined && inv.balanceAmount !== null
+            ? inv.balanceAmount
+            : Math.max(0, (inv.grandTotal || 0) - (inv.receivedAmount || 0));
+        if (bal <= 0) return false;
+      } else if (balanceFilter === "zero_balance") {
+        const bal =
+          inv.balanceAmount !== undefined && inv.balanceAmount !== null
+            ? inv.balanceAmount
+            : Math.max(0, (inv.grandTotal || 0) - (inv.receivedAmount || 0));
+        if (bal > 0) return false;
+      }
+
+      // 6. Date
+      if (dateFilterPreset !== "all") {
+        if (!inv.invoiceDate) return false;
+        const invDate = new Date(inv.invoiceDate);
+        if (isNaN(invDate.getTime())) return false;
+
+        const now = new Date();
+        if (dateFilterPreset === "this_month") {
+          if (
+            invDate.getFullYear() !== now.getFullYear() ||
+            invDate.getMonth() !== now.getMonth()
+          ) {
+            return false;
+          }
+        } else if (dateFilterPreset === "last_month") {
+          const lastMonthYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+          const lastMonthIdx = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+          if (
+            invDate.getFullYear() !== lastMonthYear ||
+            invDate.getMonth() !== lastMonthIdx
+          ) {
+            return false;
+          }
+        } else if (dateFilterPreset === "this_year") {
+          const curY = now.getFullYear();
+          const fyStart = now.getMonth() >= 3 ? new Date(curY, 3, 1) : new Date(curY - 1, 3, 1);
+          const fyEnd = new Date(fyStart.getFullYear() + 1, 2, 31, 23, 59, 59, 999);
+          if (invDate < fyStart || invDate > fyEnd) return false;
+        } else if (dateFilterPreset === "custom") {
+          if (customStartDate) {
+            const start = new Date(customStartDate);
+            start.setHours(0, 0, 0, 0);
+            if (invDate < start) return false;
+          }
+          if (customEndDate) {
+            const end = new Date(customEndDate);
+            end.setHours(23, 59, 59, 999);
+            if (invDate > end) return false;
+          }
+        }
+      }
+
+      return true;
+    });
+  }, [
+    invoices,
+    search,
+    statusFilter,
+    customerFilter,
+    stateFilter,
+    balanceFilter,
+    dateFilterPreset,
+    customStartDate,
+    customEndDate,
+  ]);
+
+  // 2. Sort filtered invoices
+  const sortedInvoices = useMemo(() => {
+    const list = [...filteredInvoices];
+    list.sort((a, b) => {
+      let cmp = 0;
+      switch (sortColumn) {
+        case "invoiceNumber": {
+          cmp = (a.invoiceNumber || "").localeCompare(b.invoiceNumber || "", undefined, {
+            numeric: true,
+            sensitivity: "base",
+          });
+          break;
+        }
+        case "date": {
+          const tA = a.invoiceDate ? new Date(a.invoiceDate).getTime() : 0;
+          const tB = b.invoiceDate ? new Date(b.invoiceDate).getTime() : 0;
+          cmp = tA - tB;
+          break;
+        }
+        case "customer": {
+          const cA = (a.buyerDetails?.businessName || "").toLowerCase();
+          const cB = (b.buyerDetails?.businessName || "").toLowerCase();
+          cmp = cA.localeCompare(cB);
+          break;
+        }
+        case "items": {
+          cmp = (a.lineItems?.length || 0) - (b.lineItems?.length || 0);
+          break;
+        }
+        case "total": {
+          cmp = (Number(a.grandTotal) || 0) - (Number(b.grandTotal) || 0);
+          break;
+        }
+        case "received": {
+          cmp = (Number(a.receivedAmount) || 0) - (Number(b.receivedAmount) || 0);
+          break;
+        }
+        case "balance": {
+          const balA =
+            a.balanceAmount !== undefined && a.balanceAmount !== null
+              ? a.balanceAmount
+              : Math.max(0, (a.grandTotal || 0) - (a.receivedAmount || 0));
+          const balB =
+            b.balanceAmount !== undefined && b.balanceAmount !== null
+              ? b.balanceAmount
+              : Math.max(0, (b.grandTotal || 0) - (b.receivedAmount || 0));
+          cmp = balA - balB;
+          break;
+        }
+        case "status": {
+          cmp = (a.paymentStatus || "").localeCompare(b.paymentStatus || "");
+          break;
+        }
+        default: {
+          const tA = a.invoiceDate ? new Date(a.invoiceDate).getTime() : 0;
+          const tB = b.invoiceDate ? new Date(b.invoiceDate).getTime() : 0;
+          cmp = tA - tB;
+          break;
+        }
+      }
+      return sortDirection === "asc" ? cmp : -cmp;
+    });
+    return list;
+  }, [filteredInvoices, sortColumn, sortDirection]);
+
+  // 3. Group sorted invoices by Customer or State
+  const groupedData = useMemo(() => {
+    if (groupBy === "none") return null;
+
+    const map = new Map();
+
+    sortedInvoices.forEach((inv) => {
+      let key = "";
+      let title = "";
+      let subtitle = "";
+      let badge = "";
+
+      if (groupBy === "customer") {
+        title = (inv.buyerDetails?.businessName || "").trim() || "Unknown Customer";
+        key = title.toLowerCase();
+        const parts = [];
+        if (inv.buyerDetails?.gstNo && inv.buyerDetails.gstNo !== "NA") {
+          parts.push(`GSTIN: ${inv.buyerDetails.gstNo}`);
+        }
+        if (inv.buyerDetails?.phoneNo) {
+          parts.push(`📞 ${inv.buyerDetails.phoneNo}`);
+        }
+        const st = inv.placeOfSupply || inv.buyerDetails?.state;
+        if (st) {
+          parts.push(`📍 ${getStateInfo(st).name}`);
+        }
+        subtitle = parts.join(" • ");
+        badge = "Customer";
+      } else if (groupBy === "state") {
+        const info = getStateInfo(inv.placeOfSupply || inv.buyerDetails?.state || "");
+        key = info.key;
+        title = info.name;
+        subtitle = info.code ? `GST State Code: ${info.code}` : "Place of Supply / Buyer State";
+        badge = info.code ? `Code: ${info.code}` : "State";
+      }
+
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          title,
+          subtitle,
+          badge,
+          invoices: [],
+          totalRevenue: 0,
+          totalReceived: 0,
+          totalBalance: 0,
+          paidCount: 0,
+          pendingCount: 0,
+          partialCount: 0,
+          cancelledCount: 0,
+        });
+      }
+
+      const grp = map.get(key);
+      grp.invoices.push(inv);
+
+      const gTotal = Number(inv.grandTotal) || 0;
+      const rAmt = Number(inv.receivedAmount) || 0;
+      const bAmt =
+        inv.balanceAmount !== undefined && inv.balanceAmount !== null
+          ? inv.balanceAmount
+          : Math.max(0, gTotal - rAmt);
+
+      grp.totalRevenue += gTotal;
+      grp.totalReceived += rAmt;
+      grp.totalBalance += bAmt;
+
+      const st = inv.paymentStatus || calculatePaymentStatus(gTotal, rAmt);
+      if (st === "Paid") grp.paidCount += 1;
+      else if (st === "Partially Paid") grp.partialCount += 1;
+      else if (st === "Cancelled") grp.cancelledCount += 1;
+      else grp.pendingCount += 1;
+    });
+
+    return Array.from(map.values());
+  }, [sortedInvoices, groupBy]);
+
+  const toggleGroupCollapse = (key) => {
+    setCollapsedGroups((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const handleExpandAllGroups = () => {
+    setCollapsedGroups({});
+  };
+
+  const handleCollapseAllGroups = () => {
+    if (!groupedData) return;
+    const all = {};
+    groupedData.forEach((g) => {
+      all[g.key] = true;
+    });
+    setCollapsedGroups(all);
   };
 
   // Custom Confirm Modal State
@@ -946,13 +1327,14 @@ export default function AllInvoicesPage() {
 
   // ── Multi-Sheet Excel Export (Summary, Grouped, Raw Data) ──────────
   const exportInvoicesToExcel = () => {
-    if (!invoices || invoices.length === 0) {
+    const invoicesToExport = sortedInvoices && sortedInvoices.length > 0 ? sortedInvoices : invoices;
+    if (!invoicesToExport || invoicesToExport.length === 0) {
       toast.error("No invoices available to export.");
       return;
     }
 
     // ── Calculate Summary Statistics ────────────────────────────────
-    let totalInvoices = invoices.length;
+    let totalInvoices = invoicesToExport.length;
     let totalRevenue = 0;
     let totalReceived = 0;
     let totalBalance = 0;
@@ -964,7 +1346,7 @@ export default function AllInvoicesPage() {
     // Buyer Summary breakdown map
     const buyerSummaryMap = {};
 
-    invoices.forEach((inv) => {
+    invoicesToExport.forEach((inv) => {
       const gTotal = Number(inv.grandTotal) || 0;
       const rAmount = Number(inv.receivedAmount) || 0;
       const bAmount =
@@ -1041,7 +1423,7 @@ export default function AllInvoicesPage() {
     });
 
     // ── 2. SHEET 2: INVOICE & CUSTOMER GROUPED ──────────────────────
-    const groupedData = [
+    const groupedReportData = [
       ["INVOICE & CUSTOMER GROUPED REPORT"],
       [`Generated On: ${new Date().toLocaleString("en-IN")}`],
       [],
@@ -1066,7 +1448,7 @@ export default function AllInvoicesPage() {
       ]
     ];
 
-    invoices.forEach((inv) => {
+    invoicesToExport.forEach((inv) => {
       const buyerName = inv.buyerDetails?.businessName || "Unknown Customer";
       const gstin = inv.buyerDetails?.gstNo || inv.buyerDetails?.gstin || inv.buyerDetails?.gstNumber || "NA";
       const state = inv.buyerDetails?.state || inv.placeOfSupply || "NA";
@@ -1079,7 +1461,7 @@ export default function AllInvoicesPage() {
           : gTotal - rAmount;
 
       // Group Header Row
-      groupedData.push([
+      groupedReportData.push([
         "INVOICE HEADER",
         inv.invoiceNumber || "-",
         formatDateGB(inv.invoiceDate),
@@ -1101,7 +1483,7 @@ export default function AllInvoicesPage() {
 
       // Sub-rows for each Line Item in the Invoice
       (inv.lineItems || []).forEach((item) => {
-        groupedData.push([
+        groupedReportData.push([
           "Item Detail",
           inv.invoiceNumber || "-",
           formatDateGB(inv.invoiceDate),
@@ -1122,7 +1504,7 @@ export default function AllInvoicesPage() {
         ]);
       });
 
-      groupedData.push([]); // Blank spacing row between invoices
+      groupedReportData.push([]); // Blank spacing row between invoices
     });
 
     // ── 3. SHEET 3: ALL INVOICE LINE ITEMS (RAW DATA FLAT LIST) ─────
@@ -1151,7 +1533,7 @@ export default function AllInvoicesPage() {
       ]
     ];
 
-    invoices.forEach((inv) => {
+    invoicesToExport.forEach((inv) => {
       const buyerName = inv.buyerDetails?.businessName || "Unknown Customer";
       const gstin = inv.buyerDetails?.gstNo || inv.buyerDetails?.gstin || inv.buyerDetails?.gstNumber || "NA";
       const state = inv.buyerDetails?.state || inv.placeOfSupply || "NA";
@@ -1203,7 +1585,7 @@ export default function AllInvoicesPage() {
     XLSX.utils.book_append_sheet(workbook, summarySheet, "Summary");
 
     // 2. Invoice & Customer Grouped Sheet
-    const groupedSheet = XLSX.utils.aoa_to_sheet(groupedData);
+    const groupedSheet = XLSX.utils.aoa_to_sheet(groupedReportData);
     groupedSheet["!cols"] = [
       { wch: 16 }, // Record Type
       { wch: 18 }, // Invoice No
@@ -1255,16 +1637,16 @@ export default function AllInvoicesPage() {
     toast.success(`Successfully downloaded Excel report: ${fileName}`);
   };
 
-  // Metrics Calculations
-  const totalRevenue = invoices.reduce(
+  // Metrics Calculations based on filtered invoices
+  const totalRevenue = filteredInvoices.reduce(
     (sum, inv) => sum + (inv.grandTotal || 0),
     0
   );
-  const totalReceived = invoices.reduce(
+  const totalReceived = filteredInvoices.reduce(
     (sum, inv) => sum + (inv.receivedAmount || 0),
     0
   );
-  const totalBalance = invoices.reduce(
+  const totalBalance = filteredInvoices.reduce(
     (sum, inv) => {
       const invBal =
         inv.balanceAmount !== undefined && inv.balanceAmount !== null && inv.balanceAmount !== 0
@@ -1369,7 +1751,14 @@ export default function AllInvoicesPage() {
           <div className={`${styles.metricIcon} ${styles.iconBlue}`}>📄</div>
           <div className={styles.metricInfo}>
             <span className={styles.metricLabel}>Total Invoices</span>
-            <span className={styles.metricValue}>{invoices.length}</span>
+            <span className={styles.metricValue}>
+              {filteredInvoices.length}
+              {filteredInvoices.length !== invoices.length && (
+                <span style={{ fontSize: "12px", fontWeight: "500", color: "#a1a1aa", marginLeft: "6px" }}>
+                  (of {invoices.length})
+                </span>
+              )}
+            </span>
           </div>
         </div>
 
@@ -1404,62 +1793,288 @@ export default function AllInvoicesPage() {
         </div>
       </div>
 
-      {/* Control Bar: Tabs, Search & Status Filter */}
-      <div className={styles.controlBar}>
-        <div className={styles.tabGroup}>
-          <button
-            type="button"
-            className={`${styles.tabItem} ${!showArchived ? styles.activeTabItem : ""}`}
-            onClick={() => setShowArchived(false)}
-          >
-            Active Invoices
-          </button>
-          <button
-            type="button"
-            className={`${styles.tabItem} ${showArchived ? styles.activeTabItem : ""}`}
-            onClick={() => setShowArchived(true)}
-          >
-            Archived Invoices 🗑️
-          </button>
-        </div>
+      {/* Controls: Tabs, Grouping, Filter Toolbar */}
+      <div className={styles.controlsWrapper}>
+        {/* Top Control Bar: Active/Archived Tabs + Group By Selector + Group Actions + Refresh */}
+        <div className={styles.controlBar}>
+          <div className={styles.tabGroup}>
+            <button
+              id="tab-active-invoices"
+              type="button"
+              className={`${styles.tabItem} ${!showArchived ? styles.activeTabItem : ""}`}
+              onClick={() => setShowArchived(false)}
+            >
+              Active Invoices
+            </button>
+            <button
+              id="tab-archived-invoices"
+              type="button"
+              className={`${styles.tabItem} ${showArchived ? styles.activeTabItem : ""}`}
+              onClick={() => setShowArchived(true)}
+            >
+              Archived Invoices 🗑️
+            </button>
+          </div>
 
-        <div className={styles.searchBox}>
-          <svg className={styles.searchIcon} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input
-            type="text"
-            className={styles.searchInput}
-            placeholder="Search Invoice #, Customer Name, SKU..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+          {/* Grouping Segmented Control */}
+          <div className={styles.groupingControl}>
+            <span className={styles.controlLabel}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+              Group By:
+            </span>
+            <div className={styles.groupingSegmented}>
+              <button
+                id="group-by-none"
+                type="button"
+                className={`${styles.groupingBtn} ${groupBy === "none" ? styles.groupingBtnActive : ""}`}
+                onClick={() => setGroupBy("none")}
+                title="No Grouping (Flat Table)"
+              >
+                None
+              </button>
+              <button
+                id="group-by-customer"
+                type="button"
+                className={`${styles.groupingBtn} ${groupBy === "customer" ? styles.groupingBtnActive : ""}`}
+                onClick={() => setGroupBy("customer")}
+                title="Group by Customer / Buyer"
+              >
+                👤 Customer
+              </button>
+              <button
+                id="group-by-state"
+                type="button"
+                className={`${styles.groupingBtn} ${groupBy === "state" ? styles.groupingBtnActive : ""}`}
+                onClick={() => setGroupBy("state")}
+                title="Group by State / Place of Supply"
+              >
+                📍 State
+              </button>
+            </div>
 
-        <div className={styles.filterGroup}>
-          <select
-            className={styles.statusSelect}
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="All">All Statuses</option>
-            <option value="Pending">Pending</option>
-            <option value="Paid">Paid</option>
-            <option value="Partially Paid">Partially Paid</option>
-            <option value="Cancelled">Cancelled</option>
-          </select>
+            {groupBy !== "none" && (
+              <div className={styles.expandCollapseBtnGroup}>
+                <button
+                  id="btn-expand-all"
+                  type="button"
+                  className={styles.miniActionBtn}
+                  onClick={handleExpandAllGroups}
+                  title="Expand All Groups"
+                >
+                  Expand All
+                </button>
+                <button
+                  id="btn-collapse-all"
+                  type="button"
+                  className={styles.miniActionBtn}
+                  onClick={handleCollapseAllGroups}
+                  title="Collapse All Groups"
+                >
+                  Collapse All
+                </button>
+              </div>
+            )}
+          </div>
 
           <button
+            id="btn-refresh-invoices"
             type="button"
             className={styles.refreshBtn}
             onClick={fetchInvoices}
             disabled={loading}
+            title="Refresh Invoices"
           >
             <RefreshIcon />
             Refresh
           </button>
         </div>
+
+        {/* Secondary Filter Toolbar */}
+        <div className={styles.filterToolbar}>
+          {/* Search Box */}
+          <div className={styles.searchBox}>
+            <svg
+              className={styles.searchIcon}
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              id="search-input"
+              type="text"
+              className={styles.searchInput}
+              placeholder="Search Invoice #, Customer, SKU, Description..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search && (
+              <button
+                type="button"
+                className={styles.clearSearchBtn}
+                onClick={() => setSearch("")}
+                title="Clear search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Filter Dropdowns */}
+          <div className={styles.filterGroup}>
+            {/* Customer Filter */}
+            <select
+              id="customer-filter"
+              className={styles.filterSelect}
+              value={customerFilter}
+              onChange={(e) => setCustomerFilter(e.target.value)}
+              title="Filter by Customer"
+            >
+              <option value="All">All Customers ({customerOptions.length})</option>
+              {customerOptions.map((c) => (
+                <option key={c.name} value={c.name}>
+                  {c.name} ({c.count})
+                </option>
+              ))}
+            </select>
+
+            {/* State Filter */}
+            <select
+              id="state-filter"
+              className={styles.filterSelect}
+              value={stateFilter}
+              onChange={(e) => setStateFilter(e.target.value)}
+              title="Filter by State / Place of Supply"
+            >
+              <option value="All">All States ({stateOptions.length})</option>
+              {stateOptions.map((st) => (
+                <option key={st.name} value={st.name}>
+                  {st.code ? `${st.code} - ` : ""}{st.name} ({st.count})
+                </option>
+              ))}
+            </select>
+
+            {/* Status Filter */}
+            <select
+              id="status-filter"
+              className={styles.statusSelect}
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              title="Filter by Payment Status"
+            >
+              <option value="All">All Statuses</option>
+              <option value="Pending">Pending</option>
+              <option value="Paid">Paid</option>
+              <option value="Partially Paid">Partially Paid</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+
+            {/* Balance Filter */}
+            <select
+              id="balance-filter"
+              className={styles.filterSelect}
+              value={balanceFilter}
+              onChange={(e) => setBalanceFilter(e.target.value)}
+              title="Filter by Payment Balance"
+            >
+              <option value="all">All Balance Types</option>
+              <option value="has_balance">Has Balance Due (&gt; ₹0)</option>
+              <option value="zero_balance">Fully Settled (₹0 Due)</option>
+            </select>
+
+            {/* Date Preset Filter */}
+            <select
+              id="date-filter"
+              className={styles.filterSelect}
+              value={dateFilterPreset}
+              onChange={(e) => setDateFilterPreset(e.target.value)}
+              title="Filter by Date Range"
+            >
+              <option value="all">All Dates</option>
+              <option value="this_month">This Month</option>
+              <option value="last_month">Last Month</option>
+              <option value="this_year">This Financial Year</option>
+              <option value="custom">Custom Date Range</option>
+            </select>
+
+            {/* Sort Selection */}
+            <select
+              id="sort-select"
+              className={styles.sortSelect}
+              value={sortByOption}
+              onChange={(e) => handleDropdownSortChange(e.target.value)}
+              title="Sort Invoices"
+            >
+              <option value="date_desc">📅 Date: Newest First</option>
+              <option value="date_asc">📅 Date: Oldest First</option>
+              <option value="invoiceNumber_asc">🔢 Invoice #: Low → High</option>
+              <option value="invoiceNumber_desc">🔢 Invoice #: High → Low</option>
+              <option value="customer_asc">👤 Customer: A → Z</option>
+              <option value="customer_desc">👤 Customer: Z → A</option>
+              <option value="total_desc">💰 Total: High → Low</option>
+              <option value="total_asc">💰 Total: Low → High</option>
+              <option value="balance_desc">⚠️ Balance: High → Low</option>
+              <option value="balance_asc">⚠️ Balance: Low → High</option>
+              <option value="received_desc">💳 Received: High → Low</option>
+            </select>
+
+            {/* Reset Filters Button */}
+            {activeFilterCount > 0 && (
+              <button
+                id="reset-filters-btn"
+                type="button"
+                className={styles.resetFiltersBtn}
+                onClick={handleResetFilters}
+                title="Reset all applied filters"
+              >
+                <span>Reset Filters</span>
+                <span className={styles.filterBadgeCount}>{activeFilterCount}</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Custom Date Range Row */}
+        {dateFilterPreset === "custom" && (
+          <div className={styles.customDateContainer}>
+            <span className={styles.dateInputLabel}>From:</span>
+            <input
+              type="date"
+              className={styles.customDateInput}
+              value={customStartDate}
+              onChange={(e) => setCustomStartDate(e.target.value)}
+            />
+            <span className={styles.dateInputLabel}>To:</span>
+            <input
+              type="date"
+              className={styles.customDateInput}
+              value={customEndDate}
+              onChange={(e) => setCustomEndDate(e.target.value)}
+            />
+            {(customStartDate || customEndDate) && (
+              <button
+                type="button"
+                className={styles.miniActionBtn}
+                onClick={() => {
+                  setCustomStartDate("");
+                  setCustomEndDate("");
+                }}
+              >
+                Clear Dates
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Main Invoices Table */}
@@ -1467,26 +2082,145 @@ export default function AllInvoicesPage() {
         <table className={styles.invoiceTable}>
           <thead>
             <tr>
-              <th>Invoice #</th>
-              <th>Date</th>
-              <th>Customer</th>
-              <th>Items</th>
-              <th>Grand Total</th>
-              <th>Received</th>
-              <th>Balance</th>
-              <th>Status</th>
+              <th
+                className={`${styles.sortableTh} ${sortColumn === "invoiceNumber" ? styles.activeSortTh : ""}`}
+                onClick={() => handleSortChange("invoiceNumber")}
+                title="Sort by Invoice Number"
+              >
+                <div className={styles.thContent}>
+                  <span>Invoice #</span>
+                  <span className={sortColumn === "invoiceNumber" ? styles.sortIndicator : styles.sortIndicatorInactive}>
+                    {sortColumn === "invoiceNumber" ? (sortDirection === "asc" ? "▲" : "▼") : "↕"}
+                  </span>
+                </div>
+              </th>
+
+              <th
+                className={`${styles.sortableTh} ${sortColumn === "date" ? styles.activeSortTh : ""}`}
+                onClick={() => handleSortChange("date")}
+                title="Sort by Date"
+              >
+                <div className={styles.thContent}>
+                  <span>Date</span>
+                  <span className={sortColumn === "date" ? styles.sortIndicator : styles.sortIndicatorInactive}>
+                    {sortColumn === "date" ? (sortDirection === "asc" ? "▲" : "▼") : "↕"}
+                  </span>
+                </div>
+              </th>
+
+              <th
+                className={`${styles.sortableTh} ${sortColumn === "customer" ? styles.activeSortTh : ""}`}
+                onClick={() => handleSortChange("customer")}
+                title="Sort by Customer Name"
+              >
+                <div className={styles.thContent}>
+                  <span>Customer</span>
+                  <span className={sortColumn === "customer" ? styles.sortIndicator : styles.sortIndicatorInactive}>
+                    {sortColumn === "customer" ? (sortDirection === "asc" ? "▲" : "▼") : "↕"}
+                  </span>
+                </div>
+              </th>
+
+              <th
+                className={`${styles.sortableTh} ${sortColumn === "items" ? styles.activeSortTh : ""}`}
+                onClick={() => handleSortChange("items")}
+                title="Sort by Line Items Count"
+              >
+                <div className={styles.thContent}>
+                  <span>Items</span>
+                  <span className={sortColumn === "items" ? styles.sortIndicator : styles.sortIndicatorInactive}>
+                    {sortColumn === "items" ? (sortDirection === "asc" ? "▲" : "▼") : "↕"}
+                  </span>
+                </div>
+              </th>
+
+              <th
+                className={`${styles.sortableTh} ${sortColumn === "total" ? styles.activeSortTh : ""}`}
+                onClick={() => handleSortChange("total")}
+                title="Sort by Grand Total"
+              >
+                <div className={styles.thContent}>
+                  <span>Grand Total</span>
+                  <span className={sortColumn === "total" ? styles.sortIndicator : styles.sortIndicatorInactive}>
+                    {sortColumn === "total" ? (sortDirection === "asc" ? "▲" : "▼") : "↕"}
+                  </span>
+                </div>
+              </th>
+
+              <th
+                className={`${styles.sortableTh} ${sortColumn === "received" ? styles.activeSortTh : ""}`}
+                onClick={() => handleSortChange("received")}
+                title="Sort by Amount Received"
+              >
+                <div className={styles.thContent}>
+                  <span>Received</span>
+                  <span className={sortColumn === "received" ? styles.sortIndicator : styles.sortIndicatorInactive}>
+                    {sortColumn === "received" ? (sortDirection === "asc" ? "▲" : "▼") : "↕"}
+                  </span>
+                </div>
+              </th>
+
+              <th
+                className={`${styles.sortableTh} ${sortColumn === "balance" ? styles.activeSortTh : ""}`}
+                onClick={() => handleSortChange("balance")}
+                title="Sort by Balance Due"
+              >
+                <div className={styles.thContent}>
+                  <span>Balance</span>
+                  <span className={sortColumn === "balance" ? styles.sortIndicator : styles.sortIndicatorInactive}>
+                    {sortColumn === "balance" ? (sortDirection === "asc" ? "▲" : "▼") : "↕"}
+                  </span>
+                </div>
+              </th>
+
+              <th
+                className={`${styles.sortableTh} ${sortColumn === "status" ? styles.activeSortTh : ""}`}
+                onClick={() => handleSortChange("status")}
+                title="Sort by Payment Status"
+              >
+                <div className={styles.thContent}>
+                  <span>Status</span>
+                  <span className={sortColumn === "status" ? styles.sortIndicator : styles.sortIndicatorInactive}>
+                    {sortColumn === "status" ? (sortDirection === "asc" ? "▲" : "▼") : "↕"}
+                  </span>
+                </div>
+              </th>
+
               <th style={{ textAlign: "right" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {invoices.length === 0 ? (
+            {loading ? (
               <tr>
-                <td colSpan="9" style={{ textAlign: "center", color: "#a1a1aa", padding: "30px" }}>
-                  {loading ? "Loading invoices..." : "No invoices found matching criteria."}
+                <td colSpan="9" style={{ textAlign: "center", color: "#a1a1aa", padding: "40px" }}>
+                  <div className={styles.tableLoadingState}>
+                    <div className={styles.loadingSpinner}></div>
+                    <span>Loading invoices...</span>
+                  </div>
                 </td>
               </tr>
-            ) : (
-              invoices.map((inv) => {
+            ) : sortedInvoices.length === 0 ? (
+              <tr>
+                <td colSpan="9" style={{ textAlign: "center", color: "#a1a1aa", padding: "40px" }}>
+                  <div className={styles.emptyTableState}>
+                    <span style={{ fontSize: "28px" }}>🔍</span>
+                    <p style={{ margin: "8px 0 4px", fontWeight: "600", color: "#e4e4e7" }}>
+                      No invoices found matching criteria.
+                    </p>
+                    {activeFilterCount > 0 && (
+                      <button
+                        type="button"
+                        className={styles.resetFiltersBtn}
+                        onClick={handleResetFilters}
+                      >
+                        Clear All Filters
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ) : groupBy === "none" ? (
+              sortedInvoices.map((inv) => {
                 const invBalance =
                   inv.balanceAmount !== undefined && inv.balanceAmount !== null && inv.balanceAmount !== 0
                     ? inv.balanceAmount
@@ -1497,7 +2231,10 @@ export default function AllInvoicesPage() {
                     <td className={styles.invNumber}>{inv.invoiceNumber}</td>
                     <td>{inv.invoiceDate ? formatDateGB(inv.invoiceDate) : "-"}</td>
                     <td className={styles.customerName}>
-                      {inv.buyerDetails?.businessName || "N/A"}
+                      <div>{inv.buyerDetails?.businessName || "N/A"}</div>
+                      <div className={styles.tableRowSubtext}>
+                        {getStateInfo(inv.placeOfSupply || inv.buyerDetails?.state || "").name}
+                      </div>
                     </td>
                     <td>{inv.lineItems?.length || 0} items</td>
                     <td style={{ fontWeight: "700", color: "#34d399" }}>
@@ -1603,7 +2340,7 @@ export default function AllInvoicesPage() {
                                   }}
                                 >
                                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                   </svg>
                                   Edit Invoice
@@ -1712,6 +2449,320 @@ export default function AllInvoicesPage() {
                       </div>
                     </td>
                   </tr>
+                );
+              })
+            ) : (
+              groupedData.map((group) => {
+                const isCollapsed = collapsedGroups[group.key];
+                return (
+                  <React.Fragment key={group.key}>
+                    <tr
+                      className={styles.groupHeaderRow}
+                      onClick={() => toggleGroupCollapse(group.key)}
+                      title={`Click to ${isCollapsed ? "expand" : "collapse"} this group`}
+                    >
+                      <td colSpan="9" className={styles.groupHeaderCell}>
+                        <div className={styles.groupHeaderContent}>
+                          <div className={styles.groupHeaderLeft}>
+                            <button
+                              type="button"
+                              className={styles.groupToggleBtn}
+                              aria-label={isCollapsed ? "Expand group" : "Collapse group"}
+                            >
+                              <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                style={{
+                                  transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
+                                  transition: "transform 0.2s ease",
+                                }}
+                              >
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                              </svg>
+                            </button>
+                            <span className={styles.groupTypeIcon}>
+                              {groupBy === "customer" ? "🏢" : "📍"}
+                            </span>
+                            <div className={styles.groupInfoBlock}>
+                              <div className={styles.groupTitleLine}>
+                                <span className={styles.groupTitleText}>{group.title}</span>
+                                {group.badge && (
+                                  <span className={styles.groupBadge}>{group.badge}</span>
+                                )}
+                              </div>
+                              {group.subtitle && (
+                                <div className={styles.groupSubtitleText}>{group.subtitle}</div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className={styles.groupHeaderRight} onClick={(e) => e.stopPropagation()}>
+                            <span className={styles.groupCountPill}>
+                              {group.invoices.length} {group.invoices.length === 1 ? "invoice" : "invoices"}
+                            </span>
+                            <div className={styles.groupMetricPill}>
+                              <span className={styles.metricPillLabel}>Total:</span>
+                              <span className={styles.metricPillValGreen}>
+                                ₹{group.totalRevenue.toLocaleString("en-IN")}
+                              </span>
+                            </div>
+                            <div className={styles.groupMetricPill}>
+                              <span className={styles.metricPillLabel}>Recv:</span>
+                              <span className={styles.metricPillValBlue}>
+                                ₹{group.totalReceived.toLocaleString("en-IN")}
+                              </span>
+                            </div>
+                            <div className={styles.groupMetricPill}>
+                              <span className={styles.metricPillLabel}>Due:</span>
+                              <span className={group.totalBalance > 0 ? styles.metricPillValRed : styles.metricPillValMuted}>
+                                ₹{group.totalBalance.toLocaleString("en-IN")}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                    {!isCollapsed &&
+                      group.invoices.map((inv) => {
+                        const invBalance =
+                          inv.balanceAmount !== undefined && inv.balanceAmount !== null && inv.balanceAmount !== 0
+                            ? inv.balanceAmount
+                            : Math.max(0, (inv.grandTotal || 0) - (inv.receivedAmount || 0));
+
+                        return (
+                          <tr key={inv._id} className={styles.groupedRow}>
+                            <td className={styles.invNumber}>{inv.invoiceNumber}</td>
+                            <td>{inv.invoiceDate ? formatDateGB(inv.invoiceDate) : "-"}</td>
+                            <td className={styles.customerName}>
+                              <div>{inv.buyerDetails?.businessName || "N/A"}</div>
+                              {groupBy !== "state" && (
+                                <div className={styles.tableRowSubtext}>
+                                  {getStateInfo(inv.placeOfSupply || inv.buyerDetails?.state || "").name}
+                                </div>
+                              )}
+                            </td>
+                            <td>{inv.lineItems?.length || 0} items</td>
+                            <td style={{ fontWeight: "700", color: "#34d399" }}>
+                              ₹{(inv.grandTotal || 0).toLocaleString("en-IN")}
+                            </td>
+                            <td>₹{(inv.receivedAmount || 0).toLocaleString("en-IN")}</td>
+                            <td style={{ fontWeight: "600", color: invBalance > 0 ? "#f87171" : "#a1a1aa" }}>
+                              ₹{invBalance.toLocaleString("en-IN")}
+                            </td>
+                            <td>
+                              <span
+                                className={`${styles.statusBadge} ${
+                                  inv.paymentStatus === "Paid"
+                                    ? styles.statusPaid
+                                    : inv.paymentStatus === "Pending"
+                                    ? styles.statusPending
+                                    : inv.paymentStatus === "Partially Paid"
+                                    ? styles.statusPartial
+                                    : styles.statusCancelled
+                                }`}
+                              >
+                                {inv.paymentStatus}
+                              </span>
+                            </td>
+                            <td style={{ position: "relative" }}>
+                              <div className={styles.actionMenuWrapper} data-action-menu>
+                                <button
+                                  type="button"
+                                  className={styles.threeDotsBtn}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenMenuId(openMenuId === inv._id ? null : inv._id);
+                                  }}
+                                  title="Actions"
+                                >
+                                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <circle cx="12" cy="5" r="1.5"></circle>
+                                    <circle cx="12" cy="12" r="1.5"></circle>
+                                    <circle cx="12" cy="19" r="1.5"></circle>
+                                  </svg>
+                                </button>
+
+                                {openMenuId === inv._id && (
+                                  <div className={styles.dropdownMenu}>
+                                    {!showArchived ? (
+                                      <>
+                                        <button
+                                          type="button"
+                                          className={styles.dropdownItem}
+                                          onClick={() => {
+                                            setOpenMenuId(null);
+                                            handleOpenGraphicalModal(inv);
+                                          }}
+                                        >
+                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                            <circle cx="12" cy="12" r="3"></circle>
+                                          </svg>
+                                          View (Graphical)
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className={styles.dropdownItem}
+                                          onClick={() => {
+                                            setOpenMenuId(null);
+                                            handleOpenPdf(inv);
+                                          }}
+                                        >
+                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14 2 14 8 20 8"></polyline>
+                                          </svg>
+                                          PDF Preview
+                                        </button>
+                                        {(inv.paymentStatus === "Pending" ||
+                                          inv.paymentStatus === "Partially Paid" ||
+                                          (inv.balanceAmount !== undefined
+                                            ? inv.balanceAmount > 0
+                                            : (inv.grandTotal || 0) - (inv.receivedAmount || 0) > 0)) && (
+                                          <button
+                                            type="button"
+                                            className={styles.dropdownItem}
+                                            onClick={() => {
+                                              setOpenMenuId(null);
+                                              handleOpenPaymentQr(inv);
+                                            }}
+                                          >
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2">
+                                              <rect x="3" y="3" width="7" height="7"></rect>
+                                              <rect x="14" y="3" width="7" height="7"></rect>
+                                              <rect x="14" y="14" width="7" height="7"></rect>
+                                              <rect x="3" y="14" width="7" height="7"></rect>
+                                            </svg>
+                                            Payment QR (Balance)
+                                          </button>
+                                        )}
+                                        <button
+                                          type="button"
+                                          className={styles.dropdownItem}
+                                          onClick={() => {
+                                            setOpenMenuId(null);
+                                            handleOpenEdit(inv);
+                                          }}
+                                        >
+                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                          </svg>
+                                          Edit Invoice
+                                        </button>
+                                        <div className={styles.dropdownDivider} />
+                                        <button
+                                          type="button"
+                                          className={`${styles.dropdownItem} ${styles.dropdownDanger}`}
+                                          onClick={() => {
+                                            setOpenMenuId(null);
+                                            handleArchive(inv._id, inv.invoiceNumber);
+                                          }}
+                                        >
+                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2">
+                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                          </svg>
+                                          Archive
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <button
+                                          type="button"
+                                          className={styles.dropdownItem}
+                                          onClick={() => {
+                                            setOpenMenuId(null);
+                                            handleOpenGraphicalModal(inv);
+                                          }}
+                                        >
+                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                            <circle cx="12" cy="12" r="3"></circle>
+                                          </svg>
+                                          View (Graphical)
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className={styles.dropdownItem}
+                                          onClick={() => {
+                                            setOpenMenuId(null);
+                                            handleOpenPdf(inv);
+                                          }}
+                                        >
+                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14 2 14 8 20 8"></polyline>
+                                          </svg>
+                                          PDF Preview
+                                        </button>
+                                        {(inv.paymentStatus === "Pending" ||
+                                          inv.paymentStatus === "Partially Paid" ||
+                                          (inv.balanceAmount !== undefined
+                                            ? inv.balanceAmount > 0
+                                            : (inv.grandTotal || 0) - (inv.receivedAmount || 0) > 0)) && (
+                                          <button
+                                            type="button"
+                                            className={styles.dropdownItem}
+                                            onClick={() => {
+                                              setOpenMenuId(null);
+                                              handleOpenPaymentQr(inv);
+                                            }}
+                                          >
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2">
+                                              <rect x="3" y="3" width="7" height="7"></rect>
+                                              <rect x="14" y="3" width="7" height="7"></rect>
+                                              <rect x="14" y="14" width="7" height="7"></rect>
+                                              <rect x="3" y="14" width="7" height="7"></rect>
+                                            </svg>
+                                            Payment QR (Balance)
+                                          </button>
+                                        )}
+                                        <button
+                                          type="button"
+                                          className={styles.dropdownItem}
+                                          onClick={() => {
+                                            setOpenMenuId(null);
+                                            handleRestore(inv._id, inv.invoiceNumber);
+                                          }}
+                                        >
+                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2">
+                                            <polyline points="1 4 1 10 7 10"></polyline>
+                                            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                                          </svg>
+                                          Restore Invoice
+                                        </button>
+                                        <div className={styles.dropdownDivider} />
+                                        <button
+                                          type="button"
+                                          className={`${styles.dropdownItem} ${styles.dropdownDanger}`}
+                                          onClick={() => {
+                                            setOpenMenuId(null);
+                                            handlePermanentDelete(inv._id, inv.invoiceNumber);
+                                          }}
+                                        >
+                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2">
+                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                          </svg>
+                                          Delete Permanently
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </React.Fragment>
                 );
               })
             )}
