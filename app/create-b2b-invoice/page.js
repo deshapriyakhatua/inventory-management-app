@@ -250,6 +250,7 @@ export default function CreateB2BInvoicePage() {
   const [buyerDetails, setBuyerDetails] = useState({
     businessName: "",
     phoneNo: "",
+    whatsAppNo: "",
     address: "",
     gstNo: "NA",
     state: "",
@@ -363,6 +364,7 @@ export default function CreateB2BInvoicePage() {
               setBuyerDetails({
                 businessName: matched.businessName || "",
                 phoneNo: matched.phoneNo || "",
+                whatsAppNo: matched.whatsAppNo || "",
                 address: matched.address || "",
                 gstNo: matched.gstNo || "NA",
                 state: matched.state || "19-West Bengal",
@@ -394,6 +396,7 @@ export default function CreateB2BInvoicePage() {
       setBuyerDetails({
         businessName: found.businessName || "",
         phoneNo: found.phoneNo || "",
+        whatsAppNo: found.whatsAppNo || "",
         address: found.address || "",
         gstNo: found.gstNo || "NA",
         state: found.state || "19-West Bengal",
@@ -413,6 +416,7 @@ export default function CreateB2BInvoicePage() {
     setBuyerDetails({
       businessName: "",
       phoneNo: "",
+      whatsAppNo: "",
       address: "",
       gstNo: "NA",
       state: "",
@@ -422,7 +426,7 @@ export default function CreateB2BInvoicePage() {
     });
   };
 
-  // Fetch Next Invoice ID (CZ-A0001 pattern)
+  // Fetch Next Invoice ID (starts from CZ-A9735, reuses lowest deleted ID)
   const fetchNextInvoiceId = async () => {
     setIsGeneratingId(true);
     try {
@@ -579,6 +583,7 @@ export default function CreateB2BInvoicePage() {
     setBuyerDetails({
       businessName: "",
       phoneNo: "",
+      whatsAppNo: "",
       address: "",
       gstNo: "NA",
       state: "",

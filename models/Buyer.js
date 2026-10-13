@@ -22,6 +22,11 @@ const buyerSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+    whatsAppNo: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     email: {
       type: String,
       default: "",

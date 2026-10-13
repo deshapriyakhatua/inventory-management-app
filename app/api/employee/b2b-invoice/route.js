@@ -6,6 +6,7 @@ import User from "@/models/User";
 import { decrypt } from "@/lib/session";
 import { cookies } from "next/headers";
 import { calculatePaymentStatus } from "@/lib/paymentStatus";
+import { getNextAvailableInvoiceNumber } from "@/lib/invoiceNumber";
 
 async function getSession() {
   const cookieStore = await cookies();
@@ -177,18 +178,23 @@ export async function POST(request) {
     } = body;
 
     // Validation
-    if (!invoiceNumber || !buyerDetails?.businessName || !lineItems || lineItems.length === 0) {
+    let finalInvoiceNumber = invoiceNumber && invoiceNumber.trim() ? invoiceNumber.trim().toUpperCase() : null;
+    if (!finalInvoiceNumber) {
+      finalInvoiceNumber = await getNextAvailableInvoiceNumber();
+    }
+
+    if (!buyerDetails?.businessName || !lineItems || lineItems.length === 0) {
       return NextResponse.json(
-        { error: "Invoice number, buyer name, and at least one item are required" },
+        { error: "Buyer name and at least one item are required" },
         { status: 400 }
       );
     }
 
     // Check if invoice number exists
-    const existing = await B2BInvoice.findOne({ invoiceNumber });
+    const existing = await B2BInvoice.findOne({ invoiceNumber: finalInvoiceNumber });
     if (existing) {
       return NextResponse.json(
-        { error: `Invoice number ${invoiceNumber} already exists` },
+        { error: `Invoice number ${finalInvoiceNumber} already exists` },
         { status: 400 }
       );
     }
@@ -202,7 +208,7 @@ export async function POST(request) {
         : calculatePaymentStatus(computedGrandTotal, computedReceived);
 
     const newInvoice = new B2BInvoice({
-      invoiceNumber,
+      invoiceNumber: finalInvoiceNumber,
       invoiceDate: invoiceDate ? new Date(invoiceDate) : new Date(),
       dueDate: dueDate ? new Date(dueDate) : undefined,
       placeOfSupply: placeOfSupply || "19-West Bengal",

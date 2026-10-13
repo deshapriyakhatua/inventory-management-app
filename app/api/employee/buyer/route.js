@@ -45,6 +45,7 @@ export async function GET(request) {
               gstNo: bd.gstNo || "NA",
               contactPerson: bd.contactPerson || "",
               phoneNo: bd.phoneNo || "",
+              whatsAppNo: bd.whatsAppNo || "",
               email: bd.email || "",
               address: bd.address || "",
               state: bd.state || "19-West Bengal",
@@ -77,6 +78,7 @@ export async function GET(request) {
           $or: [
             { businessName: searchRegex },
             { phoneNo: searchRegex },
+            { whatsAppNo: searchRegex },
             { contactPerson: searchRegex },
             { gstNo: searchRegex },
             { email: searchRegex },
@@ -166,6 +168,7 @@ export async function POST(request) {
       gstNo,
       contactPerson,
       phoneNo,
+      whatsAppNo,
       email,
       address,
       state,
@@ -191,6 +194,7 @@ export async function POST(request) {
       if (gstNo !== undefined) buyer.gstNo = gstNo;
       if (contactPerson !== undefined) buyer.contactPerson = contactPerson;
       if (phoneNo !== undefined) buyer.phoneNo = phoneNo;
+      if (whatsAppNo !== undefined) buyer.whatsAppNo = whatsAppNo;
       if (email !== undefined) buyer.email = email;
       if (address !== undefined) buyer.address = address;
       if (state !== undefined) buyer.state = state;
@@ -211,6 +215,7 @@ export async function POST(request) {
       gstNo: gstNo || "NA",
       contactPerson: contactPerson || "",
       phoneNo: phoneNo || "",
+      whatsAppNo: whatsAppNo || "",
       email: email || "",
       address: address || "",
       state: state || "19-West Bengal",

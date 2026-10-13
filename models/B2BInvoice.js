@@ -42,6 +42,7 @@ const b2bInvoiceSchema = new mongoose.Schema(
       gstNo: { type: String, default: "NA" },
       contactPerson: { type: String, default: "" },
       phoneNo: { type: String, default: "" },
+      whatsAppNo: { type: String, default: "" },
       email: { type: String, default: "" },
       address: { type: String, default: "" },
       state: { type: String, default: "19-West Bengal" },

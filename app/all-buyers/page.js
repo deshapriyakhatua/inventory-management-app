@@ -46,6 +46,7 @@ export default function AllBuyersPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedState, setSelectedState] = useState("ALL");
+  const [gstFilter, setGstFilter] = useState("ALL"); // "ALL" | "REGISTERED" | "UNREGISTERED"
   const [sortBy, setSortBy] = useState("name_asc");
   const [viewMode, setViewMode] = useState("grid"); // "grid" | "table"
   const [showArchived, setShowArchived] = useState(false);
@@ -58,7 +59,7 @@ export default function AllBuyersPage() {
 
   // Archive / Delete Confirmation
   const [confirmTarget, setConfirmTarget] = useState(null);
-  const [confirmAction, setConfirmAction] = useState("archive"); // "archive" | "restore"
+  const [confirmAction, setConfirmAction] = useState("archive"); // "archive" | "restore" | "delete"
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
 
@@ -67,6 +68,7 @@ export default function AllBuyersPage() {
     businessName: "",
     contactPerson: "",
     phoneNo: "",
+    whatsAppNo: "",
     email: "",
     address: "",
     state: "19-West Bengal",
@@ -107,6 +109,7 @@ export default function AllBuyersPage() {
       businessName: "",
       contactPerson: "",
       phoneNo: "",
+      whatsAppNo: "",
       email: "",
       address: "",
       state: "19-West Bengal",
@@ -124,6 +127,7 @@ export default function AllBuyersPage() {
       businessName: buyer.businessName || "",
       contactPerson: buyer.contactPerson || "",
       phoneNo: buyer.phoneNo || "",
+      whatsAppNo: buyer.whatsAppNo || "",
       email: buyer.email || "",
       address: buyer.address || "",
       state: buyer.state || "19-West Bengal",
@@ -175,7 +179,7 @@ export default function AllBuyersPage() {
     }
   };
 
-  // Prompt Archive / Delete
+  // Prompt Archive
   const promptArchive = (buyer) => {
     setConfirmTarget(buyer);
     setConfirmAction("archive");
@@ -189,7 +193,14 @@ export default function AllBuyersPage() {
     setIsConfirmOpen(true);
   };
 
-  // Execute Archive / Restore
+  // Prompt Permanent Delete
+  const promptPermanentDelete = (buyer) => {
+    setConfirmTarget(buyer);
+    setConfirmAction("delete");
+    setIsConfirmOpen(true);
+  };
+
+  // Execute Archive / Restore / Permanent Delete
   const handleConfirmAction = async () => {
     if (!confirmTarget) return;
     setIsActionLoading(true);
@@ -220,6 +231,21 @@ export default function AllBuyersPage() {
           fetchBuyers();
         } else {
           toast.error(data.error || "Failed to restore buyer");
+        }
+      } else if (confirmAction === "delete") {
+        const res = await fetch(`/api/employee/buyer?id=${confirmTarget._id}&permanent=true`, {
+          method: "DELETE",
+        });
+        const data = await res.json();
+        if (res.ok) {
+          toast.success("Buyer permanently deleted!");
+          setIsConfirmOpen(false);
+          if (viewingBuyer && viewingBuyer._id === confirmTarget._id) {
+            setViewingBuyer(null);
+          }
+          fetchBuyers();
+        } else {
+          toast.error(data.error || "Failed to permanently delete buyer");
         }
       }
     } catch (err) {
@@ -253,6 +279,21 @@ export default function AllBuyersPage() {
     return Array.from(set).sort();
   }, [buyers]);
 
+  // Counts of GST Registered vs Non-Registered
+  const gstCounts = useMemo(() => {
+    let registered = 0;
+    let unregistered = 0;
+    buyers.forEach((b) => {
+      const g = b.gstNo?.trim();
+      if (g && g.toUpperCase() !== "NA" && g.toUpperCase() !== "N/A") {
+        registered++;
+      } else {
+        unregistered++;
+      }
+    });
+    return { registered, unregistered };
+  }, [buyers]);
+
   // Filtered and Sorted Buyers
   const filteredBuyers = useMemo(() => {
     let result = [...buyers];
@@ -265,6 +306,7 @@ export default function AllBuyersPage() {
           b.businessName?.toLowerCase().includes(q) ||
           b.contactPerson?.toLowerCase().includes(q) ||
           b.phoneNo?.toLowerCase().includes(q) ||
+          b.whatsAppNo?.toLowerCase().includes(q) ||
           b.email?.toLowerCase().includes(q) ||
           b.gstNo?.toLowerCase().includes(q) ||
           b.address?.toLowerCase().includes(q) ||
@@ -275,6 +317,19 @@ export default function AllBuyersPage() {
     // State filter
     if (selectedState !== "ALL") {
       result = result.filter((b) => b.state === selectedState);
+    }
+
+    // GST Registration filter
+    if (gstFilter === "REGISTERED") {
+      result = result.filter((b) => {
+        const g = b.gstNo?.trim();
+        return Boolean(g && g.toUpperCase() !== "NA" && g.toUpperCase() !== "N/A");
+      });
+    } else if (gstFilter === "UNREGISTERED") {
+      result = result.filter((b) => {
+        const g = b.gstNo?.trim();
+        return !g || g.toUpperCase() === "NA" || g.toUpperCase() === "N/A";
+      });
     }
 
     // Sorting
@@ -298,7 +353,7 @@ export default function AllBuyersPage() {
     });
 
     return result;
-  }, [buyers, search, selectedState, sortBy]);
+  }, [buyers, search, selectedState, gstFilter, sortBy]);
 
   return (
     <div className={styles.container}>
@@ -430,7 +485,7 @@ export default function AllBuyersPage() {
           <input
             type="text"
             className={styles.searchInput}
-            placeholder="Search buyer name, contact, phone, GSTIN, address..."
+            placeholder="Search buyer name, contact, phone, WhatsApp, GSTIN, address..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -459,6 +514,17 @@ export default function AllBuyersPage() {
                 {st}
               </option>
             ))}
+          </select>
+
+          {/* GST Registration Filter */}
+          <select
+            className={styles.selectInput}
+            value={gstFilter}
+            onChange={(e) => setGstFilter(e.target.value)}
+          >
+            <option value="ALL">All GST Status</option>
+            <option value="REGISTERED">GST Registered ({gstCounts.registered})</option>
+            <option value="UNREGISTERED">Non-Registered ({gstCounts.unregistered})</option>
           </select>
 
           {/* Sort Filter */}
@@ -532,8 +598,8 @@ export default function AllBuyersPage() {
           </svg>
           <div className={styles.emptyStateTitle}>No buyers found</div>
           <p style={{ margin: 0, fontSize: "0.85rem", color: "#64748b" }}>
-            {search
-              ? "Try adjusting your search query or state filter."
+            {search || selectedState !== "ALL" || gstFilter !== "ALL"
+              ? "Try adjusting your search query, state, or GST status filter."
               : "Click 'Add New Buyer' to create your first customer profile."}
           </p>
         </div>
@@ -595,6 +661,30 @@ export default function AllBuyersPage() {
                         className={styles.copyBtn}
                         onClick={() => copyToClipboard(buyer.phoneNo, "Phone")}
                         title="Copy phone"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+
+                  {buyer.whatsAppNo && (
+                    <div className={styles.detailRow}>
+                      <span className={styles.detailIcon} style={{ color: "#25D366" }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                        </svg>
+                      </span>
+                      <span className={styles.detailText} title={`WhatsApp: ${buyer.whatsAppNo}`}>
+                        {buyer.whatsAppNo}
+                      </span>
+                      <button
+                        type="button"
+                        className={styles.copyBtn}
+                        onClick={() => copyToClipboard(buyer.whatsAppNo, "WhatsApp")}
+                        title="Copy WhatsApp"
                       >
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -699,17 +789,32 @@ export default function AllBuyersPage() {
                   </button>
 
                   {buyer.isArchived ? (
-                    <button
-                      type="button"
-                      className={styles.iconActionBtn}
-                      onClick={() => promptRestore(buyer)}
-                      title="Restore Buyer"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2">
-                        <polyline points="1 4 1 10 7 10"></polyline>
-                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-                      </svg>
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        className={styles.iconActionBtn}
+                        onClick={() => promptRestore(buyer)}
+                        title="Restore Buyer"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2">
+                          <polyline points="1 4 1 10 7 10"></polyline>
+                          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.iconActionBtn} ${styles.iconActionBtnDanger}`}
+                        onClick={() => promptPermanentDelete(buyer)}
+                        title="Permanently Delete Buyer"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          <line x1="10" y1="11" x2="10" y2="17"></line>
+                          <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                      </button>
+                    </>
                   ) : (
                     <button
                       type="button"
@@ -736,7 +841,7 @@ export default function AllBuyersPage() {
               <tr>
                 <th className={styles.th}>Buyer Name</th>
                 <th className={styles.th}>Contact Person</th>
-                <th className={styles.th}>Phone / Email</th>
+                <th className={styles.th}>Contact Info</th>
                 <th className={styles.th}>State / Address</th>
                 <th className={styles.th}>GSTIN</th>
                 <th className={styles.th}>Invoices</th>
@@ -765,8 +870,24 @@ export default function AllBuyersPage() {
                   </td>
                   <td className={styles.td}>
                     <div>{buyer.phoneNo || "—"}</div>
+                    {buyer.whatsAppNo && (
+                      <div
+                        style={{
+                          fontSize: "0.75rem",
+                          color: "#34d399",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                          marginTop: 2,
+                        }}
+                        title={`WhatsApp: ${buyer.whatsAppNo}`}
+                      >
+                        <span style={{ opacity: 0.8 }}>WA:</span>
+                        <span>{buyer.whatsAppNo}</span>
+                      </div>
+                    )}
                     {buyer.email && (
-                      <div style={{ fontSize: "0.75rem", color: "#94a3b8" }}>
+                      <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: 2 }}>
                         {buyer.email}
                       </div>
                     )}
@@ -830,14 +951,24 @@ export default function AllBuyersPage() {
                         ✏️
                       </button>
                       {buyer.isArchived ? (
-                        <button
-                          type="button"
-                          className={styles.iconActionBtn}
-                          onClick={() => promptRestore(buyer)}
-                          title="Restore Buyer"
-                        >
-                          🔄
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            className={styles.iconActionBtn}
+                            onClick={() => promptRestore(buyer)}
+                            title="Restore Buyer"
+                          >
+                            🔄
+                          </button>
+                          <button
+                            type="button"
+                            className={`${styles.iconActionBtn} ${styles.iconActionBtnDanger}`}
+                            onClick={() => promptPermanentDelete(buyer)}
+                            title="Permanently Delete Buyer"
+                          >
+                            🗑️
+                          </button>
+                        </>
                       ) : (
                         <button
                           type="button"
@@ -914,6 +1045,19 @@ export default function AllBuyersPage() {
                       value={formData.phoneNo}
                       onChange={(e) =>
                         setFormData({ ...formData, phoneNo: e.target.value })
+                      }
+                    />
+                  </div>
+
+                  <div className={styles.inputGroup}>
+                    <label className={styles.label}>WhatsApp Number</label>
+                    <input
+                      type="text"
+                      className={styles.input}
+                      placeholder="e.g. +91 9876543210"
+                      value={formData.whatsAppNo}
+                      onChange={(e) =>
+                        setFormData({ ...formData, whatsAppNo: e.target.value })
                       }
                     />
                   </div>
@@ -1111,6 +1255,30 @@ export default function AllBuyersPage() {
                 </div>
 
                 <div className={styles.profileDetailItem}>
+                  <span className={styles.profileDetailLabel}>WhatsApp Number</span>
+                  <span className={styles.profileDetailVal}>
+                    {viewingBuyer.whatsAppNo ? (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        <span>{viewingBuyer.whatsAppNo}</span>
+                        <button
+                          type="button"
+                          className={styles.copyBtn}
+                          onClick={() => copyToClipboard(viewingBuyer.whatsAppNo, "WhatsApp")}
+                          title="Copy WhatsApp"
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                          </svg>
+                        </button>
+                      </span>
+                    ) : (
+                      "Not specified"
+                    )}
+                  </span>
+                </div>
+
+                <div className={styles.profileDetailItem}>
                   <span className={styles.profileDetailLabel}>Email Address</span>
                   <span className={styles.profileDetailVal}>
                     {viewingBuyer.email || "Not specified"}
@@ -1144,6 +1312,16 @@ export default function AllBuyersPage() {
             </div>
 
             <div className={styles.modalFooter}>
+              {viewingBuyer.isArchived && (
+                <button
+                  type="button"
+                  className={styles.cancelBtn}
+                  style={{ color: "#f87171", borderColor: "rgba(239, 68, 68, 0.4)", marginRight: "auto" }}
+                  onClick={() => promptPermanentDelete(viewingBuyer)}
+                >
+                  Delete Permanently
+                </button>
+              )}
               <Link
                 href={`/create-b2b-invoice?buyerId=${viewingBuyer._id}`}
                 className={styles.createInvoiceBtn}
@@ -1166,14 +1344,28 @@ export default function AllBuyersPage() {
       {/* Confirmation Modal */}
       <ConfirmModal
         isOpen={isConfirmOpen}
-        title={confirmAction === "archive" ? "Archive Buyer" : "Restore Buyer"}
+        title={
+          confirmAction === "archive"
+            ? "Archive Buyer"
+            : confirmAction === "restore"
+            ? "Restore Buyer"
+            : "Permanently Delete Buyer"
+        }
         message={
           confirmAction === "archive"
             ? `Are you sure you want to archive "${confirmTarget?.businessName}"? This buyer will be hidden from the default list.`
-            : `Are you sure you want to restore "${confirmTarget?.businessName}"?`
+            : confirmAction === "restore"
+            ? `Are you sure you want to restore "${confirmTarget?.businessName}"?`
+            : `Are you sure you want to permanently delete "${confirmTarget?.businessName}"? This action cannot be undone and will permanently remove this customer profile from the database.`
         }
-        confirmLabel={confirmAction === "archive" ? "Yes, Archive" : "Yes, Restore"}
-        variant={confirmAction === "archive" ? "danger" : "info"}
+        confirmLabel={
+          confirmAction === "archive"
+            ? "Yes, Archive"
+            : confirmAction === "restore"
+            ? "Yes, Restore"
+            : "Yes, Delete Permanently"
+        }
+        variant={confirmAction === "restore" ? "info" : "danger"}
         isLoading={isActionLoading}
         onConfirm={handleConfirmAction}
         onClose={() => setIsConfirmOpen(false)}
