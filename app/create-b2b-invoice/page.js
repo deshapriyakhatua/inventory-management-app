@@ -353,6 +353,29 @@ export default function CreateB2BInvoicePage() {
       const data = await res.json();
       if (res.ok && data.data) {
         setBuyersList(data.data);
+        if (typeof window !== "undefined") {
+          const params = new URLSearchParams(window.location.search);
+          const qBuyerId = params.get("buyerId");
+          if (qBuyerId) {
+            const matched = data.data.find((b) => b._id === qBuyerId);
+            if (matched) {
+              setSelectedBuyerId(matched._id);
+              setBuyerDetails({
+                businessName: matched.businessName || "",
+                phoneNo: matched.phoneNo || "",
+                address: matched.address || "",
+                gstNo: matched.gstNo || "NA",
+                state: matched.state || "19-West Bengal",
+                email: matched.email || "",
+                contactPerson: matched.contactPerson || "",
+                pinCode: matched.pinCode || "",
+              });
+              if (matched.state) {
+                setPlaceOfSupply(matched.state);
+              }
+            }
+          }
+        }
       }
     } catch (err) {
       console.error("Failed to fetch buyers:", err);
